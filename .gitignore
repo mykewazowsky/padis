@@ -1,0 +1,28 @@
+# env
+.env
+.env.*
+!.env.example
+
+# python
+backend/venv/
+backend/**/__pycache__/
+backend/**/*.pyc
+
+# next
+frontend/.next/
+frontend/node_modules/
+
+# editor / os
+.vscode/
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+
+# Data
+data/
+
+# generated files
+*.pdf
+*.bak

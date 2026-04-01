@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Laporan Regional PADIS</title>
+  <link rel="stylesheet" href="file:///{{ css_path.replace('\\', '/') }}">
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<div class="page cover-page">
+  <div class="cover-content">
+    <div class="cover-kicker">LAPORAN ANALISIS RISIKO WILAYAH</div>
+    <div class="cover-title">PADIS Regional</div>
+    <div class="cover-subtitle">
+      Profil Risiko Kerugian Pertanian Wilayah {{ region }}
+    </div>
+
+    <div class="cover-divider"></div>
+
+    <div class="cover-meta">
+      <div><b>Wilayah</b><br>{{ region }}</div>
+      <div><b>Hazard</b><br>{{ hazard_label }}</div>
+      <div><b>Climate</b><br>{{ climate_label }}</div>
+      <div><b>Return Period</b><br>{{ scenario_label }}</div>
+      <div><b>Tanggal</b><br>{{ generated_at }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PAGE 1: REGIONAL OVERVIEW ================= -->
+<div class="page page-break">
+
+  <h1 class="section-title">Ringkasan Wilayah</h1>
+  <p class="section-desc">{{ summary_text }}</p>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Loss</div>
+      <div class="metric-value">{{ total_loss }}</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Wilayah</div>
+      <div class="metric-value">{{ top_region }}</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Jumlah Unit Analisis</div>
+      <div class="metric-value">{{ data_count }}</div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <h3>Insight Lokal</h3>
+    <p>{{ insight_text }}</p>
+    <p class="interpretation">{{ interpretation }}</p>
+  </div>
+
+</div>
+
+<!-- ================= PAGE 2: MAP HERO ================= -->
+<div class="page page-break">
+
+  <h2 class="section-title">Peta Risiko Wilayah</h2>
+  <p class="section-desc">
+    Visualisasi spasial risiko kerugian untuk wilayah {{ region }}.
+  </p>
+
+  {% if map_path %}
+  <div class="map-hero">
+    <img src="file:///{{ map_path.replace('\\', '/') }}" alt="Peta Risiko Regional">
+  </div>
+  {% endif %}
+
+  <div class="legend-section">
+    {% for item in legend_items %}
+    <div class="legend-chip">
+      <span class="legend-color" style="background: {{ item.color }}"></span>
+      {{ item.label }}
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- ================= PAGE 3: CLIMATE IMPACT ================= -->
+<div class="page page-break">
+
+  <h2 class="section-title">Dampak Perubahan Iklim</h2>
+  <p class="section-desc">
+    Perbandingan risiko tahunan pada baseline dan skenario climate untuk wilayah {{ region }}.
+  </p>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">AAL Baseline</div>
+      <div class="metric-value">{{ aal_nonclimate }}</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">AAL Climate</div>
+      <div class="metric-value">{{ aal_climate }}</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Perubahan</div>
+      <div class="metric-value">{{ climate_change_pct }}</div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <p>{{ climate_impact_summary }}</p>
+  </div>
+
+</div>
+
+<!-- ================= PAGE 4: INTERPRETASI LOKAL ================= -->
+<div class="page page-break">
+
+  <h2 class="section-title">Interpretasi Risiko Wilayah</h2>
+  <p class="section-desc">
+    Penjelasan singkat mengenai arti temuan analisis untuk wilayah {{ region }}.
+  </p>
+
+  <div class="summary-card">
+    <p class="summary-text">{{ interpretation }}</p>
+  </div>
+
+  <div class="insight-box">
+    <h3>Makna Analisis</h3>
+    <p>
+      Laporan regional dibaca sebagai profil risiko lokal untuk wilayah terpilih.
+      Fokus utamanya adalah memahami intensitas kerugian, perubahan risiko tahunan,
+      dan posisi wilayah dalam skenario analisis aktif.
+    </p>
+  </div>
+
+</div>
+
+<!-- ================= PAGE 5: IMPLIKASI ================= -->
+<div class="page page-break">
+
+  <h2 class="section-title">Implikasi dan Tindak Lanjut</h2>
+  <p class="section-desc">
+    Implikasi praktis dari hasil analisis untuk pembacaan risiko wilayah.
+  </p>
+
+  <ul class="bullet-list">
+    {% for point in implication_points %}
+    <li>{{ point }}</li>
+    {% endfor %}
+  </ul>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Laporan Nasional PADIS</title>
+  <link rel="stylesheet" href="file:///{{ css_path.replace('\\', '/') }}">
+</head>
+<body>
+  <div class="page onepage-report">
+
+    <!-- ================= HEADER ================= -->
+    <header class="report-topbar">
+      <div class="brand-block">
+        <div class="brand-kicker">PADIS REPORT</div>
+        <h1 class="report-title">Ringkasan Risiko Nasional</h1>
+        <p class="report-subtitle">
+          Paddy Loss and Damage Information System
+        </p>
+      </div>
+
+      <div class="report-meta-pills">
+        <span class="meta-pill">{{ hazard_label }}</span>
+        <span class="meta-pill">{{ climate_label }}</span>
+        <span class="meta-pill">{{ scenario_label }}</span>
+        <span class="meta-pill">{{ generated_at }}</span>
+      </div>
+    </header>
+
+    <!-- ================= MAIN GRID ================= -->
+    <section class="onepage-grid">
+
+      <!-- ========== LEFT: MAP HERO ========== -->
+      <div class="map-panel">
+        <div class="panel-header">
+          <div>
+            <div class="section-kicker">Peta Utama</div>
+            <h2 class="section-title-sm">Pola Risiko Nasional</h2>
+          </div>
+        </div>
+
+        <div class="map-frame-onepage">
+          {% if map_path %}
+          <img src="file:///{{ map_path.replace('\\', '/') }}" alt="Peta Risiko Nasional">
+          {% else %}
+          <div class="empty-block">
+            Peta tidak tersedia untuk konfigurasi ini.
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="legend-inline-wrap">
+          {% for item in legend_items %}
+          <div class="legend-chip">
+            <span class="legend-swatch" style="background: {{ item.color }}"></span>
+            <span class="legend-text">{{ item.label }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ========== RIGHT: SUMMARY ========== -->
+      <aside class="summary-panel">
+
+        <!-- KPI -->
+        <div class="summary-card summary-card-primary">
+          <div class="summary-label">Total Kerugian</div>
+          <div class="summary-value">{{ total_loss }}</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-label">Wilayah Tertinggi</div>
+          <div class="summary-value summary-value-md">{{ top_region }}</div>
+          <div class="summary-sub">{{ top_loss }}</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-label">Perubahan AAL</div>
+          <div class="summary-value summary-value-md">{{ climate_change_pct }}</div>
+          <div class="summary-sub">{{ aal_delta }}</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-label">Cakupan Data</div>
+          <div class="summary-value summary-value-md">{{ data_count }}</div>
+          <div class="summary-sub">wilayah</div>
+        </div>
+
+        <!-- Executive summary -->
+        <div class="narrative-card">
+          <div class="section-kicker">Ringkasan</div>
+          <p class="narrative-text">{{ summary_text }}</p>
+        </div>
+
+        <!-- Insight -->
+        <div class="narrative-card narrative-highlight">
+          <div class="section-kicker">Insight Utama</div>
+          <ul class="insight-list">
+            <li>Wilayah <strong>{{ top_region }}</strong> menjadi hotspot utama dalam skenario aktif.</li>
+            <li>Tiga wilayah teratas menyumbang <strong>{{ top3_share_pct }}%</strong> dari total kerugian nasional.</li>
+            <li>{{ interpretation }}</li>
+          </ul>
+        </div>
+
+        <!-- Metadata -->
+        <div class="meta-card">
+          <div class="section-kicker">Metadata</div>
+          <div class="meta-list">
+            <div class="meta-item">
+              <span class="meta-key">Hazard</span>
+              <span class="meta-val">{{ hazard_label }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-key">Climate</span>
+              <span class="meta-val">{{ climate_label }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-key">Return Period</span>
+              <span class="meta-val">{{ scenario_label }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-key">Tanggal</span>
+              <span class="meta-val">{{ generated_at }}</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="report-footer onepage-footer">
+      <span>PADIS • National Executive Summary</span>
+      <span>Halaman 1</span>
+    </footer>
+  </div>
+</body>
+</html>

@@ -21,7 +21,12 @@ Thumbs.db
 *.log
 
 # Data
-data/
+data/*
+!data/output/
+
+data/output/*
+!data/output/*_v2.csv
+!data/output/*_v2.geojson
 
 # generated files
 *.pdf

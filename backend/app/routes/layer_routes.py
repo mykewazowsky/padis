@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 layer_bp = Blueprint("layer_bp", __name__)
 
 BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parents[2]
+PROJECT_ROOT = BASE_DIR.parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
 

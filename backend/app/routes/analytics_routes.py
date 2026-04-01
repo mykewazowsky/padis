@@ -7,7 +7,7 @@ analytics_bp = Blueprint("analytics_bp", __name__)
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parents[2]
+PROJECT_ROOT = BASE_DIR.parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
 AAL_MULTI_PATH = os.path.join(OUTPUT_DIR, "kabkota_multihazard_aal_v2.csv")

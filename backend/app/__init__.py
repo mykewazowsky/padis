@@ -6,7 +6,7 @@ load_dotenv()
 from flask import Flask
 from flask_cors import CORS
 
-from app.routes import analytics_bp, auth_bp, layer_bp, report_bp
+from app.routes import analytics_bp, auth_bp, layer_bp
 from app.routes.admin.data_routes import admin_data_bp
 from app.routes.admin.output_routes import admin_output_bp
 from app.routes.admin.process_routes import admin_process_bp
@@ -75,7 +75,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(layer_bp)
     app.register_blueprint(analytics_bp)
-    app.register_blueprint(report_bp)
+    #app.register_blueprint(report_bp)#
 
     app.register_blueprint(admin_data_bp)
     app.register_blueprint(admin_output_bp)

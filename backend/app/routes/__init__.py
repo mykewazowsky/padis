@@ -6,6 +6,5 @@ from .auth import auth_bp
 __all__ = [
     "analytics_bp",
     "layer_bp",
-    "report_bp",
     "auth_bp",
 ]

@@ -4,9 +4,11 @@ from flask import Blueprint, request, jsonify
 
 analytics_bp = Blueprint("analytics_bp", __name__)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "..", ".."))
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "output")
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parents[2]
+OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
 AAL_MULTI_PATH = os.path.join(OUTPUT_DIR, "kabkota_multihazard_aal_v2.csv")
 AAL_FLOOD_PATH = os.path.join(OUTPUT_DIR, "kabkota_flood_aal_v2.csv")

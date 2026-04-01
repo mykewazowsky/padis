@@ -4,9 +4,11 @@ from flask import Blueprint, request, send_file, jsonify
 
 layer_bp = Blueprint("layer_bp", __name__)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "..", ".."))
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "output")
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parents[2]
+OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
 
 @layer_bp.route("/")

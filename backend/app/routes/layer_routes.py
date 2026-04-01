@@ -1,10 +1,10 @@
 import os
+import json
+from pathlib import Path
 
-from flask import Blueprint, request, send_file, jsonify
+from flask import Blueprint, request, jsonify
 
 layer_bp = Blueprint("layer_bp", __name__)
-
-from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parents[2]
@@ -16,20 +16,31 @@ def home():
     return {"message": "PADIS API running 🚀"}
 
 
-@layer_bp.route("/api/multihazard")
-def get_multihazard():
+@layer_bp.route("/api/debug-layer")
+def debug_layer():
+    hazard = request.args.get("hazard", "multi")
     scenario = request.args.get("scenario", "rp25")
+    climate = request.args.get("climate", "nonclimate")
 
-    allowed = {"rp25", "rp50", "rp100", "rp250"}
-    if scenario not in allowed:
-        return jsonify({"error": "scenario tidak valid"}), 400
+    file_map = {
+        ("multi", "nonclimate"): OUTPUT_DIR / f"web_multi_nonclimate_{scenario}_v2.geojson",
+        ("multi", "climate"): OUTPUT_DIR / f"web_multi_climate_{scenario}_v2.geojson",
+        ("flood", "nonclimate"): OUTPUT_DIR / f"web_flood_nonclimate_{scenario}_v2.geojson",
+        ("flood", "climate"): OUTPUT_DIR / f"web_flood_climate_{scenario}_v2.geojson",
+        ("drought", "nonclimate"): OUTPUT_DIR / f"web_drought_nonclimate_{scenario}_v2.geojson",
+        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson",
+    }
 
-    file_path = os.path.join(OUTPUT_DIR, f"web_multihazard_{scenario}.geojson")
+    file_path = file_map.get((hazard, climate))
 
-    if not os.path.exists(file_path):
-        return jsonify({"error": "file output tidak ditemukan"}), 404
-
-    return send_file(file_path, mimetype="application/json")
+    return jsonify({
+        "project_root": str(PROJECT_ROOT),
+        "output_dir": str(OUTPUT_DIR),
+        "output_dir_exists": OUTPUT_DIR.exists(),
+        "requested_file": str(file_path) if file_path else None,
+        "requested_file_exists": file_path.exists() if file_path else False,
+        "sample_files": sorted([p.name for p in OUTPUT_DIR.glob("*")])[:20] if OUTPUT_DIR.exists() else []
+    })
 
 
 @layer_bp.route("/api/layer")
@@ -52,20 +63,27 @@ def get_layer():
         return jsonify({"error": "climate condition tidak valid"}), 400
 
     file_map = {
-        ("multi", "nonclimate"): os.path.join(OUTPUT_DIR, f"web_multi_nonclimate_{scenario}_v2.geojson"),
-        ("multi", "climate"): os.path.join(OUTPUT_DIR, f"web_multi_climate_{scenario}_v2.geojson"),
-        ("flood", "nonclimate"): os.path.join(OUTPUT_DIR, f"web_flood_nonclimate_{scenario}_v2.geojson"),
-        ("flood", "climate"): os.path.join(OUTPUT_DIR, f"web_flood_climate_{scenario}_v2.geojson"),
-        ("drought", "nonclimate"): os.path.join(OUTPUT_DIR, f"web_drought_nonclimate_{scenario}_v2.geojson"),
-        ("drought", "climate"): os.path.join(OUTPUT_DIR, f"web_drought_climate_{scenario}_v2.geojson"),
+        ("multi", "nonclimate"): OUTPUT_DIR / f"web_multi_nonclimate_{scenario}_v2.geojson",
+        ("multi", "climate"): OUTPUT_DIR / f"web_multi_climate_{scenario}_v2.geojson",
+        ("flood", "nonclimate"): OUTPUT_DIR / f"web_flood_nonclimate_{scenario}_v2.geojson",
+        ("flood", "climate"): OUTPUT_DIR / f"web_flood_climate_{scenario}_v2.geojson",
+        ("drought", "nonclimate"): OUTPUT_DIR / f"web_drought_nonclimate_{scenario}_v2.geojson",
+        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson",
     }
 
     file_path = file_map[(hazard, climate)]
 
-    if not os.path.exists(file_path):
-        return jsonify({"error": "file layer tidak ditemukan"}), 404
+    if not file_path.exists():
+        return jsonify({
+            "error": "file layer tidak ditemukan",
+            "file_path": str(file_path),
+            "output_dir": str(OUTPUT_DIR),
+        }), 404
 
-    return send_file(file_path, mimetype="application/json")
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    return jsonify(data)
 
 
 @layer_bp.route("/api/regions")
@@ -77,16 +95,16 @@ def get_regions():
     climate = request.args.get("climate", "nonclimate")
 
     file_map = {
-        ("multi", "nonclimate"): os.path.join(OUTPUT_DIR, f"web_multi_nonclimate_{scenario}_v2.geojson"),
-        ("multi", "climate"): os.path.join(OUTPUT_DIR, f"web_multi_climate_{scenario}_v2.geojson"),
-        ("flood", "nonclimate"): os.path.join(OUTPUT_DIR, f"web_flood_nonclimate_{scenario}_v2.geojson"),
-        ("flood", "climate"): os.path.join(OUTPUT_DIR, f"web_flood_climate_{scenario}_v2.geojson"),
-        ("drought", "nonclimate"): os.path.join(OUTPUT_DIR, f"web_drought_nonclimate_{scenario}_v2.geojson"),
-        ("drought", "climate"): os.path.join(OUTPUT_DIR, f"web_drought_climate_{scenario}_v2.geojson"),
+        ("multi", "nonclimate"): OUTPUT_DIR / f"web_multi_nonclimate_{scenario}_v2.geojson",
+        ("multi", "climate"): OUTPUT_DIR / f"web_multi_climate_{scenario}_v2.geojson",
+        ("flood", "nonclimate"): OUTPUT_DIR / f"web_flood_nonclimate_{scenario}_v2.geojson",
+        ("flood", "climate"): OUTPUT_DIR / f"web_flood_climate_{scenario}_v2.geojson",
+        ("drought", "nonclimate"): OUTPUT_DIR / f"web_drought_nonclimate_{scenario}_v2.geojson",
+        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson"),
     }
 
     file_path = file_map.get((hazard, climate))
-    if not file_path or not os.path.exists(file_path):
+    if not file_path or not file_path.exists():
         return jsonify([])
 
     gdf = gpd.read_file(file_path)

@@ -844,8 +844,6 @@ export default function MapCanvas({
       <MapLayerControlPanel
         activeLayers={activeLayers}
         onToggleLayer={onToggleLayer}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
       />
 
       <MapLegendPanel

@@ -1,33 +1,39 @@
-# env
 .env
 .env.*
 !.env.example
 
-# python
 backend/venv/
 backend/**/__pycache__/
 backend/**/*.pyc
 
-# next
 frontend/.next/
 frontend/node_modules/
 
-# editor / os
 .vscode/
 .DS_Store
 Thumbs.db
-
-# logs
 *.log
 
-# Data
-data/*
-!data/output/
+# ignore all data by default
+data/
+backend/data/*
 
-data/output/*
-!data/output/*_v2.csv
-!data/output/*_v2.geojson
+# allow production output folder
+!backend/data/
+!backend/data/output/
 
-# generated files
-*.pdf
-*.bak
+# allow only v2 files needed by app
+backend/data/output/*
+!backend/data/output/*_v2.csv
+!backend/data/output/*_v2.geojson
+
+# keep folder placeholders if needed
+!backend/data/.gitkeep
+!backend/data/output/.gitkeep
+
+# ignore generated report/temp artifacts
+backend/data/output/_report_*
+backend/data/output/_temp_*
+backend/data/output/temp_*
+backend/data/output/*.gpkg
+backend/data/output/*.png

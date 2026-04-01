@@ -43,6 +43,36 @@ def ensure_default_admin():
     print("=" * 60)
 
 
+def ensure_default_user():
+    from app.routes.auth.auth_store import find_user_by_email, create_user
+    from app.routes.auth.auth_utils import hash_password
+
+    user_email = os.getenv("DEFAULT_USER_EMAIL", "user@padis.local")
+    user_password = os.getenv("DEFAULT_USER_PASSWORD")
+
+    if not user_password:
+        print("[PADIS] DEFAULT_USER_PASSWORD not set. Skip default user bootstrap.")
+        return
+
+    existing = find_user_by_email(user_email)
+    if existing:
+        return
+
+    create_user(
+        name="User PADIS",
+        email=user_email,
+        password_hash=hash_password(user_password),
+        role="user",
+        status="active",
+    )
+
+    print("=" * 60)
+    print("[PADIS] Default user created")
+    print(f"  email    : {user_email}")
+    print("  password : [HIDDEN]")
+    print("=" * 60)
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -72,10 +102,14 @@ def create_app():
     if bootstrap_admin:
         ensure_default_admin()
 
+    bootstrap_user = os.getenv("BOOTSTRAP_DEFAULT_USER", "true").lower() == "true"
+    if bootstrap_user:
+        ensure_default_user()
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(layer_bp)
     app.register_blueprint(analytics_bp)
-    #app.register_blueprint(report_bp)#
+    # app.register_blueprint(report_bp)
 
     app.register_blueprint(admin_data_bp)
     app.register_blueprint(admin_output_bp)

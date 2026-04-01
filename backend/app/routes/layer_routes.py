@@ -100,7 +100,7 @@ def get_regions():
         ("flood", "nonclimate"): OUTPUT_DIR / f"web_flood_nonclimate_{scenario}_v2.geojson",
         ("flood", "climate"): OUTPUT_DIR / f"web_flood_climate_{scenario}_v2.geojson",
         ("drought", "nonclimate"): OUTPUT_DIR / f"web_drought_nonclimate_{scenario}_v2.geojson",
-        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson"),
+        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson",
     }
 
     file_path = file_map.get((hazard, climate))

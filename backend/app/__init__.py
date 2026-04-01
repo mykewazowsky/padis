@@ -89,10 +89,19 @@ def create_app():
         "http://localhost:3000",
     )
 
-    frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+    frontend_origins = os.getenv(
+        "FRONTEND_ORIGINS",
+        "http://localhost:3000,https://padis-beryl.vercel.app,https://padis-demo.vercel.app",
+    )
+    allowed_origins = [
+        origin.strip()
+        for origin in frontend_origins.split(",")
+        if origin.strip()
+    ]
+
     CORS(
         app,
-        resources={r"/api/*": {"origins": [frontend_origin]}},
+        resources={r"/api/*": {"origins": allowed_origins}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "OPTIONS"],
@@ -109,7 +118,6 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(layer_bp)
     app.register_blueprint(analytics_bp)
-    # app.register_blueprint(report_bp)
 
     app.register_blueprint(admin_data_bp)
     app.register_blueprint(admin_output_bp)

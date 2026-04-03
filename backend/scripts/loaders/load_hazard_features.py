@@ -1,22 +1,14 @@
 from pathlib import Path
-import os
 
 import geopandas as gpd
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from shapely.geometry import MultiPolygon, Polygon
+
+from app.db.session import engine
 
 BASE_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = BASE_DIR.parents[1]
 OUTPUT_DIR = BACKEND_DIR / "data" / "output"
-
-load_dotenv(BACKEND_DIR / ".env")
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL tidak ditemukan di .env")
-
-engine = create_engine(DATABASE_URL)
 
 FILES = [
     ("multi", "nonclimate", "rp25"),

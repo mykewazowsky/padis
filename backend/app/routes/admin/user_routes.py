@@ -128,6 +128,8 @@ def admin_update_user_status(user_id: str):
             }), 400
 
     target_user["status"] = new_status
+    target_user["is_active"] = (new_status == "active")
+
     updated = update_user(target_user)
 
     return jsonify({

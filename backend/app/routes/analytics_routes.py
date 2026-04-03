@@ -1,43 +1,27 @@
 import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
+from sqlalchemy import create_engine, text
 
 analytics_bp = Blueprint("analytics_bp", __name__)
-
-from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
-AAL_MULTI_PATH = os.path.join(OUTPUT_DIR, "kabkota_multihazard_aal_v2.csv")
-AAL_FLOOD_PATH = os.path.join(OUTPUT_DIR, "kabkota_flood_aal_v2.csv")
-AAL_DROUGHT_PATH = os.path.join(OUTPUT_DIR, "kabkota_drought_aal_v2.csv")
+load_dotenv(PROJECT_ROOT / ".env")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL tidak ditemukan di .env")
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 ALLOWED_HAZARDS = {"flood", "drought", "multi"}
 ALLOWED_CLIMATE = {"nonclimate", "climate"}
 SCENARIOS = ["rp25", "rp50", "rp100", "rp250"]
-
-
-def get_aal_config(hazard: str):
-    file_map = {
-        "multi": {
-            "path": AAL_MULTI_PATH,
-            "nonclimate_col": "aal_nonclimate_v2",
-            "climate_col": "aal_climate_v2",
-        },
-        "flood": {
-            "path": AAL_FLOOD_PATH,
-            "nonclimate_col": "aal_flood_nonclimate_v2",
-            "climate_col": "aal_flood_climate_v2",
-        },
-        "drought": {
-            "path": AAL_DROUGHT_PATH,
-            "nonclimate_col": "aal_drought_nonclimate_v2",
-            "climate_col": "aal_drought_climate_v2",
-        },
-    }
-    return file_map[hazard]
 
 
 def get_geojson_path(hazard: str, climate: str, scenario: str):
@@ -73,117 +57,68 @@ def get_hazard_display_name(hazard: str):
 
 
 def get_aal_summary_by_hazard(hazard: str):
-    import pandas as pd
+    summary_sql = text("""
+        select
+            coalesce(sum(aal_nonclimate), 0) as total_aal_nonclimate,
+            coalesce(sum(aal_climate), 0) as total_aal_climate,
+            count(aal_nonclimate) as count_nonclimate,
+            count(aal_climate) as count_climate
+        from aal_summary
+        where hazard = :hazard
+    """)
 
-    config = get_aal_config(hazard)
-    aal_path = config["path"]
-    nonclimate_col = config["nonclimate_col"]
-    climate_col = config["climate_col"]
+    top_nonclimate_sql = text("""
+        select region_name, province, aal_nonclimate
+        from aal_summary
+        where hazard = :hazard
+        order by aal_nonclimate desc nulls last
+        limit 1
+    """)
 
-    if not os.path.exists(aal_path):
-        return {
-            "hazard": hazard,
-            "total_aal_nonclimate": 0.0,
-            "total_aal_climate": 0.0,
-            "count_nonclimate": 0,
-            "count_climate": 0,
-            "top_nonclimate_region": "-",
-            "top_nonclimate_value": 0.0,
-            "top_climate_region": "-",
-            "top_climate_value": 0.0,
-        }
+    top_climate_sql = text("""
+        select region_name, province, aal_climate
+        from aal_summary
+        where hazard = :hazard
+        order by aal_climate desc nulls last
+        limit 1
+    """)
 
-    df = pd.read_csv(aal_path)
-
-    if nonclimate_col not in df.columns or climate_col not in df.columns:
-        return {
-            "hazard": hazard,
-            "total_aal_nonclimate": 0.0,
-            "total_aal_climate": 0.0,
-            "count_nonclimate": 0,
-            "count_climate": 0,
-            "top_nonclimate_region": "-",
-            "top_nonclimate_value": 0.0,
-            "top_climate_region": "-",
-            "top_climate_value": 0.0,
-        }
-
-    aal_nonclimate = df[nonclimate_col].dropna()
-    aal_climate = df[climate_col].dropna()
-
-    total_aal_nonclimate = (
-        float(aal_nonclimate.sum()) if not aal_nonclimate.empty else 0.0
-    )
-    total_aal_climate = float(aal_climate.sum()) if not aal_climate.empty else 0.0
-
-    top_nonclimate = (
-        df.loc[df[nonclimate_col].idxmax()]
-        if not aal_nonclimate.empty
-        else None
-    )
-    top_climate = (
-        df.loc[df[climate_col].idxmax()]
-        if not aal_climate.empty
-        else None
-    )
+    with engine.connect() as conn:
+        summary = conn.execute(summary_sql, {"hazard": hazard}).mappings().first()
+        top_nonclimate = conn.execute(
+            top_nonclimate_sql, {"hazard": hazard}
+        ).mappings().first()
+        top_climate = conn.execute(
+            top_climate_sql, {"hazard": hazard}
+        ).mappings().first()
 
     return {
         "hazard": hazard,
-        "total_aal_nonclimate": total_aal_nonclimate,
-        "total_aal_climate": total_aal_climate,
-        "count_nonclimate": int(aal_nonclimate.count()),
-        "count_climate": int(aal_climate.count()),
+        "total_aal_nonclimate": float(summary["total_aal_nonclimate"] or 0),
+        "total_aal_climate": float(summary["total_aal_climate"] or 0),
+        "count_nonclimate": int(summary["count_nonclimate"] or 0),
+        "count_climate": int(summary["count_climate"] or 0),
         "top_nonclimate_region": (
-            f"{top_nonclimate['kab_kota']}, {top_nonclimate['prov']}"
-            if top_nonclimate is not None
+            f"{top_nonclimate['region_name']}, {top_nonclimate['province']}"
+            if top_nonclimate and top_nonclimate["region_name"]
             else "-"
         ),
         "top_nonclimate_value": (
-            float(top_nonclimate[nonclimate_col])
-            if top_nonclimate is not None
+            float(top_nonclimate["aal_nonclimate"] or 0)
+            if top_nonclimate
             else 0.0
         ),
         "top_climate_region": (
-            f"{top_climate['kab_kota']}, {top_climate['prov']}"
-            if top_climate is not None
+            f"{top_climate['region_name']}, {top_climate['province']}"
+            if top_climate and top_climate["region_name"]
             else "-"
         ),
         "top_climate_value": (
-            float(top_climate[climate_col])
-            if top_climate is not None
+            float(top_climate["aal_climate"] or 0)
+            if top_climate
             else 0.0
         ),
     }
-
-
-def get_loss_summary_by_hazard_and_climate(hazard: str, climate: str):
-    import geopandas as gpd
-
-    results = []
-
-    for scenario in SCENARIOS:
-        file_path = get_geojson_path(hazard, climate, scenario)
-
-        if not os.path.exists(file_path):
-            results.append({
-                "scenario": scenario.upper(),
-                "total_loss": 0,
-            })
-            continue
-
-        gdf = gpd.read_file(file_path)
-        total_loss = (
-            int(round(gdf["loss"].dropna().sum()))
-            if "loss" in gdf.columns
-            else 0
-        )
-
-        results.append({
-            "scenario": scenario.upper(),
-            "total_loss": total_loss,
-        })
-
-    return results
 
 
 @analytics_bp.route("/api/aal-summary")
@@ -223,7 +158,31 @@ def get_loss_summary():
     if climate not in ALLOWED_CLIMATE:
         return jsonify({"error": "climate condition tidak valid"}), 400
 
-    results = get_loss_summary_by_hazard_and_climate(hazard, climate)
+    sql = text("""
+        select
+            upper(scenario) as scenario,
+            coalesce(sum(loss), 0) as total_loss
+        from hazard_features
+        where hazard = :hazard
+          and climate = :climate
+        group by scenario
+    """)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sql,
+            {"hazard": hazard, "climate": climate},
+        ).mappings().all()
+
+    row_map = {row["scenario"]: int(round(float(row["total_loss"] or 0))) for row in rows}
+
+    results = []
+    for scenario in ["RP25", "RP50", "RP100", "RP250"]:
+        results.append({
+            "scenario": scenario,
+            "total_loss": row_map.get(scenario, 0),
+        })
+
     return jsonify(results)
 
 
@@ -234,44 +193,40 @@ def get_loss_summary_compare_climate():
     if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
 
-    nonclimate_rows = get_loss_summary_by_hazard_and_climate(hazard, "nonclimate")
-    climate_rows = get_loss_summary_by_hazard_and_climate(hazard, "climate")
+    sql = text("""
+        select
+            upper(scenario) as scenario,
+            climate,
+            coalesce(sum(loss), 0) as total_loss
+        from hazard_features
+        where hazard = :hazard
+        group by scenario, climate
+    """)
 
-    merged = {}
+    with engine.connect() as conn:
+        rows = conn.execute(sql, {"hazard": hazard}).mappings().all()
 
-    for row in nonclimate_rows:
-        scenario = (row.get("scenario") or "").upper()
-        merged[scenario] = {
-            "scenario": scenario,
-            "nonclimate": int(row.get("total_loss", 0) or 0),
-            "climate": 0,
-        }
+    merged = {
+        "RP25": {"scenario": "RP25", "nonclimate": 0, "climate": 0},
+        "RP50": {"scenario": "RP50", "nonclimate": 0, "climate": 0},
+        "RP100": {"scenario": "RP100", "nonclimate": 0, "climate": 0},
+        "RP250": {"scenario": "RP250", "nonclimate": 0, "climate": 0},
+    }
 
-    for row in climate_rows:
-        scenario = (row.get("scenario") or "").upper()
-        if scenario not in merged:
-            merged[scenario] = {
-                "scenario": scenario,
-                "nonclimate": 0,
-                "climate": 0,
-            }
-        merged[scenario]["climate"] = int(row.get("total_loss", 0) or 0)
+    for row in rows:
+        scenario = row["scenario"]
+        climate = row["climate"]
+        total_loss = int(round(float(row["total_loss"] or 0)))
 
-    scenario_order = ["RP25", "RP50", "RP100", "RP250"]
-    results = sorted(
-        merged.values(),
-        key=lambda item: scenario_order.index(item["scenario"])
-        if item["scenario"] in scenario_order
-        else 999,
-    )
+        if scenario in merged and climate in {"nonclimate", "climate"}:
+            merged[scenario][climate] = total_loss
 
+    results = [merged["RP25"], merged["RP50"], merged["RP100"], merged["RP250"]]
     return jsonify(results)
 
 
 @analytics_bp.route("/api/top-regions")
 def get_top_regions():
-    import geopandas as gpd
-
     hazard = request.args.get("hazard", "multi")
     scenario = request.args.get("scenario", "rp25")
     climate = request.args.get("climate", "nonclimate")
@@ -282,25 +237,33 @@ def get_top_regions():
     if climate not in ALLOWED_CLIMATE:
         return jsonify({"error": "climate condition tidak valid"}), 400
 
-    file_path = get_geojson_path(hazard, climate, scenario)
+    sql = text("""
+        select region_name, loss
+        from hazard_features
+        where hazard = :hazard
+          and climate = :climate
+          and scenario = :scenario
+          and region_name is not null
+        order by loss desc nulls last
+        limit 10
+    """)
 
-    if not os.path.exists(file_path):
-        return jsonify([])
-
-    gdf = gpd.read_file(file_path)
-
-    if "kab_kota" not in gdf.columns or "loss" not in gdf.columns:
-        return jsonify([])
-
-    df = gdf[["kab_kota", "loss"]].dropna()
-    df = df.sort_values("loss", ascending=False).head(10)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sql,
+            {
+                "hazard": hazard,
+                "climate": climate,
+                "scenario": scenario,
+            },
+        ).mappings().all()
 
     result = [
         {
-            "name": row["kab_kota"],
-            "loss": int(round(row["loss"])),
+            "name": row["region_name"],
+            "loss": int(round(float(row["loss"] or 0))),
         }
-        for _, row in df.iterrows()
+        for row in rows
     ]
 
     return jsonify(result)
@@ -308,36 +271,35 @@ def get_top_regions():
 
 @analytics_bp.route("/api/hazard-breakdown")
 def hazard_breakdown():
-    import geopandas as gpd
-
     scenario = request.args.get("scenario", "rp25")
     climate = request.args.get("climate", "nonclimate")
 
     if climate not in ALLOWED_CLIMATE:
         return jsonify({"error": "climate condition tidak valid"}), 400
 
+    sql = text("""
+        select
+            hazard,
+            coalesce(sum(loss), 0) as total
+        from hazard_features
+        where scenario = :scenario
+          and climate = :climate
+        group by hazard
+    """)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sql,
+            {"scenario": scenario, "climate": climate},
+        ).mappings().all()
+
+    totals = {row["hazard"]: int(round(float(row["total"] or 0))) for row in rows}
+
     results = []
-
     for hazard in ["flood", "drought", "multi"]:
-        file_path = get_geojson_path(hazard, climate, scenario)
-
-        if not os.path.exists(file_path):
-            results.append({
-                "hazard": get_hazard_display_name(hazard),
-                "total": 0,
-            })
-            continue
-
-        gdf = gpd.read_file(file_path)
-        total = (
-            int(round(gdf["loss"].dropna().sum()))
-            if "loss" in gdf.columns
-            else 0
-        )
-
         results.append({
             "hazard": get_hazard_display_name(hazard),
-            "total": total,
+            "total": totals.get(hazard, 0),
         })
 
     return jsonify(results)

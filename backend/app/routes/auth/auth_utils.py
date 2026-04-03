@@ -82,7 +82,14 @@ def get_current_user_from_request() -> Dict[str, Any] | None:
     if not user_id:
         return None
 
-    return find_user_by_id(user_id)
+    user = find_user_by_id(user_id)
+    if not user:
+        return None
+
+    if user.get("status") != "active":
+        return None
+
+    return user
 
 
 def login_required(fn: Callable) -> Callable:
@@ -91,9 +98,6 @@ def login_required(fn: Callable) -> Callable:
         user = get_current_user_from_request()
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
-
-        if user.get("status") != "active":
-            return jsonify({"error": "Akun tidak aktif"}), 403
 
         g.current_user = user
         return fn(*args, **kwargs)
@@ -107,9 +111,6 @@ def admin_required(fn: Callable) -> Callable:
         user = get_current_user_from_request()
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
-
-        if user.get("status") != "active":
-            return jsonify({"error": "Akun tidak aktif"}), 403
 
         if user.get("role") != "admin":
             return jsonify({"error": "Forbidden"}), 403

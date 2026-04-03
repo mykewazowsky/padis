@@ -1,19 +1,31 @@
 import os
-import json
 from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
+from sqlalchemy import create_engine, text
 
 layer_bp = Blueprint("layer_bp", __name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parents[1]
-OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
+
+load_dotenv(PROJECT_ROOT / ".env")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL tidak ditemukan di .env")
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+ALLOWED_HAZARDS = {"flood", "drought", "multi"}
+ALLOWED_SCENARIOS = {"rp25", "rp50", "rp100", "rp250"}
+ALLOWED_CLIMATE = {"nonclimate", "climate"}
 
 
 @layer_bp.route("/")
 def home():
-    return {"message": "PADIS API running 🚀"}
+    return {"message": "PADIS API running."}
 
 
 @layer_bp.route("/api/layer")
@@ -22,71 +34,98 @@ def get_layer():
     scenario = request.args.get("scenario", "rp25")
     climate = request.args.get("climate", "nonclimate")
 
-    allowed_hazards = {"flood", "drought", "multi"}
-    allowed_scenarios = {"rp25", "rp50", "rp100", "rp250"}
-    allowed_climate = {"nonclimate", "climate"}
-
-    if hazard not in allowed_hazards:
+    if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
 
-    if scenario not in allowed_scenarios:
+    if scenario not in ALLOWED_SCENARIOS:
         return jsonify({"error": "scenario tidak valid"}), 400
 
-    if climate not in allowed_climate:
+    if climate not in ALLOWED_CLIMATE:
         return jsonify({"error": "climate condition tidak valid"}), 400
 
-    file_map = {
-        ("multi", "nonclimate"): OUTPUT_DIR / f"web_multi_nonclimate_{scenario}_v2.geojson",
-        ("multi", "climate"): OUTPUT_DIR / f"web_multi_climate_{scenario}_v2.geojson",
-        ("flood", "nonclimate"): OUTPUT_DIR / f"web_flood_nonclimate_{scenario}_v2.geojson",
-        ("flood", "climate"): OUTPUT_DIR / f"web_flood_climate_{scenario}_v2.geojson",
-        ("drought", "nonclimate"): OUTPUT_DIR / f"web_drought_nonclimate_{scenario}_v2.geojson",
-        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson",
+    sql = text("""
+        select jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', coalesce(jsonb_agg(feature), '[]'::jsonb)
+        ) as geojson
+        from (
+            select jsonb_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(geom)::jsonb,
+                'properties', jsonb_build_object(
+                    'kab_kota', region_name,
+                    'prov', province,
+                    'hazard', hazard,
+                    'climate', climate,
+                    'scenario', scenario,
+                    'loss', loss
+                )
+            ) as feature
+            from hazard_features
+            where hazard = :hazard
+              and climate = :climate
+              and scenario = :scenario
+        ) t
+    """)
+
+    with engine.connect() as conn:
+        row = conn.execute(
+            sql,
+            {
+                "hazard": hazard,
+                "climate": climate,
+                "scenario": scenario,
+            },
+        ).mappings().first()
+
+    geojson = row["geojson"] if row and row["geojson"] else {
+        "type": "FeatureCollection",
+        "features": [],
     }
 
-    file_path = file_map[(hazard, climate)]
-
-    if not file_path.exists():
-        return jsonify({
-            "error": "file layer tidak ditemukan",
-            "file_path": str(file_path),
-            "output_dir": str(OUTPUT_DIR),
-        }), 404
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return jsonify(data)
+    return jsonify(geojson)
 
 
 @layer_bp.route("/api/regions")
 def get_regions():
-    import geopandas as gpd
-
     hazard = request.args.get("hazard", "multi")
     scenario = request.args.get("scenario", "rp25")
     climate = request.args.get("climate", "nonclimate")
 
-    file_map = {
-        ("multi", "nonclimate"): OUTPUT_DIR / f"web_multi_nonclimate_{scenario}_v2.geojson",
-        ("multi", "climate"): OUTPUT_DIR / f"web_multi_climate_{scenario}_v2.geojson",
-        ("flood", "nonclimate"): OUTPUT_DIR / f"web_flood_nonclimate_{scenario}_v2.geojson",
-        ("flood", "climate"): OUTPUT_DIR / f"web_flood_climate_{scenario}_v2.geojson",
-        ("drought", "nonclimate"): OUTPUT_DIR / f"web_drought_nonclimate_{scenario}_v2.geojson",
-        ("drought", "climate"): OUTPUT_DIR / f"web_drought_climate_{scenario}_v2.geojson",
-    }
+    if hazard not in ALLOWED_HAZARDS:
+        return jsonify({"error": "hazard tidak valid"}), 400
 
-    file_path = file_map.get((hazard, climate))
-    if not file_path or not file_path.exists():
-        return jsonify([])
+    if scenario not in ALLOWED_SCENARIOS:
+        return jsonify({"error": "scenario tidak valid"}), 400
 
-    gdf = gpd.read_file(file_path)
-    df = gdf[["kab_kota", "prov"]].dropna().drop_duplicates()
-    df = df.sort_values("kab_kota")
+    if climate not in ALLOWED_CLIMATE:
+        return jsonify({"error": "climate condition tidak valid"}), 400
+
+    sql = text("""
+        select distinct
+            region_name as kab_kota,
+            province as prov
+        from hazard_features
+        where hazard = :hazard
+          and climate = :climate
+          and scenario = :scenario
+          and region_name is not null
+        order by region_name
+    """)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sql,
+            {
+                "hazard": hazard,
+                "climate": climate,
+                "scenario": scenario,
+            },
+        ).mappings().all()
 
     result = [
         {"kab_kota": row["kab_kota"], "prov": row["prov"]}
-        for _, row in df.iterrows()
+        for row in rows
     ]
 
     return jsonify(result)

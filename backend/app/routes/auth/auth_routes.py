@@ -35,7 +35,6 @@ def _serialize_user(user):
         "role": user["role"],
         "status": user["status"],
         "created_at": user.get("created_at"),
-        "updated_at": user.get("updated_at"),
         "last_login_at": user.get("last_login_at"),
     }
 
@@ -106,8 +105,8 @@ def login():
     if not verify_password(password, user.get("password_hash", "")):
         return jsonify({"error": "Email atau password salah"}), 401
 
-    user["last_login_at"] = datetime.now(timezone.utc)
-    user = update_user(user)
+    user["last_login_at"] = datetime.now(timezone.utc).isoformat()
+    update_user(user)
 
     token = generate_access_token(user)
 
@@ -124,7 +123,12 @@ def login():
 @login_required
 def me():
     user = g.current_user
-    return jsonify({"user": _serialize_user(user)}), 200
+
+    return jsonify(
+        {
+            "user": _serialize_user(user)
+        }
+    ), 200
 
 
 @auth_bp.route("/api/logout", methods=["POST"])
@@ -150,18 +154,13 @@ def forgot_password():
         frontend_base_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
         reset_link = f"{frontend_base_url}/reset-password?token={token}"
 
-        # Development only: optionally expose reset link for testing
-        expose_reset_link = os.getenv("EXPOSE_RESET_LINK", "false").lower() == "true"
-
-        response = {
-            "message": "Jika email terdaftar, tautan reset password telah dibuat."
-        }
-
-        if expose_reset_link:
-            response["reset_link"] = reset_link
-            response["reset_token"] = token
-
-        return jsonify(response), 200
+        return jsonify(
+            {
+                "message": "Jika email terdaftar, tautan reset password telah dibuat.",
+                "reset_token": token,
+                "reset_link": reset_link,
+            }
+        ), 200
 
     return jsonify(
         {
@@ -198,7 +197,7 @@ def reset_password():
         return jsonify({"error": "User tidak ditemukan"}), 404
 
     user["password_hash"] = hash_password(password)
-    user["updated_at"] = datetime.now(timezone.utc)
+    user["updated_at"] = datetime.now(timezone.utc).isoformat()
     update_user(user)
 
     mark_reset_token_used(token)

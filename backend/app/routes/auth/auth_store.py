@@ -1,73 +1,109 @@
-import json
-import os
-import threading
-import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+import uuid
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "..", ".."))
-DATA_DIR = os.path.join(PROJECT_ROOT, "data", "_auth")
+from sqlalchemy import text
 
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
-RESET_TOKENS_FILE = os.path.join(DATA_DIR, "reset_tokens.json")
-
-_LOCK = threading.Lock()
+from app.db.session import engine
 
 
-def _ensure_data_dir() -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
+def _row_to_user_dict(row) -> Dict[str, Any]:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "email": row.email,
+        "password_hash": row.password_hash,
+        "role": row.role,
+        "status": row.status,
+        "is_active": row.is_active,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+        "last_login_at": row.last_login_at.isoformat() if row.last_login_at else None,
+    }
 
 
-def _read_json(path: str, default: Any) -> Any:
-    _ensure_data_dir()
-
-    if not os.path.exists(path):
-        return default
-
-    with open(path, "r", encoding="utf-8") as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            return default
-
-
-def _write_json(path: str, data: Any) -> None:
-    _ensure_data_dir()
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def _row_to_reset_token_dict(row) -> Dict[str, Any]:
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "token": row.token,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "expires_at": row.expires_at.isoformat() if row.expires_at else None,
+        "used_at": row.used_at.isoformat() if row.used_at else None,
+    }
 
 
 def list_users() -> list[Dict[str, Any]]:
-    with _LOCK:
-        return _read_json(USERS_FILE, [])
+    sql = text("""
+        select
+            id,
+            name,
+            email,
+            password_hash,
+            role,
+            status,
+            is_active,
+            created_at,
+            updated_at,
+            last_login_at
+        from app_users
+        order by created_at desc
+    """)
 
+    with engine.connect() as conn:
+        rows = conn.execute(sql).mappings().all()
 
-def save_users(users: list[Dict[str, Any]]) -> None:
-    with _LOCK:
-        _write_json(USERS_FILE, users)
+    return [_row_to_user_dict(row) for row in rows]
 
 
 def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     email_norm = email.strip().lower()
-    users = list_users()
 
-    for user in users:
-        if user.get("email", "").strip().lower() == email_norm:
-            return user
+    sql = text("""
+        select
+            id,
+            name,
+            email,
+            password_hash,
+            role,
+            status,
+            is_active,
+            created_at,
+            updated_at,
+            last_login_at
+        from app_users
+        where lower(email) = :email
+        limit 1
+    """)
 
-    return None
+    with engine.connect() as conn:
+        row = conn.execute(sql, {"email": email_norm}).mappings().first()
+
+    return _row_to_user_dict(row) if row else None
 
 
 def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
-    users = list_users()
+    sql = text("""
+        select
+            id,
+            name,
+            email,
+            password_hash,
+            role,
+            status,
+            is_active,
+            created_at,
+            updated_at,
+            last_login_at
+        from app_users
+        where id = :user_id
+        limit 1
+    """)
 
-    for user in users:
-        if user.get("id") == user_id:
-            return user
+    with engine.connect() as conn:
+        row = conn.execute(sql, {"user_id": user_id}).mappings().first()
 
-    return None
+    return _row_to_user_dict(row) if row else None
 
 
 def create_user(
@@ -78,107 +114,260 @@ def create_user(
     role: str = "user",
     status: str = "active",
 ) -> Dict[str, Any]:
-    users = list_users()
-    now_iso = datetime.now(timezone.utc).isoformat()
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
 
-    new_user = {
-        "id": str(uuid.uuid4()),
-        "name": name.strip(),
-        "email": email.strip().lower(),
-        "password_hash": password_hash,
-        "role": role,
-        "status": status,
-        "created_at": now_iso,
-        "updated_at": now_iso,
-        "last_login_at": None,
-    }
+    sql = text("""
+        insert into app_users (
+            id,
+            name,
+            email,
+            password_hash,
+            role,
+            status,
+            is_active,
+            created_at,
+            updated_at,
+            last_login_at
+        ) values (
+            :id,
+            :name,
+            :email,
+            :password_hash,
+            :role,
+            :status,
+            :is_active,
+            :created_at,
+            :updated_at,
+            :last_login_at
+        )
+    """)
 
-    users.append(new_user)
-    save_users(users)
-    return new_user
+    with engine.begin() as conn:
+        conn.execute(
+            sql,
+            {
+                "id": user_id,
+                "name": name.strip(),
+                "email": email.strip().lower(),
+                "password_hash": password_hash,
+                "role": role,
+                "status": status,
+                "is_active": status == "active",
+                "created_at": now,
+                "updated_at": now,
+                "last_login_at": None,
+            },
+        )
+
+    user = find_user_by_id(user_id)
+    if not user:
+        raise ValueError("Gagal membuat user")
+
+    return user
 
 
 def update_user(updated_user: Dict[str, Any]) -> Dict[str, Any]:
-    users = list_users()
+    user_id = updated_user.get("id")
+    if not user_id:
+        raise ValueError("User ID tidak ditemukan")
 
-    for i, user in enumerate(users):
-        if user.get("id") == updated_user.get("id"):
-            updated_user["updated_at"] = datetime.now(timezone.utc).isoformat()
-            users[i] = updated_user
-            save_users(users)
-            return updated_user
+    existing_user = find_user_by_id(user_id)
+    if not existing_user:
+        raise ValueError("User tidak ditemukan")
 
-    raise ValueError("User tidak ditemukan")
+    now = datetime.now(timezone.utc)
+
+    name = updated_user.get("name", existing_user["name"])
+    email = updated_user.get("email", existing_user["email"])
+    password_hash = updated_user.get("password_hash", existing_user["password_hash"])
+    role = updated_user.get("role", existing_user.get("role", "user"))
+    status = updated_user.get("status", existing_user.get("status", "active"))
+    is_active = updated_user.get("is_active", status == "active")
+
+    last_login_at = updated_user.get("last_login_at")
+
+    if isinstance(last_login_at, str) and last_login_at:
+        last_login_at = datetime.fromisoformat(last_login_at)
+    elif isinstance(last_login_at, datetime):
+        pass
+    elif not last_login_at:
+        existing_last_login = existing_user.get("last_login_at")
+        last_login_at = datetime.fromisoformat(existing_last_login) if existing_last_login else None
+
+    sql = text("""
+        update app_users
+        set
+            name = :name,
+            email = :email,
+            password_hash = :password_hash,
+            role = :role,
+            status = :status,
+            is_active = :is_active,
+            last_login_at = :last_login_at,
+            updated_at = :updated_at
+        where id = :id
+    """)
+
+    with engine.begin() as conn:
+        conn.execute(
+            sql,
+            {
+                "id": user_id,
+                "name": name.strip() if isinstance(name, str) else name,
+                "email": email.strip().lower() if isinstance(email, str) else email,
+                "password_hash": password_hash,
+                "role": role,
+                "status": status,
+                "is_active": is_active,
+                "last_login_at": last_login_at,
+                "updated_at": now,
+            },
+        )
+
+    user = find_user_by_id(user_id)
+    if not user:
+        raise ValueError("Gagal memperbarui user")
+
+    return user
+
+
+def delete_user_by_id(user_id: str) -> bool:
+    sql = text("""
+        delete from app_users
+        where id = :user_id
+    """)
+
+    with engine.begin() as conn:
+        result = conn.execute(sql, {"user_id": user_id})
+
+    return result.rowcount > 0
 
 
 def list_reset_tokens() -> list[Dict[str, Any]]:
-    with _LOCK:
-        return _read_json(RESET_TOKENS_FILE, [])
+    sql = text("""
+        select
+            id,
+            user_id,
+            token,
+            created_at,
+            expires_at,
+            used_at
+        from password_reset_tokens
+        order by created_at desc
+    """)
 
+    with engine.connect() as conn:
+        rows = conn.execute(sql).mappings().all()
 
-def save_reset_tokens(tokens: list[Dict[str, Any]]) -> None:
-    with _LOCK:
-        _write_json(RESET_TOKENS_FILE, tokens)
+    return [_row_to_reset_token_dict(row) for row in rows]
 
 
 def create_reset_token(user_id: str, token: str, expires_minutes: int = 30) -> Dict[str, Any]:
-    tokens = list_reset_tokens()
+    token_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=expires_minutes)
 
-    record = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "token": token,
-        "created_at": now.isoformat(),
-        "expires_at": (now + timedelta(minutes=expires_minutes)).isoformat(),
-        "used_at": None,
-    }
+    sql = text("""
+        insert into password_reset_tokens (
+            id,
+            user_id,
+            token,
+            created_at,
+            expires_at,
+            used_at
+        ) values (
+            :id,
+            :user_id,
+            :token,
+            :created_at,
+            :expires_at,
+            :used_at
+        )
+    """)
 
-    tokens.append(record)
-    save_reset_tokens(tokens)
-    return record
+    with engine.begin() as conn:
+        conn.execute(
+            sql,
+            {
+                "id": token_id,
+                "user_id": user_id,
+                "token": token,
+                "created_at": now,
+                "expires_at": expires_at,
+                "used_at": None,
+            },
+        )
+
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("""
+                select
+                    id,
+                    user_id,
+                    token,
+                    created_at,
+                    expires_at,
+                    used_at
+                from password_reset_tokens
+                where id = :id
+                limit 1
+            """),
+            {"id": token_id},
+        ).mappings().first()
+
+    if not row:
+        raise ValueError("Gagal membuat reset token")
+
+    return _row_to_reset_token_dict(row)
 
 
 def find_valid_reset_token(token: str) -> Optional[Dict[str, Any]]:
-    tokens = list_reset_tokens()
     now = datetime.now(timezone.utc)
 
-    for item in tokens:
-        if item.get("token") != token:
-            continue
+    sql = text("""
+        select
+            id,
+            user_id,
+            token,
+            created_at,
+            expires_at,
+            used_at
+        from password_reset_tokens
+        where token = :token
+          and used_at is null
+          and expires_at >= :now
+        order by created_at desc
+        limit 1
+    """)
 
-        if item.get("used_at") is not None:
-            continue
+    with engine.connect() as conn:
+        row = conn.execute(
+            sql,
+            {
+                "token": token,
+                "now": now,
+            },
+        ).mappings().first()
 
-        expires_at_raw = item.get("expires_at")
-        if not expires_at_raw:
-            continue
-
-        expires_at = datetime.fromisoformat(expires_at_raw)
-        if expires_at < now:
-            continue
-
-        return item
-
-    return None
+    return _row_to_reset_token_dict(row) if row else None
 
 
 def mark_reset_token_used(token: str) -> None:
-    tokens = list_reset_tokens()
+    now = datetime.now(timezone.utc)
 
-    for item in tokens:
-        if item.get("token") == token and item.get("used_at") is None:
-            item["used_at"] = datetime.now(timezone.utc).isoformat()
-            break
+    sql = text("""
+        update password_reset_tokens
+        set used_at = :used_at
+        where token = :token
+          and used_at is null
+    """)
 
-    save_reset_tokens(tokens)
-
-def delete_user_by_id(user_id: str) -> bool:
-    users = list_users()
-    new_users = [user for user in users if user.get("id") != user_id]
-
-    if len(new_users) == len(users):
-        return False
-
-    save_users(new_users)
-    return True
+    with engine.begin() as conn:
+        conn.execute(
+            sql,
+            {
+                "token": token,
+                "used_at": now,
+            },
+        )

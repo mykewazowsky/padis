@@ -1,22 +1,9 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+
+from app.db.session import engine
 
 layer_bp = Blueprint("layer_bp", __name__)
-
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parents[1]
-
-load_dotenv(PROJECT_ROOT / ".env")
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL tidak ditemukan di .env")
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 ALLOWED_HAZARDS = {"flood", "drought", "multi"}
 ALLOWED_SCENARIOS = {"rp25", "rp50", "rp100", "rp250"}

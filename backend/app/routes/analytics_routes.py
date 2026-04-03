@@ -1,51 +1,12 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+
+from app.db.session import engine
 
 analytics_bp = Blueprint("analytics_bp", __name__)
 
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parents[1]
-OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
-
-load_dotenv(PROJECT_ROOT / ".env")
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL tidak ditemukan di .env")
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-
 ALLOWED_HAZARDS = {"flood", "drought", "multi"}
 ALLOWED_CLIMATE = {"nonclimate", "climate"}
-SCENARIOS = ["rp25", "rp50", "rp100", "rp250"]
-
-
-def get_geojson_path(hazard: str, climate: str, scenario: str):
-    file_map = {
-        ("multi", "nonclimate"): os.path.join(
-            OUTPUT_DIR, f"web_multi_nonclimate_{scenario}_v2.geojson"
-        ),
-        ("multi", "climate"): os.path.join(
-            OUTPUT_DIR, f"web_multi_climate_{scenario}_v2.geojson"
-        ),
-        ("flood", "nonclimate"): os.path.join(
-            OUTPUT_DIR, f"web_flood_nonclimate_{scenario}_v2.geojson"
-        ),
-        ("flood", "climate"): os.path.join(
-            OUTPUT_DIR, f"web_flood_climate_{scenario}_v2.geojson"
-        ),
-        ("drought", "nonclimate"): os.path.join(
-            OUTPUT_DIR, f"web_drought_nonclimate_{scenario}_v2.geojson"
-        ),
-        ("drought", "climate"): os.path.join(
-            OUTPUT_DIR, f"web_drought_climate_{scenario}_v2.geojson"
-        ),
-    }
-    return file_map[(hazard, climate)]
 
 
 def get_hazard_display_name(hazard: str):
@@ -85,12 +46,8 @@ def get_aal_summary_by_hazard(hazard: str):
 
     with engine.connect() as conn:
         summary = conn.execute(summary_sql, {"hazard": hazard}).mappings().first()
-        top_nonclimate = conn.execute(
-            top_nonclimate_sql, {"hazard": hazard}
-        ).mappings().first()
-        top_climate = conn.execute(
-            top_climate_sql, {"hazard": hazard}
-        ).mappings().first()
+        top_nonclimate = conn.execute(top_nonclimate_sql, {"hazard": hazard}).mappings().first()
+        top_climate = conn.execute(top_climate_sql, {"hazard": hazard}).mappings().first()
 
     return {
         "hazard": hazard,
@@ -105,8 +62,7 @@ def get_aal_summary_by_hazard(hazard: str):
         ),
         "top_nonclimate_value": (
             float(top_nonclimate["aal_nonclimate"] or 0)
-            if top_nonclimate
-            else 0.0
+            if top_nonclimate else 0.0
         ),
         "top_climate_region": (
             f"{top_climate['region_name']}, {top_climate['province']}"
@@ -115,8 +71,7 @@ def get_aal_summary_by_hazard(hazard: str):
         ),
         "top_climate_value": (
             float(top_climate["aal_climate"] or 0)
-            if top_climate
-            else 0.0
+            if top_climate else 0.0
         ),
     }
 
@@ -128,8 +83,7 @@ def get_aal_summary():
     if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
 
-    result = get_aal_summary_by_hazard(hazard)
-    return jsonify(result)
+    return jsonify(get_aal_summary_by_hazard(hazard))
 
 
 @analytics_bp.route("/api/aal-summary-all-hazards")
@@ -221,8 +175,7 @@ def get_loss_summary_compare_climate():
         if scenario in merged and climate in {"nonclimate", "climate"}:
             merged[scenario][climate] = total_loss
 
-    results = [merged["RP25"], merged["RP50"], merged["RP100"], merged["RP250"]]
-    return jsonify(results)
+    return jsonify([merged["RP25"], merged["RP50"], merged["RP100"], merged["RP250"]])
 
 
 @analytics_bp.route("/api/top-regions")

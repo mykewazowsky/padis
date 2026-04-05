@@ -39,9 +39,11 @@ type NavItem = {
   label: string;
 };
 
+// --- DI SINI LETAK PERUBAHANNYA ---
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Beranda" },
   { href: "/cara-kerja", label: "Cara Kerja" },
+  { href: "/metodologi", label: "Metodologi" }, // Tambahan menu Metodologi
   { href: "/dashboard", label: "Dashboard" },
   { href: "/about", label: "Tentang Kami" },
 ];
@@ -63,15 +65,15 @@ function Brand() {
   return (
     <Link href="/" className="flex items-center gap-3">
       <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white/10">
-      <Image
-        src="/logo/padis.svg"
-        alt="PADIS"
-        width={44}
-        height={44}
-        className="h-9 w-9 object-contain"
-        priority
-      />
-    </div>
+        <Image
+          src="/logo/padis.svg"
+          alt="PADIS"
+          width={44}
+          height={44}
+          className="h-9 w-9 object-contain"
+          priority
+        />
+      </div>
 
       <div className="min-w-0">
         <p className="text-xl font-bold tracking-tight text-gray-900">PADIS</p>
@@ -232,7 +234,7 @@ function MobileMenu({
               );
             })}
           </div>
-                       
+
           <div className="mt-5 border-t border-gray-200 pt-5">
             {authChecked ? (
               isAuthenticated && user ? (

@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import text
-
 from app.db.session import engine
 
 analytics_bp = Blueprint("analytics_bp", __name__)
@@ -8,14 +7,12 @@ analytics_bp = Blueprint("analytics_bp", __name__)
 ALLOWED_HAZARDS = {"flood", "drought", "multi"}
 ALLOWED_CLIMATE = {"nonclimate", "climate"}
 
-
 def get_hazard_display_name(hazard: str):
     if hazard == "flood":
         return "Flood"
     if hazard == "drought":
         return "Drought"
     return "Multi-hazard"
-
 
 def get_aal_summary_by_hazard(hazard: str):
     summary_sql = text("""
@@ -25,13 +22,13 @@ def get_aal_summary_by_hazard(hazard: str):
             count(aal_nonclimate) as count_nonclimate,
             count(aal_climate) as count_climate
         from aal_summary
-        where hazard = :hazard
+        where lower(hazard) = lower(:hazard) -- PERBAIKAN: Gunakan lower() untuk memastikan case-insensitive match
     """)
 
     top_nonclimate_sql = text("""
         select region_name, province, aal_nonclimate
         from aal_summary
-        where hazard = :hazard
+        where lower(hazard) = lower(:hazard)
         order by aal_nonclimate desc nulls last
         limit 1
     """)
@@ -39,7 +36,7 @@ def get_aal_summary_by_hazard(hazard: str):
     top_climate_sql = text("""
         select region_name, province, aal_climate
         from aal_summary
-        where hazard = :hazard
+        where lower(hazard) = lower(:hazard)
         order by aal_climate desc nulls last
         limit 1
     """)
@@ -51,10 +48,10 @@ def get_aal_summary_by_hazard(hazard: str):
 
     return {
         "hazard": hazard,
-        "total_aal_nonclimate": float(summary["total_aal_nonclimate"] or 0),
-        "total_aal_climate": float(summary["total_aal_climate"] or 0),
-        "count_nonclimate": int(summary["count_nonclimate"] or 0),
-        "count_climate": int(summary["count_climate"] or 0),
+        "total_aal_nonclimate": float(summary["total_aal_nonclimate"] or 0) if summary else 0, # PERBAIKAN: Tambahkan cek if summary
+        "total_aal_climate": float(summary["total_aal_climate"] or 0) if summary else 0,
+        "count_nonclimate": int(summary["count_nonclimate"] or 0) if summary else 0,
+        "count_climate": int(summary["count_climate"] or 0) if summary else 0,
         "top_nonclimate_region": (
             f"{top_nonclimate['region_name']}, {top_nonclimate['province']}"
             if top_nonclimate and top_nonclimate["region_name"]
@@ -75,16 +72,14 @@ def get_aal_summary_by_hazard(hazard: str):
         ),
     }
 
-
 @analytics_bp.route("/api/aal-summary")
 def get_aal_summary():
-    hazard = request.args.get("hazard", "multi")
+    hazard = request.args.get("hazard", "multi").lower() # PERBAIKAN: Selalu jadikan lowercase
 
     if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
 
     return jsonify(get_aal_summary_by_hazard(hazard))
-
 
 @analytics_bp.route("/api/aal-summary-all-hazards")
 def get_aal_summary_all_hazards():
@@ -100,11 +95,10 @@ def get_aal_summary_all_hazards():
 
     return jsonify(results)
 
-
 @analytics_bp.route("/api/loss-summary")
 def get_loss_summary():
-    hazard = request.args.get("hazard", "multi")
-    climate = request.args.get("climate", "nonclimate")
+    hazard = request.args.get("hazard", "multi").lower()
+    climate = request.args.get("climate", "nonclimate").lower()
 
     if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
@@ -114,12 +108,12 @@ def get_loss_summary():
 
     sql = text("""
         select
-            upper(scenario) as scenario,
+            lower(scenario) as scenario, -- PERBAIKAN: Standardisasi menjadi lowercase saat ditarik dari DB
             coalesce(sum(loss), 0) as total_loss
         from hazard_features
-        where hazard = :hazard
-          and climate = :climate
-        group by scenario
+        where lower(hazard) = :hazard 
+          and lower(climate) = :climate
+        group by lower(scenario)
     """)
 
     with engine.connect() as conn:
@@ -131,40 +125,41 @@ def get_loss_summary():
     row_map = {row["scenario"]: int(round(float(row["total_loss"] or 0))) for row in rows}
 
     results = []
-    for scenario in ["RP25", "RP50", "RP100", "RP250"]:
+    # PERBAIKAN: Ubah iterasi menggunakan lowercase agar seragam
+    for scenario in ["rp25", "rp50", "rp100", "rp250"]: 
         results.append({
-            "scenario": scenario,
+            "scenario": scenario.upper(), # Mengembalikan format kapital untuk tampilan di Vercel (Frontend)
             "total_loss": row_map.get(scenario, 0),
         })
 
     return jsonify(results)
 
-
 @analytics_bp.route("/api/loss-summary-compare-climate")
 def get_loss_summary_compare_climate():
-    hazard = request.args.get("hazard", "multi")
+    hazard = request.args.get("hazard", "multi").lower()
 
     if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
 
     sql = text("""
         select
-            upper(scenario) as scenario,
-            climate,
+            lower(scenario) as scenario, -- Standardisasi
+            lower(climate) as climate,
             coalesce(sum(loss), 0) as total_loss
         from hazard_features
-        where hazard = :hazard
-        group by scenario, climate
+        where lower(hazard) = :hazard
+        group by lower(scenario), lower(climate)
     """)
 
     with engine.connect() as conn:
         rows = conn.execute(sql, {"hazard": hazard}).mappings().all()
 
+    # Perbaikan keys dictionary menjadi lowercase
     merged = {
-        "RP25": {"scenario": "RP25", "nonclimate": 0, "climate": 0},
-        "RP50": {"scenario": "RP50", "nonclimate": 0, "climate": 0},
-        "RP100": {"scenario": "RP100", "nonclimate": 0, "climate": 0},
-        "RP250": {"scenario": "RP250", "nonclimate": 0, "climate": 0},
+        "rp25": {"scenario": "RP25", "nonclimate": 0, "climate": 0},
+        "rp50": {"scenario": "RP50", "nonclimate": 0, "climate": 0},
+        "rp100": {"scenario": "RP100", "nonclimate": 0, "climate": 0},
+        "rp250": {"scenario": "RP250", "nonclimate": 0, "climate": 0},
     }
 
     for row in rows:
@@ -172,17 +167,16 @@ def get_loss_summary_compare_climate():
         climate = row["climate"]
         total_loss = int(round(float(row["total_loss"] or 0)))
 
-        if scenario in merged and climate in {"nonclimate", "climate"}:
+        if scenario in merged and climate in ALLOWED_CLIMATE:
             merged[scenario][climate] = total_loss
 
-    return jsonify([merged["RP25"], merged["RP50"], merged["RP100"], merged["RP250"]])
-
+    return jsonify([merged["rp25"], merged["rp50"], merged["rp100"], merged["rp250"]])
 
 @analytics_bp.route("/api/top-regions")
 def get_top_regions():
-    hazard = request.args.get("hazard", "multi")
-    scenario = request.args.get("scenario", "rp25")
-    climate = request.args.get("climate", "nonclimate")
+    hazard = request.args.get("hazard", "multi").lower()
+    scenario = request.args.get("scenario", "rp25").lower() # Standardisasi input
+    climate = request.args.get("climate", "nonclimate").lower()
 
     if hazard not in ALLOWED_HAZARDS:
         return jsonify({"error": "hazard tidak valid"}), 400
@@ -193,9 +187,9 @@ def get_top_regions():
     sql = text("""
         select region_name, loss
         from hazard_features
-        where hazard = :hazard
-          and climate = :climate
-          and scenario = :scenario
+        where lower(hazard) = :hazard
+          and lower(climate) = :climate
+          and lower(scenario) = :scenario -- Filter case-insensitive
           and region_name is not null
         order by loss desc nulls last
         limit 10
@@ -221,23 +215,22 @@ def get_top_regions():
 
     return jsonify(result)
 
-
 @analytics_bp.route("/api/hazard-breakdown")
 def hazard_breakdown():
-    scenario = request.args.get("scenario", "rp25")
-    climate = request.args.get("climate", "nonclimate")
+    scenario = request.args.get("scenario", "rp25").lower()
+    climate = request.args.get("climate", "nonclimate").lower()
 
     if climate not in ALLOWED_CLIMATE:
         return jsonify({"error": "climate condition tidak valid"}), 400
 
     sql = text("""
         select
-            hazard,
+            lower(hazard) as hazard,
             coalesce(sum(loss), 0) as total
         from hazard_features
-        where scenario = :scenario
-          and climate = :climate
-        group by hazard
+        where lower(scenario) = :scenario
+          and lower(climate) = :climate
+        group by lower(hazard)
     """)
 
     with engine.connect() as conn:

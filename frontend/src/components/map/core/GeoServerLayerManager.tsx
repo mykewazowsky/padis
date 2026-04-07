@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { MAP_LAYERS, LayerKey } from "../config/layers";
+import { BASE_MAP_LAYERS, LayerKey } from "../config/layers";
 
 type Props = {
   map: L.Map | null;
@@ -15,7 +15,7 @@ export default function GeoServerLayerManager({ map, activeLayers }: Props) {
   useEffect(() => {
     if (!map) return;
 
-    for (const config of MAP_LAYERS) {
+    for (const config of BASE_MAP_LAYERS) {
       if (!layerRefs.current[config.key]) {
         const layer = L.tileLayer.wms(config.url, {
           layers: config.layers,
@@ -32,7 +32,7 @@ export default function GeoServerLayerManager({ map, activeLayers }: Props) {
       }
     }
 
-    for (const config of MAP_LAYERS) {
+    for (const config of BASE_MAP_LAYERS) {
       const layer = layerRefs.current[config.key];
       if (!layer) continue;
 

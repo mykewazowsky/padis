@@ -1,0 +1,806 @@
+kategori_bencana,kabupaten,SUM(jumlah_kejadian)
+Banjir,Nganjuk,53.0
+Banjir,Hulu Sungai Utara,26.267857000231743
+Kekeringan,Lampung Timur,4.0
+Banjir,Banggai Laut,8.0
+Kekeringan,Mandailing Natal,1.0
+Banjir,Kota Banjar,12.0
+Kekeringan,Penukal Abab Lematang Ilir,1.0
+Banjir,Nias Barat,8.0
+Kekeringan,Banjar,3.0
+Kekeringan,Kota Kupang,2.0
+Banjir,Batanghari,31.0
+Banjir,Tapanuli Tengah,20.0
+Kekeringan,Sragen,20.11111111111111
+Banjir,Manggarai,14.0
+Banjir,Kota Blitar,2.0
+Kekeringan,Ngawi,12.0
+Banjir,Majalengka,52.333333333333336
+Kekeringan,Jembrana,6.0
+Banjir,Pesawaran,42.0
+Banjir,Pacitan,26.0
+Banjir,Musi Rawas Utara,30.0
+Kekeringan,Merangin,7.0
+Banjir,Wonosobo,19.0
+Banjir,Kota Cilegon,42.16666699945927
+Kekeringan,Gunungkidul,12.0
+Banjir,Kotawaringin Barat,47.0
+Banjir,Belitung Timur,8.0
+Banjir,Aceh Tenggara,91.5
+Kekeringan,Kuningan,12.0
+Kekeringan,Buton,1.0
+Kekeringan,Jeneponto,14.0
+Kekeringan,Pesisir Selatan,1.0
+Banjir,Kota Adm. Jakarta Utara,24.583332997560497
+Kekeringan,Kota Adm. Jakarta Barat,1.0
+Kekeringan,Bangli,2.0
+Banjir,Sijunjung,31.0
+Kekeringan,Bojonegoro,37.0
+Kekeringan,Sambas,2.0
+Banjir,Kota Adm. Jakarta Timur,105.49999931653343
+Banjir,Kota Bukittinggi,20.0
+Banjir,Bener Meriah,12.0
+Banjir,Pasangkayu,22.0
+Banjir,Malinau,29.0
+Banjir,Kota Banda Aceh,2.0
+Banjir,Samosir,9.0
+Banjir,Kota Palopo,35.0
+Banjir,Kota Serang,34.8666670024395
+Banjir,Bone Bolango,53.0
+Kekeringan,Bogor,47.0
+Banjir,Siak,24.0
+Kekeringan,Tulungagung,9.0
+Banjir,Kota Pekanbaru,43.14285700023174
+Kekeringan,Seram Bagian Barat,1.0
+Banjir,Lima Puluh Kota,65.83333298563957
+Banjir,Demak,91.5
+Banjir,Pulau Morotai,23.0
+Banjir,Kota Langsa,23.0
+Kekeringan,Klaten,8.11111111111111
+Banjir,Belitung,11.0
+Kekeringan,Gorontalo,14.25
+Banjir,Kota Lhokseumawe,21.5
+Kekeringan,Klungkung,2.0
+Kekeringan,Banjarnegara,9.0
+Kekeringan,Mahakam Ulu,1.0
+Kekeringan,Kepulauan Selayar,3.0
+Kekeringan,Kota Bau Bau,4.0
+Kekeringan,Ogan Komering Ulu,2.0
+Banjir,Penajam Paser Utara,84.99999999999997
+Banjir,Kutai Barat,31.333332985639565
+Kekeringan,Kutai Kartanegara,1.0
+Banjir,Karangasem,14.125
+Banjir,Minahasa,19.700000002980232
+Banjir,Indragiri Hilir,28.142857000231743
+Banjir,Manokwari Selatan,9.0
+Kekeringan,Lombok Barat,8.0
+Kekeringan,Sikka,4.0
+Banjir,Kota Payakumbuh,7.0
+Banjir,Kota Depok,33.2
+Banjir,Sikka,30.0
+Banjir,Timor Tengah Utara,22.0
+Banjir,Grobogan,119.5
+Banjir,Lamandau,37.0
+Banjir,Kota Lubuk Linggau,16.0
+Banjir,Kota Tanjung Balai,14.0
+Banjir,Cianjur,71.0
+Banjir,Kota Sungai Penuh,38.0
+Banjir,Muara Enim,63.0
+Kekeringan,Kota Samarinda,2.0
+Banjir,Minahasa Tenggara,11.0
+Kekeringan,Blora,8.0
+Banjir,Toli Toli,80.0
+Banjir,Donggala,68.0
+Banjir,Kepulauan Mentawai,34.0
+Kekeringan,Pulang Pisau,1.0
+Banjir,Buol,40.99999999999999
+Kekeringan,Kota Prabumulih,1.0
+Kekeringan,Kota Bima,6.0
+Banjir,Bolaang Mongondow Utara,14.0
+Banjir,Kota Tanjung Pinang,12.0
+Kekeringan,Aceh Utara,6.0
+Banjir,Solok Selatan,40.0
+Kekeringan,Badung,1.0
+Kekeringan,Serdang Bedagai,1.0
+Banjir,Musi Banyuasin,70.33333298563957
+Kekeringan,Pamekasan,3.0
+Banjir,Dogiyai,3.0
+Banjir,Kayong Utara,9.0
+Banjir,Rokan Hulu,91.39285700023174
+Banjir,Kota Bontang,16.0
+Banjir,Jayawijaya,4.0
+Banjir,Blora,65.0
+Banjir,Murung Raya,36.0
+Kekeringan,Barito Timur,1.0
+Banjir,Brebes,101.0
+Banjir,Sumba Barat Daya,5.0
+Banjir,Jembrana,25.125
+Banjir,Kota Solok,20.5
+Banjir,Kota Tual,2.0
+Banjir,Barru,21.0
+Banjir,Sumedang,75.5
+Kekeringan,Maros,5.0
+Kekeringan,Kuantan Singingi,1.0
+Kekeringan,Kendal,4.111111111111111
+Banjir,Agam,52.5
+Banjir,Tegal,71.0
+Banjir,Aceh Selatan,96.8666670024395
+Kekeringan,Tanjung Jabung Barat,1.0
+Banjir,Sarolangun,41.5
+Kekeringan,Bengkulu Tengah,1.0
+Banjir,Kota Tasikmalaya,22.0
+Banjir,Luwu,103.5
+Banjir,Pasaman,55.33333298563957
+Kekeringan,Kota Banda Aceh,1.0
+Kekeringan,Bintan,1.0
+Banjir,Karanganyar,24.416666999459267
+Banjir,Aceh Tengah,38.0
+Kekeringan,Kota Banjar,7.0
+Kekeringan,Kota Pangkal Pinang,0.25
+Banjir,Kota Denpasar,7.125
+Kekeringan,Cilacap,27.0
+Banjir,Kota Bima,46.5
+Banjir,Sukamara,12.0
+Banjir,Kota Sibolga,6.0
+Banjir,Sumbawa Barat,42.0
+Banjir,Pegunungan Bintang,5.0
+Banjir,Mandailing Natal,48.0
+Banjir,Kotabaru,17.125
+Kekeringan,Kota Palopo,3.0
+Banjir,Kepulauan Sula,20.0
+Kekeringan,Mamuju Tengah,1.0
+Banjir,Kota Batam,10.0
+Kekeringan,Kerinci,10.0
+Banjir,Seram Bagian Barat,47.0
+Banjir,Dairi,11.0
+Banjir,Mimika,4.0
+Banjir,Pidie Jaya,21.0
+Banjir,Polewali Mandar,41.0
+Banjir,Manggarai Timur,8.0
+Banjir,Lampung Timur,42.0
+Banjir,Malang,55.0
+Banjir,Soppeng,21.74999998509884
+Banjir,Rote Ndao,21.0
+Kekeringan,Magetan,12.0
+Kekeringan,Pangandaran,2.0
+Kekeringan,Purwakarta,9.0
+Banjir,Kepulauan Aru,5.0
+Kekeringan,Bombana,2.0
+Banjir,Langkat,77.0
+Banjir,Tanah Datar,15.5
+Banjir,Tanah Bumbu,43.125
+Banjir,Buleleng,35.0
+Banjir,Mojokerto,108.0
+Banjir,Bandung,333.0
+Banjir,Garut,116.0
+Banjir,Padang Pariaman,57.0
+Kekeringan,Penajam Paser Utara,2.0
+Kekeringan,Lombok Timur,7.0
+Kekeringan,Kota Tomohon,1.0
+Kekeringan,Rembang,12.0
+Banjir,Wonogiri,83.16666699945927
+Kekeringan,Kaur,1.0
+Kekeringan,Subang,11.0
+Banjir,Indramayu,64.0
+Kekeringan,Kota Pekalongan,1.0
+Banjir,Bojonegoro,162.66666699945927
+Banjir,Kota Banjarbaru,27.0
+Kekeringan,Lembata,2.0
+Banjir,Intan Jaya,1.0
+Banjir,Paser,55.0
+Kekeringan,Dharmasraya,1.0
+Banjir,Lombok Utara,18.0
+Kekeringan,Muko Muko,1.0
+Banjir,Pesisir Selatan,69.0
+Banjir,Kota Palangkaraya,24.0
+Banjir,Humbang Hasundutan,6.0
+Kekeringan,Bekasi,17.0
+Kekeringan,Buleleng,5.0
+Banjir,Padang Lawas Utara,7.0
+Banjir,Kota Prabumulih,22.0
+Banjir,Keerom,15.0
+Banjir,Nias Selatan,12.0
+Banjir,Musi Rawas,49.33333298563957
+Kekeringan,Gowa,3.0
+Kekeringan,Lampung Selatan,11.0
+Banjir,Kota Ambon,31.0
+Kekeringan,Banyuwangi,2.0
+Banjir,Pulang Pisau,50.0
+Banjir,Labuhanbatu Utara,30.0
+Kekeringan,Boyolali,8.0
+Banjir,Konawe Selatan,31.0
+Banjir,Karo,14.0
+Banjir,Morowali Utara,41.0
+Kekeringan,Kota Bengkulu,2.0
+Banjir,Jayapura,27.999999999999996
+Kekeringan,Sumba Barat,2.0
+Banjir,Sigi,69.0
+Banjir,Buton Utara,33.0
+Kekeringan,Lampung Barat,4.0
+Kekeringan,Karangasem,6.0
+Kekeringan,Sumbawa,15.0
+Banjir,Aceh Barat,60.3666670024395
+Kekeringan,Madiun,6.0
+Banjir,Lamongan,79.16666699945927
+Banjir,Tapanuli Selatan,55.0
+Kekeringan,Bondowoso,4.0
+Banjir,Kota Bekasi,48.2
+Banjir,Bangkalan,35.0
+Kekeringan,Bireuen,9.0
+Banjir,Kuningan,53.0
+Kekeringan,Kolaka,4.0
+Banjir,Kulon Progo,18.333332985639572
+Banjir,Pakpak Bharat,3.0
+Kekeringan,Bantaeng,7.0
+Banjir,Kota Tarakan,5.0
+Kekeringan,Belitung,0.25
+Kekeringan,Dompu,8.0
+Banjir,Konawe Utara,18.0
+Banjir,Mesuji,22.0
+Banjir,Jeneponto,11.166666999459267
+Banjir,Tuban,84.16666699945927
+Banjir,Pati,138.33333298563957
+Banjir,Semarang,55.0
+Kekeringan,Pekalongan,9.0
+Kekeringan,Aceh Tengah,1.0
+Banjir,Malaka,18.0
+Banjir,Aceh Besar,43.25
+Banjir,Yahukimo,1.0
+Banjir,Cilacap,203.0
+Banjir,Ogan Komering Ulu Timur,31.0
+Banjir,Kediri,30.166666999459267
+Kekeringan,Musi Rawas,4.0
+Banjir,Boyolali,39.33333298563957
+Kekeringan,Hulu Sungai Utara,2.0
+Kekeringan,Belu,6.0
+Banjir,Flores Timur,17.0
+Banjir,Kota Tomohon,1.2000000029802322
+Banjir,Banggai Kepulauan,10.0
+Banjir,Dharmasraya,33.0
+Banjir,Bima,150.0
+Banjir,Aceh Timur,81.0
+Kekeringan,Tapin,1.0
+Banjir,Buton,10.0
+Kekeringan,Karanganyar,7.0
+Banjir,Seruyan,23.0
+Kekeringan,Batanghari,6.0
+Banjir,Tulang Bawang,28.0
+Banjir,Sukoharjo,35.41666699945927
+Banjir,Kota Tangerang Selatan,65.66666666666666
+Banjir,Gianyar,3.125
+Kekeringan,Lampung Utara,3.0
+Banjir,Luwu Utara,110.99999999999999
+Banjir,Sukabumi,115.5
+Kekeringan,Kota Bandung,1.0
+Kekeringan,Mamasa,1.0
+Banjir,Poso,79.5
+Banjir,Kota Ternate,17.0
+Banjir,Kota Jayapura,17.0
+Banjir,Sumenep,32.0
+Banjir,Mamuju Tengah,38.0
+Banjir,Ende,23.0
+Banjir,Minahasa Selatan,9.700000002980232
+Banjir,Kolaka,36.0
+Kekeringan,Sumba Tengah,3.0
+Banjir,Kepulauan Yapen,10.0
+Banjir,Aceh Utara,76.0
+Kekeringan,Magelang,10.0
+Banjir,Barito Timur,9.0
+Banjir,Kota Bengkulu,31.0
+Kekeringan,Aceh Tamiang,6.0
+Banjir,Kota Cirebon,29.0
+Banjir,Kebumen,55.0
+Banjir,Mempawah,16.0
+Kekeringan,Aceh Selatan,1.0
+Banjir,Nias,14.0
+Kekeringan,Flores Timur,2.0
+Kekeringan,Cianjur,13.0
+Banjir,Tanjung Jabung Barat,15.0
+Banjir,Gayo Lues,37.0
+Banjir,Muna Barat,6.0
+Banjir,Ciamis,79.0
+Banjir,Ogan Komering Ulu Selatan,46.0
+Kekeringan,Temanggung,10.11111111111111
+Banjir,Way Kanan,15.0
+Kekeringan,Malaka,2.0
+Banjir,Kota Tegal,37.0
+Banjir,Kota Pariaman,9.0
+Kekeringan,Padang Lawas Utara,4.0
+Banjir,Muna,10.0
+Banjir,Klungkung,2.125
+Banjir,Asahan,68.0
+Kekeringan,Gorontalo Utara,0.25
+Kekeringan,Tuban,13.0
+Banjir,Simalungun,15.0
+Banjir,Labuhanbatu Selatan,18.0
+Banjir,Kota Pematangsiantar,15.0
+Kekeringan,Indramayu,11.0
+Banjir,Kolaka Utara,40.0
+Banjir,Subang,62.0
+Kekeringan,Sarolangun,3.0
+Banjir,Kota Yogyakarta,13.0
+Kekeringan,Gresik,9.0
+Kekeringan,Solok,2.0
+Kekeringan,Luwu,5.0
+Kekeringan,Ogan Komering Ulu Selatan,3.0
+Kekeringan,Luwu Utara,1.0
+Banjir,Muko Muko,13.0
+Banjir,Kep. Siau Tagulandang Biaro,11.0
+Banjir,Kepulauan Selayar,8.0
+Kekeringan,Pati,12.0
+Kekeringan,Rote Ndao,4.0
+Banjir,Bandung Barat,33.0
+Banjir,Mappi,3.0
+Kekeringan,Alor,2.0
+Banjir,Kota Pagar Alam,11.0
+Banjir,Seluma,42.0
+Banjir,Kampar,82.39285700023174
+Banjir,Bangli,6.125
+Banjir,Kerinci,58.0
+Banjir,Lumajang,52.0
+Banjir,Klaten,59.41666699945927
+Banjir,Sabu Raijua,2.0
+Banjir,Kota Sabang,8.0
+Kekeringan,Kota Bandar Lampung,7.0
+Banjir,Pringsewu,13.0
+Kekeringan,Tegal,16.0
+Kekeringan,Bandung,19.0
+Banjir,Rokan Hilir,30.0
+Kekeringan,Sukabumi,14.0
+Kekeringan,Kota Kediri,2.0
+Banjir,Ketapang,50.0
+Banjir,Maluku Tengah,31.0
+Banjir,Fak Fak,3.0
+Kekeringan,Kota Serang,6.0
+Kekeringan,Nagekeo,2.0
+Banjir,Kapuas Hulu,51.33333298563957
+Kekeringan,Tabalong,1.0
+Kekeringan,Bangkalan,6.0
+Banjir,Halmahera Barat,28.0
+Kekeringan,Pidie Jaya,1.0
+Kekeringan,Banyuasin,1.0
+Banjir,Kuantan Singingi,55.14285700023174
+Banjir,Kota Cimahi,23.0
+Banjir,Lebong,18.0
+Banjir,Kota Bandung,34.0
+Banjir,Balangan,97.26785700023174
+Banjir,Tabanan,8.125
+Banjir,Mamberamo Raya,4.0
+Kekeringan,Kotawaringin Timur,1.0
+Kekeringan,Tanah Bumbu,1.0
+Banjir,Madiun,55.0
+Banjir,Asmat,2.0
+Kekeringan,Bengkalis,1.0
+Banjir,Belu,37.33333298563957
+Banjir,Sekadau,32.33333298563957
+Banjir,Kota Surabaya,16.0
+Kekeringan,Bone,8.0
+Banjir,Lampung Tengah,23.0
+Banjir,Kota Pasuruan,52.0
+Banjir,Aceh Singkil,49.20000000298023
+Kekeringan,Sijunjung,2.0
+Banjir,Kota Sorong,11.0
+Banjir,Kota Padang,40.33333298563957
+Banjir,Kendal,83.0
+Banjir,Sumba Timur,26.333332985639572
+Banjir,Mahakam Ulu,7.000000000000001
+Banjir,Temanggung,32.0
+Banjir,Tasikmalaya,45.0
+Banjir,Teluk Bintuni,14.0
+Banjir,Labuhanbatu,23.0
+Banjir,Landak,53.0
+Banjir,Badung,25.125
+Kekeringan,Tanggamus,7.0
+Kekeringan,Lumajang,3.0
+Kekeringan,Balangan,1.0
+Banjir,Tana Tidung,2.0
+Banjir,Indragiri Hulu,48.39285700023174
+Banjir,Bengkulu Selatan,13.0
+Banjir,Probolinggo,51.0
+Kekeringan,Bengkulu Utara,3.0
+Banjir,Serdang Bedagai,61.0
+Banjir,Nagekeo,13.0
+Banjir,Kota Adm. Jakarta Barat,42.24999931653339
+Banjir,Bangka Barat,19.0
+Banjir,Tulungagung,22.0
+Banjir,Mamuju,35.0
+Kekeringan,Probolinggo,2.0
+Kekeringan,Tebo,3.0
+Banjir,Barito Selatan,43.0
+Kekeringan,Pandeglang,7.0
+Banjir,Wajo,73.75
+Banjir,Karawang,146.0
+Kekeringan,Jepara,5.0
+Kekeringan,Pemalang,11.0
+Banjir,Gunung Mas,23.0
+Kekeringan,Kota Semarang,3.111111111111111
+Banjir,Jepara,74.33333298563957
+Kekeringan,Bulukumba,12.0
+Kekeringan,Wonogiri,10.0
+Banjir,Ponorogo,51.5
+Kekeringan,Buton Utara,1.0
+Banjir,Padang Lawas,24.0
+Banjir,Kota Tangerang,28.666666666666664
+Banjir,Puncak Jaya,1.0
+Banjir,Takalar,13.0
+Banjir,Tanggamus,50.0
+Kekeringan,Ponorogo,10.0
+Kekeringan,Tangerang,6.0
+Kekeringan,Bantul,9.0
+Banjir,Banjarnegara,20.0
+Banjir,Tebo,24.0
+Banjir,Barito Kuala,18.125
+Banjir,Pangkajene Dan Kepulauan,12.166666999459267
+Banjir,Purworejo,42.0
+Banjir,Kota Padang Sidempuan,20.0
+Banjir,Bulukumba,19.5
+Banjir,Kota Surakarta,46.16666699945927
+Banjir,Kota Semarang,113.0
+Banjir,Kota Mataram,17.0
+Banjir,Gorontalo Utara,53.0
+Banjir,Banggai,54.0
+Kekeringan,Kota Cimahi,2.0
+Banjir,Pemalang,54.0
+Kekeringan,Rokan Hilir,1.0
+Kekeringan,Demak,5.0
+Banjir,Lanny Jaya,1.0
+Kekeringan,Paser,2.0
+Kekeringan,Sidenreng Rappang,7.0
+Banjir,Waropen,7.0
+Kekeringan,Dairi,1.0
+Banjir,Pegunungan Arfak,3.0
+Banjir,Seram Bagian Timur,23.0
+Kekeringan,Tasikmalaya,14.0
+Banjir,Cirebon,145.99999999999997
+Kekeringan,Lima Puluh Kota,6.0
+Banjir,Deli Serdang,80.0
+Banjir,Barito Utara,46.0
+Banjir,Karimun,7.0
+Kekeringan,Kota Salatiga,2.0
+Kekeringan,Barru,6.0
+Kekeringan,Mojokerto,7.0
+Kekeringan,Sumenep,4.0
+Kekeringan,Minahasa,2.0
+Banjir,Halmahera Tengah,16.0
+Kekeringan,Aceh Timur,3.0
+Kekeringan,Kolaka Timur,1.0
+Kekeringan,Muara Enim,4.0
+Banjir,Lembata,11.333332985639572
+Banjir,Sumbawa,102.83333298563956
+Kekeringan,Tulang Bawang Barat,1.0
+Banjir,Kepulauan Sangihe,16.0
+Kekeringan,Kota Tegal,3.0
+Kekeringan,Bone Bolango,2.25
+Banjir,Kota Madiun,4.0
+Banjir,Kota Pangkal Pinang,23.0
+Banjir,Kota Pekalongan,44.0
+Banjir,Banyumas,102.0
+Banjir,Kota Gorontalo,24.5
+Kekeringan,Blitar,4.0
+Kekeringan,Aceh Barat Daya,1.0
+Banjir,Tana Toraja,11.0
+Banjir,Kota Kendari,26.0
+Kekeringan,Jember,3.0
+Banjir,Kota Magelang,1.0
+Banjir,Bantul,21.0
+Kekeringan,Agam,2.0
+Banjir,Sorong,10.0
+Banjir,Kota Sawahlunto,16.5
+Kekeringan,Sinjai,5.0
+Banjir,Kubu Raya,23.0
+Kekeringan,Serang,16.0
+Banjir,Kota Kediri,4.0
+Kekeringan,Tana Toraja,3.0
+Banjir,Kolaka Timur,11.0
+Banjir,Kota Medan,96.0
+Banjir,Sintang,26.333332985639572
+Banjir,Tolikara,5.0
+Kekeringan,Poso,1.0
+Kekeringan,Kota Tasikmalaya,7.0
+Banjir,Penukal Abab Lematang Ilir,32.0
+Banjir,Buru Selatan,4.0
+Kekeringan,Konawe,4.0
+Kekeringan,Aceh Besar,15.0
+Banjir,Hulu Sungai Selatan,28.142857000231743
+Kekeringan,Trenggalek,13.0
+Banjir,Aceh Tamiang,53.0
+Kekeringan,Pidie,8.0
+Kekeringan,Banggai Kepulauan,3.0
+Banjir,Bolaang Mongondow Timur,14.0
+Banjir,Bekasi,107.2
+Banjir,Kota Banjarmasin,9.0
+Kekeringan,Parigi Moutong,4.0
+Banjir,Bireuen,39.5
+Kekeringan,Seram Bagian Timur,2.0
+Banjir,Kota Probolinggo,26.0
+Kekeringan,Takalar,7.0
+Banjir,Kotawaringin Timur,42.0
+Banjir,Bengkulu Tengah,16.0
+Banjir,Tapanuli Utara,8.0
+Banjir,Alor,24.0
+Kekeringan,Purworejo,14.0
+Banjir,Empat Lawang,28.0
+Banjir,Melawi,38.0
+Banjir,Pulau Taliabu,22.0
+Kekeringan,Pangkajene Dan Kepulauan,4.0
+Banjir,Buton Tengah,2.0
+Banjir,Simeulue,38.0
+Banjir,Kota Manado,32.20000000298023
+Kekeringan,Kota Cirebon,5.0
+Kekeringan,Sanggau,1.0
+Banjir,Purwakarta,19.0
+Banjir,Kaur,13.0
+Banjir,Ogan Ilir,41.0
+Banjir,Trenggalek,54.0
+Banjir,Paniai,7.0
+Banjir,Dompu,66.33333298563957
+Banjir,Gorontalo,76.5
+Banjir,Raja Ampat,4.0
+Banjir,Halmahera Timur,34.0
+Kekeringan,Ngada,2.0
+Banjir,Tapin,47.26785700023174
+Banjir,Tojo Una Una,25.0
+Kekeringan,Donggala,1.0
+Kekeringan,Manggarai Timur,2.0
+Kekeringan,Pacitan,8.0
+Kekeringan,Bengkulu Selatan,3.0
+Banjir,Deiyai,2.0
+Kekeringan,Hulu Sungai Tengah,2.0
+Banjir,Pelalawan,18.392857000231743
+Banjir,Natuna,9.0
+Banjir,Kota Sukabumi,15.0
+Kekeringan,Bangka Tengah,0.25
+Kekeringan,Pohuwato,7.0
+Kekeringan,Malang,1.0
+Kekeringan,Siak,1.0
+Kekeringan,Kota Sukabumi,3.0
+Banjir,Solok,32.5
+Banjir,Banyuwangi,64.0
+Kekeringan,Ogan Komering Ilir,3.0
+Kekeringan,Sukoharjo,7.0
+Banjir,Kepahiang,19.0
+Banjir,Kota Singkawang,24.0
+Banjir,Kota Tidore Kepulauan,24.0
+Banjir,Toraja Utara,1.0
+Banjir,Bangka Tengah,10.0
+Banjir,Bolaang Mongondow Selatan,18.0
+Kekeringan,Lombok Tengah,9.0
+Kekeringan,Majalengka,14.0
+Kekeringan,Kota Padang,5.0
+Kekeringan,Bolaang Mongondow Utara,3.0
+Banjir,Kota Padang Panjang,4.0
+Banjir,Tambrauw,3.0
+Kekeringan,Kota Sungai Penuh,5.0
+Kekeringan,Manggarai,4.0
+Banjir,Bogor,276.20000000000005
+Banjir,Banyuasin,29.0
+Banjir,Kota Bandar Lampung,38.0
+Kekeringan,Semarang,19.11111111111111
+Banjir,Kota Binjai,33.0
+Banjir,Kota Mojokerto,1.0
+Banjir,Teluk Wondama,11.0
+Banjir,Sarmi,9.0
+Banjir,Nduga,2.0
+Kekeringan,Pesawaran,8.0
+Banjir,Pamekasan,30.0
+Banjir,Gresik,127.16666699945927
+Kekeringan,Ogan Ilir,1.0
+Banjir,Bombana,17.0
+Banjir,Konawe,40.0
+Kekeringan,Kupang,3.0
+Kekeringan,Puncak,1.0
+Banjir,Gowa,20.166666999459267
+Banjir,Kota Dumai,13.0
+Banjir,Mamasa,14.0
+Banjir,Bone,33.08333298563957
+Banjir,Kota Palu,26.5
+Kekeringan,Timor Tengah Selatan,3.0
+Banjir,Kudus,76.33333298563957
+Banjir,Kota Adm. Jakarta Pusat,6.000000011920929
+Banjir,Kota Palembang,16.0
+Banjir,Kota Pontianak,5.0
+Kekeringan,Lampung Tengah,3.0
+Banjir,Kota Gunungsitoli,12.0
+Banjir,Lahat,39.0
+Banjir,Sorong Selatan,1.0
+Kekeringan,Sumbawa Barat,9.0
+Banjir,Maluku Tenggara,7.0
+Kekeringan,Manggarai Barat,2.0
+Kekeringan,Kota Surabaya,2.0
+Kekeringan,Kota Depok,1.0
+Banjir,Kota Samarinda,66.0
+Kekeringan,Situbondo,6.0
+Banjir,Hulu Sungai Tengah,49.14285700023174
+Banjir,Bantaeng,5.0
+Banjir,Timor Tengah Selatan,15.0
+Banjir,Bolaang Mongondow,37.0
+Banjir,Nabire,10.0
+Kekeringan,Maluku Tengah,3.0
+Banjir,Magetan,28.0
+Banjir,Nunukan,45.0
+Kekeringan,Asahan,1.0
+Banjir,Bengkalis,31.0
+Kekeringan,Kutai Timur,1.0
+Kekeringan,Pinrang,3.0
+Banjir,Pekalongan,67.0
+Banjir,Lampung Barat,32.0
+Kekeringan,Sidoarjo,2.0
+Banjir,Kota Makassar,26.166666999459267
+Kekeringan,Polewali Mandar,4.0
+Banjir,Kepulauan Tanimbar,5.0
+Kekeringan,Kota Makassar,2.0
+Banjir,Bengkulu Utara,24.0
+Banjir,Ngada,3.0
+Banjir,Ogan Komering Ulu,57.0
+Banjir,Banjar,57.76785700023174
+Banjir,Gunungkidul,11.0
+Kekeringan,Sabu Raijua,3.0
+Kekeringan,Cirebon,23.0
+Banjir,Kepulauan Anambas,8.0
+Banjir,Maluku Barat Daya,2.0
+Banjir,Merauke,3.0
+Kekeringan,Kota Gunungsitoli,2.0
+Banjir,Sumba Tengah,4.0
+Kekeringan,Lamongan,9.0
+Banjir,Kota Adm. Jakarta Selatan,89.66666633089386
+Banjir,Kepulauan Meranti,7.0
+Banjir,Kota Kotamobagu,6.0
+Banjir,Halmahera Selatan,27.0
+Banjir,Kota Metro,1.0
+Banjir,Parigi Moutong,121.50000001490116
+Banjir,Pandeglang,70.3666670024395
+Kekeringan,Tanah Datar,6.0
+Kekeringan,Kampar,1.0
+Kekeringan,Majene,2.0
+Banjir,Pasaman Barat,55.0
+Banjir,Kota Bogor,56.2
+Banjir,Pidie,46.0
+Kekeringan,Banggai,1.0
+Banjir,Batu Bara,51.0
+Kekeringan,Nganjuk,7.0
+Banjir,Kota Subulussalam,38.16666699945927
+Kekeringan,Brebes,8.0
+Kekeringan,Tanah Laut,2.0
+Banjir,Luwu Timur,45.0
+Kekeringan,Merauke,1.0
+Kekeringan,Muna,2.0
+Kekeringan,Aceh Jaya,1.0
+Banjir,Kepulauan Talaud,4.0
+Banjir,Sragen,62.41666699945927
+Banjir,Sidenreng Rappang,41.75
+Banjir,Bengkayang,44.0
+Kekeringan,Toraja Utara,1.0
+Banjir,Lombok Barat,57.0
+Kekeringan,Luwu Timur,1.0
+Banjir,Halmahera Utara,33.0
+Banjir,Rembang,31.0
+Banjir,Maybrat,2.0
+Banjir,Kota Bau Bau,24.0
+Banjir,Jombang,77.0
+Banjir,Pangandaran,39.0
+Kekeringan,Lebak,8.0
+Banjir,Serang,140.7000003357728
+Kekeringan,Batang,2.0
+Kekeringan,Ciamis,19.0
+Banjir,Tanjung Jabung Timur,17.0
+Kekeringan,Samosir,1.0
+Banjir,Sidoarjo,65.0
+Kekeringan,Sampang,2.0
+Banjir,Toba,6.0
+Banjir,Maros,11.166666999459267
+Banjir,Lebak,71.70000033577283
+Banjir,Ogan Komering Ilir,37.33333298563957
+Banjir,Supiori,4.0
+Kekeringan,Karawang,8.0
+Kekeringan,Sumedang,12.0
+Banjir,Wakatobi,3.0
+Banjir,Manokwari,25.0
+Banjir,Rejang Lebong,10.0
+Kekeringan,Kota Bogor,5.0
+Banjir,Lampung Utara,14.0
+Banjir,Majene,13.0
+Kekeringan,Banyumas,17.11111111111111
+Kekeringan,Kota Cilegon,1.0
+Banjir,Kutai Timur,40.33333298563957
+Kekeringan,Kotawaringin Barat,3.0
+Banjir,Nagan Raya,46.6166670024395
+Banjir,Tangerang,43.70000033577283
+Kekeringan,Sumba Barat Daya,2.0
+Kekeringan,Jombang,2.0
+Kekeringan,Konawe Selatan,2.0
+Banjir,Sampang,47.0
+Banjir,Lingga,7.0
+Banjir,Pohuwato,52.0
+Kekeringan,Boalemo,2.25
+Kekeringan,Tulang Bawang,2.0
+Banjir,Lampung Selatan,65.0
+Banjir,Buru,18.0
+Banjir,Situbondo,63.5
+Kekeringan,Garut,13.0
+Kekeringan,Kayong Utara,1.0
+Kekeringan,Rokan Hulu,3.0
+Banjir,Bungo,34.0
+Kekeringan,Kebumen,8.0
+Kekeringan,Kota Pasuruan,1.0
+Kekeringan,Bungo,2.0
+Banjir,Purbalingga,42.0
+Kekeringan,Grobogan,9.11111111111111
+Banjir,Tanah Laut,45.5
+Banjir,Kota Malang,21.0
+Kekeringan,Ogan Komering Ulu Timur,5.0
+Banjir,Jember,134.0
+Kekeringan,Timor Tengah Utara,3.0
+Kekeringan,Tapanuli Selatan,2.0
+Banjir,Pesisir Barat,18.0
+Banjir,Sanggau,41.0
+Banjir,Sumba Barat,4.0
+Banjir,Pasuruan,148.0
+Kekeringan,Halmahera Barat,1.0
+Kekeringan,Lombok Utara,6.0
+Kekeringan,Wajo,5.0
+Kekeringan,Sleman,1.0
+Kekeringan,Tabanan,1.0
+Banjir,Sinjai,22.333332985639572
+Banjir,Bondowoso,22.5
+Kekeringan,Padang Lawas,3.0
+Kekeringan,Bandung Barat,12.0
+Kekeringan,Tanjung Jabung Timur,3.0
+Banjir,Buton Selatan,2.0
+Banjir,Lombok Tengah,45.33333298563957
+Kekeringan,Kota Blitar,1.0
+Banjir,Kota Batu,31.0
+Banjir,Bintan,11.0
+Kekeringan,Barito Kuala,1.0
+Kekeringan,Pasuruan,4.0
+Banjir,Merangin,56.5
+Kekeringan,Enrekang,3.0
+Kekeringan,Muaro Jambi,2.0
+Banjir,Kapuas,34.0
+Kekeringan,Kota Mojokerto,1.0
+Kekeringan,Way Kanan,2.0
+Banjir,Bulungan,14.0
+Banjir,Tabalong,34.26785700023174
+Banjir,Boalemo,54.0
+Banjir,Aceh Jaya,75.6166670024395
+Banjir,Minahasa Utara,7.200000002980232
+Banjir,Kota Salatiga,1.0
+Banjir,Kupang,44.0
+Kekeringan,Kota Tangerang Selatan,3.0
+Banjir,Kota Kupang,13.0
+Kekeringan,Sumba Timur,3.0
+Kekeringan,Kota Sawahlunto,2.0
+Kekeringan,Ende,2.0
+Banjir,Kota Bitung,12.0
+Banjir,Bangka Selatan,10.0
+Kekeringan,Mamuju,1.0
+Banjir,Muaro Jambi,32.0
+Banjir,Enrekang,24.0
+Banjir,Lombok Timur,53.0
+Banjir,Berau,12.0
+Banjir,Bangka,18.0
+Banjir,Sambas,30.0
+Banjir,Nias Utara,14.0
+Banjir,Kota Tebing Tinggi,34.0
+Kekeringan,Kediri,5.0
+Kekeringan,Bangka,0.25
+Banjir,Batang,27.0
+Banjir,Sleman,25.0
+Banjir,Kota Balikpapan,34.0
+Banjir,Ngawi,30.166666999459267
+Banjir,Kutai Kartanegara,66.33333298563957
+Kekeringan,Kulon Progo,10.0
+Banjir,Manggarai Barat,8.0
+Banjir,Pinrang,50.5
+Kekeringan,Pelalawan,1.0
+Banjir,Magelang,43.33333298563957
+Banjir,Tulang Bawang Barat,6.0
+Banjir,Morowali,29.0
+Kekeringan,Bima,19.0
+Banjir,Katingan,28.0
+Kekeringan,Wonosobo,7.0
+Kekeringan,Pringsewu,2.0
+Banjir,Aceh Barat Daya,32.41666699945927
+Kekeringan,Purbalingga,9.11111111111111
+Banjir,Kota Parepare,7.0
+Banjir,Kota Jambi,17.0
+Banjir,Blitar,22.0

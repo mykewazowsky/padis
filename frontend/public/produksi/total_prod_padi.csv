@@ -1,0 +1,496 @@
+id_kabkota,kab_kota,id_prov,prov,tahun,total_prod
+1101,Aceh Selatan,11,Aceh,2022,30288.69
+1102,Aceh Tenggara,11,Aceh,2022,69478.52
+1103,Aceh Timur,11,Aceh,2022,130151.43
+1104,Aceh Tengah,11,Aceh,2022,13757.16
+1105,Aceh Barat,11,Aceh,2022,63136.39
+1106,Aceh Besar,11,Aceh,2022,200097.22
+1107,Pidie,11,Aceh,2022,188438.42
+1108,Aceh Utara,11,Aceh,2022,323839.47
+1109,Simeulue,11,Aceh,2022,11648.15
+1110,Aceh Singkil,11,Aceh,2022,2203.58
+1111,Bireuen,11,Aceh,2022,137057.19
+1112,Aceh Barat Daya,11,Aceh,2022,68350.84
+1113,Gayo Lues,11,Aceh,2022,28634.5
+1114,Aceh Jaya,11,Aceh,2022,42784.33
+1115,Nagan Raya,11,Aceh,2022,32185.63
+1116,Aceh Tamiang,11,Aceh,2022,59902.25
+1117,Bener Meriah,11,Aceh,2022,1715.62
+1118,Pidie Jaya,11,Aceh,2022,88469.06
+1171,Banda Aceh,11,Aceh,2022,72.97
+1172,Sabang,11,Aceh,2022,0
+1173,Lhokseumawe,11,Aceh,2022,9899.07
+1174,Langsa,11,Aceh,2022,7101.39
+1175,Subulussalam,11,Aceh,2022,244.58
+1201,Tapanuli Tengah,12,Sumatera Utara,2022,48181.74
+1202,Tapanuli Utara,12,Sumatera Utara,2022,125645.1
+1203,Tapanuli Selatan,12,Sumatera Utara,2022,98843.26
+1204,Nias,12,Sumatera Utara,2022,35244.47
+1205,Langkat,12,Sumatera Utara,2022,115310.3
+1206,Karo,12,Sumatera Utara,2022,63451.43
+1207,Deli Serdang,12,Sumatera Utara,2022,331769.5
+1208,Simalungun,12,Sumatera Utara,2022,143008.9
+1209,Asahan,12,Sumatera Utara,2022,65692.71
+1210,Labuhan Batu,12,Sumatera Utara,2022,82642.09
+1211,Dairi,12,Sumatera Utara,2022,34934.89
+1212,Toba,12,Sumatera Utara,2022,102802.3
+1213,Mandailing Natal,12,Sumatera Utara,2022,82436.28
+1214,Nias Selatan,12,Sumatera Utara,2022,43037.79
+1215,Pakpak Bharat,12,Sumatera Utara,2022,5212.74
+1216,Humbang Hasundutan,12,Sumatera Utara,2022,65908.05
+1217,Samosir,12,Sumatera Utara,2022,38052.33
+1218,Serdang Bedagai,12,Sumatera Utara,2022,298314.7
+1219,Batu Bara,12,Sumatera Utara,2022,68430.96
+1220,Padang Lawas Utara,12,Sumatera Utara,2022,29247.18
+1221,Padang Lawas,12,Sumatera Utara,2022,27674.56
+1222,Labuhanbatu Selatan,12,Sumatera Utara,2022,403.84
+1223,Labuhanbatu Utara,12,Sumatera Utara,2022,79223.04
+1224,Nias Utara,12,Sumatera Utara,2022,39122.95
+1225,Nias Barat,12,Sumatera Utara,2022,10228.82
+1271,Medan,12,Sumatera Utara,2022,5854.91
+1272,Pematangsiantar,12,Sumatera Utara,2022,11490.47
+1273,Sibolga,12,Sumatera Utara,2022,0
+1274,Tanjung Balai,12,Sumatera Utara,2022,348.41
+1275,Binjai,12,Sumatera Utara,2022,6342.59
+1276,Tebing Tinggi,12,Sumatera Utara,2022,2310.46
+1277,Padangsidimpuan,12,Sumatera Utara,2022,17769.03
+1278,Gunungsitoli,12,Sumatera Utara,2022,9647.98
+1301,Pesisir Selatan,13,Sumatera Barat,2022,161638.55
+1302,Solok,13,Sumatera Barat,2022,179316.1
+1303,Sijunjung,13,Sumatera Barat,2022,53949.21
+1304,Tanah Datar,13,Sumatera Barat,2022,169881.11
+1305,Padang Pariaman,13,Sumatera Barat,2022,135072.49
+1306,Agam,13,Sumatera Barat,2022,137633.42
+1307,Lima Puluh Kota,13,Sumatera Barat,2022,118608.29
+1308,Pasaman,13,Sumatera Barat,2022,144110.46
+1309,Kepulauan Mentawai,13,Sumatera Barat,2022,1387.33
+1310,Dharmasraya,13,Sumatera Barat,2022,47554.99
+1311,Solok Selatan,13,Sumatera Barat,2022,49760.15
+1312,Pasaman Barat,13,Sumatera Barat,2022,50317.46
+1371,Padang,13,Sumatera Barat,2022,45241.87
+1372,Solok,13,Sumatera Barat,2022,13946.12
+1373,Sawahlunto,13,Sumatera Barat,2022,11600.3
+1374,Padang Panjang,13,Sumatera Barat,2022,5789
+1375,Bukittinggi,13,Sumatera Barat,2022,4082.69
+1376,Payakumbuh,13,Sumatera Barat,2022,27223.71
+1377,Pariaman,13,Sumatera Barat,2022,16418.94
+1401,Kampar,14,Riau,2022,11663.19
+1402,Indragiri Hulu,14,Riau,2022,3672.09
+1403,Bengkalis,14,Riau,2022,15167.82
+1404,Indragiri Hilir,14,Riau,2022,57471.26
+1405,Pelalawan,14,Riau,2022,18942.42
+1406,Rokan Hulu,14,Riau,2022,5849.07
+1407,Rokan Hilir,14,Riau,2022,34456.04
+1408,Siak,14,Riau,2022,29463.62
+1409,Kuantan Singingi,14,Riau,2022,21360.81
+1410,Kepulauan Meranti,14,Riau,2022,6134.99
+1471,Pekanbaru,14,Riau,2022,0
+1472,Dumai,14,Riau,2022,9375.92
+1501,Kerinci,15,Jambi,2022,87517.43
+1502,Merangin,15,Jambi,2022,23019.21
+1503,Sarolangun,15,Jambi,2022,13470.68
+1504,Batanghari,15,Jambi,2022,22383.81
+1505,Muaro Jambi,15,Jambi,2022,18599.51
+1506,Tanjung Jabung Barat,15,Jambi,2022,14339.58
+1507,Tanjung Jabung Timur,15,Jambi,2022,24562.32
+1508,Bungo,15,Jambi,2022,17110.03
+1509,Tebo,15,Jambi,2022,19561.77
+1571,Jambi,15,Jambi,2022,1298.62
+1572,Sungai Penuh,15,Jambi,2022,35880.87
+1601,Ogan Komering Ulu,16,Sumatera Selatan,2022,13784.51
+1602,Ogan Komering Ilir,16,Sumatera Selatan,2022,534586.78
+1603,Muara Enim,16,Sumatera Selatan,2022,55650.55
+1604,Lahat,16,Sumatera Selatan,2022,74549.71
+1605,Musi Rawas,16,Sumatera Selatan,2022,100005.52
+1606,Musi Banyuasin,16,Sumatera Selatan,2022,144445.74
+1607,Banyuasin,16,Sumatera Selatan,2022,897427.6
+1608,Ogan Komering Ulu Timur,16,Sumatera Selatan,2022,701509.52
+1609,Ogan Komering Ulu Selatan,16,Sumatera Selatan,2022,39203.3
+1610,Ogan Ilir,16,Sumatera Selatan,2022,104927.85
+1611,Empat Lawang,16,Sumatera Selatan,2022,39687.3
+1612,Penukal Abab Lematang Ilir,16,Sumatera Selatan,2022,22573.26
+1613,Musi Rawas Utara,16,Sumatera Selatan,2022,12304.47
+1671,Palembang,16,Sumatera Selatan,2022,11067.82
+1672,Pagar Alam,16,Sumatera Selatan,2022,16820.27
+1673,Lubuk Linggau,16,Sumatera Selatan,2022,6381.94
+1674,Prabumulih,16,Sumatera Selatan,2022,143.12
+1701,Bengkulu Selatan,17,Bengkulu,2022,50237.54
+1702,Rejang Lebong,17,Bengkulu,2022,35899.06
+1703,Bengkulu Utara,17,Bengkulu,2022,19728.24
+1704,Kaur,17,Bengkulu,2022,24207.7
+1705,Seluma,17,Bengkulu,2022,43588
+1706,Muko Muko,17,Bengkulu,2022,31370.91
+1707,Lebong,17,Bengkulu,2022,50510.99
+1708,Kepahiang,17,Bengkulu,2022,14986.45
+1709,Bengkulu Tengah,17,Bengkulu,2022,5271.28
+1771,Bengkulu,17,Bengkulu,2022,5809.92
+1801,Lampung Selatan,18,Lampung,2022,339941.87
+1802,Lampung Tengah,18,Lampung,2022,566601.47
+1803,Lampung Utara,18,Lampung,2022,63452.76
+1804,Lampung Barat,18,Lampung,2022,62802.09
+1805,Tulang Bawang,18,Lampung,2022,268323.74
+1806,Tanggamus,18,Lampung,2022,128674.92
+1807,Lampung Timur,18,Lampung,2022,449294.9
+1808,Way Kanan,18,Lampung,2022,100985.27
+1809,Pesawaran,18,Lampung,2022,130558.89
+1810,Pringsewu,18,Lampung,2022,137096.53
+1811,Mesuji,18,Lampung,2022,296934.72
+1812,Tulang Bawang Barat,18,Lampung,2022,50700.33
+1813,Pesisir Barat,18,Lampung,2022,60772.93
+1871,Bandar Lampung,18,Lampung,2022,2721.97
+1872,Metro,18,Lampung,2022,29297.35
+1901,Bangka,19,Kepulauan Bangka Belitung,2022,4574.6
+1902,Belitung,19,Kepulauan Bangka Belitung,2022,807.06
+1903,Bangka Selatan,19,Kepulauan Bangka Belitung,2022,52191.12
+1904,Bangka Tengah,19,Kepulauan Bangka Belitung,2022,310.07
+1905,Bangka Barat,19,Kepulauan Bangka Belitung,2022,2152.7
+1906,Belitung Timur,19,Kepulauan Bangka Belitung,2022,1389.52
+1971,Pangkal Pinang,19,Kepulauan Bangka Belitung,2022,0
+2101,Bintan,21,Kepulauan Riau,2022,25.36
+2102,Karimun,21,Kepulauan Riau,2022,0
+2103,Natuna,21,Kepulauan Riau,2022,287.3
+2104,Lingga,21,Kepulauan Riau,2022,118.12
+2105,Kepulauan Anambas,21,Kepulauan Riau,2022,76.13
+2171,Batam,21,Kepulauan Riau,2022,0
+2172,Tanjung Pinang,21,Kepulauan Riau,2022,0
+3101,Kepulauan Seribu,31,DKI Jakarta,2022,0
+3171,Jakarta Selatan,31,DKI Jakarta,2022,0
+3172,Jakarta Timur,31,DKI Jakarta,2022,187
+3173,Jakarta Pusat,31,DKI Jakarta,2022,0
+3174,Jakarta Barat,31,DKI Jakarta,2022,181
+3175,Jakarta Utara,31,DKI Jakarta,2022,1969
+3201,Bogor,32,Jawa Barat,2022,299893.8
+3202,Sukabumi,32,Jawa Barat,2022,508220.48
+3203,Cianjur,32,Jawa Barat,2022,617941.03
+3204,Bandung,32,Jawa Barat,2022,289205.7
+3205,Garut,32,Jawa Barat,2022,441316.2
+3206,Tasikmalaya,32,Jawa Barat,2022,430961.73
+3207,Ciamis,32,Jawa Barat,2022,305676.17
+3208,Kuningan,32,Jawa Barat,2022,277583.76
+3209,Cirebon,32,Jawa Barat,2022,494699.98
+3210,Majalengka,32,Jawa Barat,2022,566087.34
+3211,Sumedang,32,Jawa Barat,2022,298163
+3212,Indramayu,32,Jawa Barat,2022,1482255.86
+3213,Subang,32,Jawa Barat,2022,1038780.58
+3214,Purwakarta,32,Jawa Barat,2022,188731.69
+3215,Karawang,32,Jawa Barat,2022,1226880.08
+3216,Bekasi,32,Jawa Barat,2022,555747.09
+3217,Bandung Barat,32,Jawa Barat,2022,153648.29
+3218,Pangandaran,32,Jawa Barat,2022,148670.61
+3271,Bogor,32,Jawa Barat,2022,173.99
+3272,Sukabumi,32,Jawa Barat,2022,13254.34
+3273,Bandung,32,Jawa Barat,2022,7186.11
+3274,Cirebon,32,Jawa Barat,2022,861.82
+3275,Bekasi,32,Jawa Barat,2022,1868.44
+3276,Depok,32,Jawa Barat,2022,72.13
+3277,Cimahi,32,Jawa Barat,2022,338.03
+3278,Tasikmalaya,32,Jawa Barat,2022,54233.66
+3279,Banjar,32,Jawa Barat,2022,31271.18
+3301,Cilacap,33,Jawa Tengah,2022,761355.92
+3302,Banyumas,33,Jawa Tengah,2022,275622.59
+3303,Purbalingga,33,Jawa Tengah,2022,154076.91
+3304,Banjarnegara,33,Jawa Tengah,2022,109047.94
+3305,Kebumen,33,Jawa Tengah,2022,424840.1
+3306,Purworejo,33,Jawa Tengah,2022,279100.57
+3307,Wonosobo,33,Jawa Tengah,2022,66996.75
+3308,Magelang,33,Jawa Tengah,2022,169112.19
+3309,Boyolali,33,Jawa Tengah,2022,293909.04
+3310,Klaten,33,Jawa Tengah,2022,338083.63
+3311,Sukoharjo,33,Jawa Tengah,2022,308529.08
+3312,Wonogiri,33,Jawa Tengah,2022,383143.3
+3313,Karanganyar,33,Jawa Tengah,2022,268582.78
+3314,Sragen,33,Jawa Tengah,2022,626632.73
+3315,Grobogan,33,Jawa Tengah,2022,778895.15
+3316,Blora,33,Jawa Tengah,2022,481758.33
+3317,Rembang,33,Jawa Tengah,2022,179211.77
+3318,Pati,33,Jawa Tengah,2022,587469.44
+3319,Kudus,33,Jawa Tengah,2022,195692.08
+3320,Jepara,33,Jawa Tengah,2022,203279.05
+3321,Demak,33,Jawa Tengah,2022,615685.96
+3322,Semarang,33,Jawa Tengah,2022,137763.91
+3323,Temanggung,33,Jawa Tengah,2022,56887.24
+3324,Kendal,33,Jawa Tengah,2022,161073.29
+3325,Batang,33,Jawa Tengah,2022,130915.33
+3326,Pekalongan,33,Jawa Tengah,2022,164951.88
+3327,Pemalang,33,Jawa Tengah,2022,390777.57
+3328,Tegal,33,Jawa Tengah,2022,341113.01
+3329,Brebes,33,Jawa Tengah,2022,442225.87
+3371,Magelang,33,Jawa Tengah,2022,725.68
+3372,Surakarta,33,Jawa Tengah,2022,135.08
+3373,Salatiga,33,Jawa Tengah,2022,3382.08
+3374,Semarang,33,Jawa Tengah,2022,15201.27
+3375,Pekalongan,33,Jawa Tengah,2022,7052.69
+3376,Tegal,33,Jawa Tengah,2022,3215.28
+3401,Kulon Progo,34,DI Yogyakarta,2022,116055.76
+3402,Bantul,34,DI Yogyakarta,2022,130339.44
+3403,Gunungkidul,34,DI Yogyakarta,2022,198309.83
+3404,Sleman,34,DI Yogyakarta,2022,116951.41
+3471,Yogyakarta,34,DI Yogyakarta,2022,43.09
+3501,Pacitan,35,Jawa Timur,2022,90428.21
+3502,Ponorogo,35,Jawa Timur,2022,359413.8
+3503,Trenggalek,35,Jawa Timur,2022,115758
+3504,Tulungagung,35,Jawa Timur,2022,207217.3
+3505,Blitar,35,Jawa Timur,2022,215482.8
+3506,Kediri,35,Jawa Timur,2022,168853.6
+3507,Malang,35,Jawa Timur,2022,271606.8
+3508,Lumajang,35,Jawa Timur,2022,300829
+3509,Jember,35,Jawa Timur,2022,607371.2
+3510,Banyuwangi,35,Jawa Timur,2022,462206
+3511,Bondowoso,35,Jawa Timur,2022,238677.7
+3512,Situbondo,35,Jawa Timur,2022,141628
+3513,Probolinggo,35,Jawa Timur,2022,185412.5
+3514,Pasuruan,35,Jawa Timur,2022,247255.7
+3515,Sidoarjo,35,Jawa Timur,2022,194540.5
+3516,Mojokerto,35,Jawa Timur,2022,281829.4
+3517,Jombang,35,Jawa Timur,2022,337172.1
+3518,Nganjuk,35,Jawa Timur,2022,376476.4
+3519,Madiun,35,Jawa Timur,2022,401573.7
+3520,Magetan,35,Jawa Timur,2022,266699.9
+3521,Ngawi,35,Jawa Timur,2022,755939
+3522,Bojonegoro,35,Jawa Timur,2022,704288.9
+3523,Tuban,35,Jawa Timur,2022,498938.6
+3524,Lamongan,35,Jawa Timur,2022,903882.3
+3525,Gresik,35,Jawa Timur,2022,411242.2
+3526,Bangkalan,35,Jawa Timur,2022,198122.7
+3527,Sampang,35,Jawa Timur,2022,172494.4
+3528,Pamekasan,35,Jawa Timur,2022,107648.7
+3529,Sumenep,35,Jawa Timur,2022,230581.3
+3571,Kediri,35,Jawa Timur,2022,10197.5
+3572,Blitar,35,Jawa Timur,2022,5212.13
+3573,Malang,35,Jawa Timur,2022,10771.15
+3574,Probolinggo,35,Jawa Timur,2022,8103.92
+3575,Pasuruan,35,Jawa Timur,2022,7293.69
+3576,Mojokerto,35,Jawa Timur,2022,5032.96
+3577,Madiun,35,Jawa Timur,2022,11453.92
+3578,Surabaya,35,Jawa Timur,2022,8117.31
+3579,Batu,35,Jawa Timur,2022,6762.57
+3601,Pandeglang,36,Banten,2022,553202.6
+3602,Lebak,36,Banten,2022,430413.6
+3603,Tangerang,36,Banten,2022,289798.4
+3604,Serang,36,Banten,2022,446654.3
+3671,Tangerang,36,Banten,2022,3424.91
+3672,Cilegon,36,Banten,2022,9101.37
+3673,Serang,36,Banten,2022,55987.47
+3674,Tangerang Selatan,36,Banten,2022,0
+5301,Sumba Barat,53,Nusa Tenggara Timur,2022,30180.24
+5302,Sumba Timur,53,Nusa Tenggara Timur,2022,52283.93
+5303,Kupang,53,Nusa Tenggara Timur,2022,61254.96
+5304,Timor Tengah Selatan,53,Nusa Tenggara Timur,2022,15615.68
+5305,Timor Tengah Utara,53,Nusa Tenggara Timur,2022,25924.14
+5306,Belu,53,Nusa Tenggara Timur,2022,23238.92
+5307,Alor,53,Nusa Tenggara Timur,2022,3555.68
+5308,Lembata,53,Nusa Tenggara Timur,2022,201.09
+5309,Flores Timur,53,Nusa Tenggara Timur,2022,7516.59
+5310,Sikka,53,Nusa Tenggara Timur,2022,11345.98
+5311,Ende,53,Nusa Tenggara Timur,2022,21881.53
+5312,Ngada,53,Nusa Tenggara Timur,2022,48062.41
+5313,Manggarai,53,Nusa Tenggara Timur,2022,88358.88
+5314,Rote Ndao,53,Nusa Tenggara Timur,2022,28835.23
+5315,Manggarai Barat,53,Nusa Tenggara Timur,2022,124086.7
+5316,Nagekeo,53,Nusa Tenggara Timur,2022,27527.08
+5317,Sumba Tengah,53,Nusa Tenggara Timur,2022,24187.39
+5318,Sumba Barat Daya,53,Nusa Tenggara Timur,2022,49435.23
+5319,Manggarai Timur,53,Nusa Tenggara Timur,2022,77979.11
+5320,Sabu Raijua,53,Nusa Tenggara Timur,2022,7204.79
+5321,Malaka,53,Nusa Tenggara Timur,2022,25806.1
+5371,Kupang,53,Nusa Tenggara Timur,2022,1568.24
+6101,Sambas,61,Kalimantan Barat,2022,176541.14
+6102,Mempawah,61,Kalimantan Barat,2022,50190.35
+6103,Sanggau,61,Kalimantan Barat,2022,64116.98
+6104,Ketapang,61,Kalimantan Barat,2022,105650.43
+6105,Sintang,61,Kalimantan Barat,2022,31303.8
+6106,Kapuas Hulu,61,Kalimantan Barat,2022,15174.03
+6107,Bengkayang,61,Kalimantan Barat,2022,32340.73
+6108,Landak,61,Kalimantan Barat,2022,93452.27
+6109,Sekadau,61,Kalimantan Barat,2022,29270.04
+6110,Melawi,61,Kalimantan Barat,2022,7952.03
+6111,Kayong Utara,61,Kalimantan Barat,2022,42280.23
+6112,Kubu Raya,61,Kalimantan Barat,2022,70329.98
+6171,Pontianak,61,Kalimantan Barat,2022,457.53
+6172,Singkawang,61,Kalimantan Barat,2022,12166.26
+6201,Kotawaringin Barat,62,Kalimantan Tengah,2022,330.44
+6202,Kotawaringin Timur,62,Kalimantan Tengah,2022,29160.84
+6203,Kapuas,62,Kalimantan Tengah,2022,153060.04
+6204,Barito Selatan,62,Kalimantan Tengah,2022,6170.98
+6205,Barito Utara,62,Kalimantan Tengah,2022,8092.07
+6206,Katingan,62,Kalimantan Tengah,2022,30994.22
+6207,Seruyan,62,Kalimantan Tengah,2022,6897.39
+6208,Sukamara,62,Kalimantan Tengah,2022,2091.58
+6209,Lamandau,62,Kalimantan Tengah,2022,894.55
+6210,Gunung Mas,62,Kalimantan Tengah,2022,568.9
+6211,Pulang Pisau,62,Kalimantan Tengah,2022,85923.18
+6212,Murung Raya,62,Kalimantan Tengah,2022,2184.04
+6213,Barito Timur,62,Kalimantan Tengah,2022,17525.59
+6271,Palangkaraya,62,Kalimantan Tengah,2022,24.93
+6301,Tanah Laut,63,Kalimantan Selatan,2022,73487.24
+6302,Kotabaru,63,Kalimantan Selatan,2022,17609.79
+6303,Banjar,63,Kalimantan Selatan,2022,129050.5
+6304,Barito Kuala,63,Kalimantan Selatan,2022,186867.79
+6305,Tapin,63,Kalimantan Selatan,2022,101228.04
+6306,Hulu Sungai Selatan,63,Kalimantan Selatan,2022,58463.58
+6307,Hulu Sungai Tengah,63,Kalimantan Selatan,2022,109758.31
+6308,Hulu Sungai Utara,63,Kalimantan Selatan,2022,25622.89
+6309,Tabalong,63,Kalimantan Selatan,2022,54341.6
+6310,Tanah Bumbu,63,Kalimantan Selatan,2022,39429
+6311,Balangan,63,Kalimantan Selatan,2022,15548.9
+6371,Banjarmasin,63,Kalimantan Selatan,2022,4932.7
+6372,Banjarbaru,63,Kalimantan Selatan,2022,3078.86
+6401,Paser,64,Kalimantan Timur,2022,48202.66
+6402,Kutai Kartanegara,64,Kalimantan Timur,2022,105025.7
+6403,Berau,64,Kalimantan Timur,2022,21135.98
+6407,Kutai Barat,64,Kalimantan Timur,2022,1284.77
+6408,Kutai Timur,64,Kalimantan Timur,2022,12076.25
+6409,Penajam Paser Utara,64,Kalimantan Timur,2022,45160.69
+6411,Mahakam Ulu,64,Kalimantan Timur,2022,489.42
+6471,Balikpapan,64,Kalimantan Timur,2022,302.1
+6472,Samarinda,64,Kalimantan Timur,2022,5492.34
+6474,Bontang,64,Kalimantan Timur,2022,255.43
+6501,Bulungan,65,Kalimantan Utara,2022,11626.22
+6502,Malinau,65,Kalimantan Utara,2022,5333.52
+6503,Nunukan,65,Kalimantan Utara,2022,12945.28
+6504,Tana Tidung,65,Kalimantan Utara,2022,566.97
+6571,Tarakan,65,Kalimantan Utara,2022,61.6
+7101,Bolaang Mongondow,71,Sulawesi Utara,2022,132488.55
+7102,Minahasa,71,Sulawesi Utara,2022,34801.54
+7103,Kepulauan Sangihe,71,Sulawesi Utara,2022,0
+7104,Kepulauan Talaud,71,Sulawesi Utara,2022,0
+7105,Minahasa Selatan,71,Sulawesi Utara,2022,13010.03
+7106,Minahasa Utara,71,Sulawesi Utara,2022,5506.58
+7107,Minahasa Tenggara,71,Sulawesi Utara,2022,7355.5
+7108,Bolaang Mongondow Utara,71,Sulawesi Utara,2022,18031.28
+7109,Kepulauan Siau Tagulandang Biaro (Sitaro),71,Sulawesi Utara,2022,0
+7110,Bolaang Mongondow Timur,71,Sulawesi Utara,2022,3831.66
+7111,Bolaang Mongondow Selatan,71,Sulawesi Utara,2022,7578.19
+7171,Manado,71,Sulawesi Utara,2022,0
+7172,Bitung,71,Sulawesi Utara,2022,233.62
+7173,Tomohon,71,Sulawesi Utara,2022,2399.3
+7174,Kotamobagu,71,Sulawesi Utara,2022,18494.03
+7201,Banggai,72,Selawesi Tengah,2022,141013.22
+7202,Poso,72,Selawesi Tengah,2022,77879.42
+7203,Donggala,72,Selawesi Tengah,2022,57266.29
+7204,Toli Toli,72,Selawesi Tengah,2022,57937.49
+7205,Buol,72,Selawesi Tengah,2022,16798.44
+7206,Morowali,72,Selawesi Tengah,2022,35483.73
+7207,Banggai Kepulauan,72,Selawesi Tengah,2022,992.99
+7208,Parigi Moutong,72,Selawesi Tengah,2022,245039.66
+7209,Tojo Una Una,72,Selawesi Tengah,2022,5677.34
+7210,Sigi,72,Selawesi Tengah,2022,80066.14
+7211,Banggai Laut,72,Selawesi Tengah,2022,0
+7212,Morowali Utara,72,Selawesi Tengah,2022,25365.23
+7271,Palu,72,Selawesi Tengah,2022,888.75
+7301,Kepulauan Selayar,73,Sulawesi Selatan,2022,6710.53
+7302,Bulukumba,73,Sulawesi Selatan,2022,208838.17
+7303,Bantaeng,73,Sulawesi Selatan,2022,56206.03
+7304,Jeneponto,73,Sulawesi Selatan,2022,127923.41
+7305,Takalar,73,Sulawesi Selatan,2022,112369.69
+7306,Gowa,73,Sulawesi Selatan,2022,231035.1
+7307,Sinjai,73,Sulawesi Selatan,2022,103063.58
+7308,Bone,73,Sulawesi Selatan,2022,915978.89
+7309,Maros,73,Sulawesi Selatan,2022,196087.49
+7310,Pangkajene Kepulauan,73,Sulawesi Selatan,2022,118394.01
+7311,Barru,73,Sulawesi Selatan,2022,144793.92
+7312,Soppeng,73,Sulawesi Selatan,2022,292200.18
+7313,Wajo,73,Sulawesi Selatan,2022,797933.74
+7314,Sidenreng Rappang,73,Sulawesi Selatan,2022,535315.55
+7315,Pinrang,73,Sulawesi Selatan,2022,548084.63
+7316,Enrekang,73,Sulawesi Selatan,2022,40316.69
+7317,Luwu,73,Sulawesi Selatan,2022,277364.84
+7318,Tana Toraja,73,Sulawesi Selatan,2022,82973.84
+7322,Luwu Utara,73,Sulawesi Selatan,2022,208866.69
+7324,Luwu Timur,73,Sulawesi Selatan,2022,219608.6
+7326,Toraja Utara,73,Sulawesi Selatan,2022,101859.8
+7371,Makassar,73,Sulawesi Selatan,2022,12788.19
+7372,Pare Pare,73,Sulawesi Selatan,2022,4649.39
+7373,Palopo,73,Sulawesi Selatan,2022,16806.41
+7401,Kolaka,74,Sulawesi Tenggara,2022,51063.36
+7402,Konawe,74,Sulawesi Tenggara,2022,132209.2
+7403,Muna,74,Sulawesi Tenggara,2022,1769.58
+7404,Buton,74,Sulawesi Tenggara,2022,5852.1
+7405,Konawe Selatan,74,Sulawesi Tenggara,2022,88805.39
+7406,Bombana,74,Sulawesi Tenggara,2022,76588.65
+7407,Wakatobi,74,Sulawesi Tenggara,2022,0
+7408,Kolaka Utara,74,Sulawesi Tenggara,2022,5125.64
+7409,Konawe Utara,74,Sulawesi Tenggara,2022,8952.07
+7410,Buton Utara,74,Sulawesi Tenggara,2022,2862.39
+7411,Kolaka Timur,74,Sulawesi Tenggara,2022,88994.39
+7412,Konawe Kepulauan,74,Sulawesi Tenggara,2022,492.54
+7413,Muna Barat,74,Sulawesi Tenggara,2022,5387.73
+7414,Buton Tengah,74,Sulawesi Tenggara,2022,25.29
+7415,Buton Selatan,74,Sulawesi Tenggara,2022,0
+7471,Kendari,74,Sulawesi Tenggara,2022,2329.73
+7472,Bau Bau,74,Sulawesi Tenggara,2022,8499.94
+7501,Gorontalo,75,Gorontalo,2022,128971.46
+7502,Boalemo,75,Gorontalo,2022,29663.64
+7503,Bone Bolango,75,Gorontalo,2022,17790.18
+7504,Pahuwato,75,Gorontalo,2022,27409.27
+7505,Gorontalo Utara,75,Gorontalo,2022,26667.8
+7571,Gorontalo,75,Gorontalo,2022,9632.18
+7601,Pasangkayu (Mamuju Utara),76,Sulawesi Barat,2022,2925.23
+7602,Mamuju,76,Sulawesi Barat,2022,70325.79
+7603,Mamasa,76,Sulawesi Barat,2022,48965.06
+7604,Polewali Mandar,76,Sulawesi Barat,2022,199665.24
+7605,Majene,76,Sulawesi Barat,2022,5643.12
+7606,Mamuju Tengah,76,Sulawesi Barat,2022,25988.85
+8101,Maluku Tengah,81,Maluku,2022,33435.21
+8102,Maluku Tenggara,81,Maluku,2022,0
+8103,Kepulauan Tanimbar (Maluku Tenggara Barat),81,Maluku,2022,293.5
+8104,Buru,81,Maluku,2022,45450.84
+8105,Seram Bagian Timur,81,Maluku,2022,10085.35
+8106,Seram Bagian Barat,81,Maluku,2022,3335.63
+8107,Kepulauan Aru,81,Maluku,2022,0
+8108,Maluku Barat Daya,81,Maluku,2022,0
+8109,Buru Selatan,81,Maluku,2022,0
+8171,Ambon,81,Maluku,2022,0
+8172,Tual,81,Maluku,2022,0.53
+8201,Halmahera Barat,82,Maluku Utara,2022,226.18
+8202,Halmahera Tengah,82,Maluku Utara,2022,103.47
+8203,Halmahera Utara,82,Maluku Utara,2022,6893.28
+8204,Halmahera Selatan,82,Maluku Utara,2022,121.88
+8205,Kepulauan Sula,82,Maluku Utara,2022,16.63
+8206,Halmahera Timur,82,Maluku Utara,2022,15285.65
+8207,Pulau Morotai,82,Maluku Utara,2022,1838.94
+8208,Pulau Taliabu,82,Maluku Utara,2022,0
+8271,Ternate,82,Maluku Utara,2022,0
+8272,Tidore Kepulauan,82,Maluku Utara,2022,0
+9103,Jayapura,91,Papua,2022,1395.07
+9105,Kepulauan Yapen,91,Papua,2022,0
+9106,Biak Numfor,91,Papua,2022,0
+9110,Sarmi,91,Papua,2022,57.72
+9111,Keerom,91,Papua,2022,124.8
+9115,Waropen,91,Papua,2022,37.7
+9119,Supiori,91,Papua,2022,0
+9120,Mamberamo Raya,91,Papua,2022,0
+9171,Jayapura,91,Papua,2022,1260.48
+9202,Manokwari,92,Papua Barat,2022,15545.55
+9203,Fak Fak,92,Papua Barat,2022,48.97
+9206,Teluk Bintuni,92,Papua Barat,2022,422.2
+9207,Teluk Wondama,92,Papua Barat,2022,0
+9208,Kaimana,92,Papua Barat,2022,0
+9211,Manokwari Selatan,92,Papua Barat,2022,4928
+9212,Pegunungan Arfak,92,Papua Barat,2022,0
+9301,Merauke,93,Papua Selatan,2022,0
+9302,Boven Digoel,93,Papua Selatan,2022,0
+9303,Mappi,93,Papua Selatan,2022,0
+9304,Asmat,93,Papua Selatan,2022,0
+9401,Nabire,94,Papua Tengah,2022,0
+9402,Puncak Jaya,94,Papua Tengah,2022,0
+9403,Paniai,94,Papua Tengah,2022,0
+9404,Mimika,94,Papua Tengah,2022,0
+9405,Puncak,94,Papua Tengah,2022,0
+9406,Dogiyai,94,Papua Tengah,2022,0
+9407,Intan Jaya,94,Papua Tengah,2022,0
+9408,Deiyai,94,Papua Tengah,2022,0
+9501,Jayawijaya,95,Papua Pegunungan,2022,0
+9502,Pegunungan Bintang,95,Papua Pegunungan,2022,0
+9503,Yahukimo,95,Papua Pegunungan,2022,0
+9504,Tolikara,95,Papua Pegunungan,2022,0
+9505,Mamberamo Tengah,95,Papua Pegunungan,2022,0
+9506,Yalimo,95,Papua Pegunungan,2022,0
+9507,Lanny Jaya,95,Papua Pegunungan,2022,0
+9508,Nduga,95,Papua Pegunungan,2022,0
+9601,Sorong,96,Papua Barat Daya,2022,0
+9604,Sorong Selatan,96,Papua Barat Daya,2022,0
+9605,Raja Ampat,96,Papua Barat Daya,2022,0
+9609,Tambrauw,96,Papua Barat Daya,2022,0
+9610,Maybrat,96,Papua Barat Daya,2022,0
+9671,Sorong,96,Papua Barat Daya,2022,0

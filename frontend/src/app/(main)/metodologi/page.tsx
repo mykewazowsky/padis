@@ -1,35 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Droplets,
   Leaf,
-  Map as MapIcon, // <-- INI YANG SEBELUMNYA TERLEWAT
+  Map as MapIcon,
   ArrowRight,
   Layers,
   Database,
   Info,
   History,
-  Download,
-  AlertTriangle,
   TrendingUp,
   Loader2,
-  MapPin,
-  Wheat
 } from "lucide-react";
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts";
 
 // -- Tipe Data --
@@ -39,33 +32,21 @@ interface HistoricalRecord {
   drought: number;
 }
 
-interface RegencyRecord {
-  kabupaten: string;
-  flood: number;
-  drought: number;
-  total: number;
-}
-
-interface ProductionRecord {
-  kab_kota: string;
-  prov: string;
-  total_prod: number;
-}
-
 const metadataRules = [
   {
     name: "Batas Administrasi",
     source: "Badan Informasi Geospasial (BIG)",
-    icon: MapIcon, // <-- DISESUAIKAN DENGAN ALIAS
+    icon: MapIcon,
     iconColor: "text-blue-500",
     badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-    description: "Digunakan sebagai referensi spasial dasar untuk spatial join dan agregasi estimasi kerugian (Loss & AAL) hingga ke tingkat kabupaten/kota.",
+    description:
+      "Digunakan sebagai referensi spasial dasar untuk spatial join dan agregasi estimasi kerugian (Loss & AAL) hingga ke tingkat kabupaten/kota.",
     specs: [
       { label: "Tipe Geometri", value: "Vector Polygon" },
       { label: "Format File", value: ".SHP / .GeoJSON" },
       { label: "Atribut Kunci", value: "id_kabkota, kab_kota" },
       { label: "Sistem Referensi", value: "WGS 84 (EPSG:4326)" },
-    ]
+    ],
   },
   {
     name: "Lahan Baku Sawah",
@@ -73,13 +54,14 @@ const metadataRules = [
     icon: Layers,
     iconColor: "text-emerald-500",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    description: "Layer spasial yang merepresentasikan footprint area persawahan. Digunakan untuk proses masking dan ekstraksi nilai hazard yang tumpang tindih (overlay).",
+    description:
+      "Layer spasial yang merepresentasikan footprint area persawahan. Digunakan untuk proses masking dan ekstraksi nilai hazard yang tumpang tindih (overlay).",
     specs: [
       { label: "Tipe Geometri", value: "Vector Polygon" },
       { label: "Skala Pemetaan", value: "1:5.000" },
       { label: "Format File", value: ".SHP / .GPKG" },
       { label: "Validasi", value: "Clean Topology (No Self-Intersect)" },
-    ]
+    ],
   },
   {
     name: "Pemodelan Genangan Banjir",
@@ -87,13 +69,14 @@ const metadataRules = [
     icon: Droplets,
     iconColor: "text-cyan-500",
     badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    description: "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai kedalaman genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
+    description:
+      "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai kedalaman genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "8 Meter" },
       { label: "Skenario Baseline", value: "R25, R50, R100, R250" },
       { label: "Skenario Iklim", value: "RC25, RC50, RC100, RC250" },
-    ]
+    ],
   },
   {
     name: "Indeks Kekeringan (SPI)",
@@ -101,13 +84,14 @@ const metadataRules = [
     icon: Leaf,
     iconColor: "text-orange-500",
     badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
-    description: "Layer raster nilai Standardized Precipitation Index yang merepresentasikan tingkat defisit curah hujan ekstrem berdasarkan observasi satelit dan proyeksi Multi-Model Ensemble.",
+    description:
+      "Layer raster nilai Standardized Precipitation Index yang merepresentasikan tingkat defisit curah hujan ekstrem berdasarkan observasi satelit dan proyeksi Multi-Model Ensemble.",
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "~5 Kilometer" },
       { label: "Skenario GPM", value: "RP25, RP50, RP100, RP250" },
       { label: "Skenario MME", value: "RP25, RP50, RP100, RP250" },
-    ]
+    ],
   },
 ];
 
@@ -132,7 +116,7 @@ function SectionHeader({
   );
 }
 
-// Fungsi formatter untuk mengubah angka besar ke format rb (Ribu) / Juta untuk chart produksi
+// Fungsi formatter untuk mengubah angka besar ke format rb (Ribu) / Juta
 const formatYAxis = (tickItem: number) => {
   if (tickItem >= 1000000) return `${(tickItem / 1000000).toFixed(1)} Juta`;
   if (tickItem >= 1000) return `${(tickItem / 1000).toFixed(0)} rb`;
@@ -141,89 +125,76 @@ const formatYAxis = (tickItem: number) => {
 
 export default function MetodologiPage() {
   const [histData, setHistData] = useState<HistoricalRecord[]>([]);
-  const [regencyData, setRegencyData] = useState<RegencyRecord[]>([]);
-  const [prodData, setProdData] = useState<ProductionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [totals, setTotals] = useState({ flood: 0, drought: 0, prod: 0 });
+
+  const hazardWeights = [
+    {
+      label: "Banjir",
+      value: 0.6776836021,
+      color: "blue",
+      description:
+        "Bobot dominan dalam komposisi multihazard berdasarkan basis historis kejadian dan tingkat dampak.",
+    },
+    {
+      label: "Kekeringan",
+      value: 0.3223163979,
+      color: "orange",
+      description:
+        "Bobot pendamping dalam komposisi multihazard untuk merepresentasikan kontribusi risiko kekeringan.",
+    },
+  ];
+
+  const floodCurveData = useMemo(() => {
+    const data = [];
+    for (let x = 0.1; x <= 3.0; x += 0.1) {
+      const lop = 0.2885 * Math.log(x) + 0.5148;
+      data.push({
+        x: Number(x.toFixed(1)),
+        lop: Number(Math.max(0, Math.min(1, lop)).toFixed(4)),
+      });
+    }
+    return data;
+  }, []);
+
+  const droughtCurveData = useMemo(() => {
+  const data = [];
+
+  for (let spi = 1.0; spi >= -3.0; spi -= 0.1) {
+    const lr = 0.8 / (1 + Math.exp(2.5 * (spi + 1.1)));
+
+    data.push({
+      x: Number(spi.toFixed(1)),
+      lop: Number(Math.max(0, Math.min(0.8, lr)).toFixed(4)),
+    });
+  }
+
+  return data;
+}, []);
 
   useEffect(() => {
     const fetchCSV = async () => {
       try {
         // 1. Fetch Data Tahunan Bencana
-        const resTahunan = await fetch("/historis/data_historis_banjir_kekeringan_DIBI.csv");
+        const resTahunan = await fetch(
+          "/historis/data_historis_banjir_kekeringan_DIBI.csv"
+        );
         const csvTahunan = await resTahunan.text();
         const linesTahunan = csvTahunan.trim().split("\n").slice(1);
-        let sumFlood = 0;
-        let sumDrought = 0;
 
         const parsedTahunan = linesTahunan.map((line) => {
           const delimiter = line.includes(";") ? ";" : ",";
           const [tahun, banjir, kekeringan] = line.split(delimiter);
           const fValue = parseFloat(banjir) || 0;
           const dValue = parseFloat(kekeringan) || 0;
-          sumFlood += fValue;
-          sumDrought += dValue;
-          return { year: tahun?.trim() || "N/A", flood: fValue, drought: dValue };
-        });
-
-        // 2. Fetch Data Kabupaten/Kota Bencana
-        const resKabKota = await fetch("/historis/data_historis_banjir_kekeringan_DIBI_kabkota.csv");
-        const csvKabKota = await resKabKota.text();
-        const linesKabKota = csvKabKota.trim().split("\n").slice(1);
-        
-        // --- DI SINI ERRORNYA SUDAH TERATASI KARENA ALIAS IMPORT MapIcon ---
-        const kabKotaMap = new Map<string, RegencyRecord>();
-
-        linesKabKota.forEach((line) => {
-          const delimiter = line.includes(";") ? ";" : ",";
-          const [kategori, kabupaten, jumlah] = line.split(delimiter);
-          if (!kabupaten) return;
-          const cat = kategori?.trim().toLowerCase() || "";
-          const kab = kabupaten?.trim() || "Unknown";
-          const count = parseFloat(jumlah) || 0;
-
-          if (!kabKotaMap.has(kab)) {
-            kabKotaMap.set(kab, { kabupaten: kab, flood: 0, drought: 0, total: 0 });
-          }
-
-          const record = kabKotaMap.get(kab)!;
-          if (cat.includes("banjir")) record.flood += count;
-          else if (cat.includes("kering") || cat.includes("kekeringan")) record.drought += count;
-          record.total = record.flood + record.drought;
-        });
-
-        const parsedKabKota = Array.from(kabKotaMap.values())
-          .sort((a, b) => b.total - a.total)
-          .slice(0, 15);
-
-        // 3. Fetch Data Produksi Padi
-        const resProd = await fetch("/produksi/total_prod_padi.csv");
-        const csvProd = await resProd.text();
-        const linesProd = csvProd.trim().split("\n").slice(1);
-        let sumProd = 0;
-
-        const allProdData = linesProd.map((line) => {
-          const delimiter = line.includes(";") ? ";" : ",";
-          const [id_kabkota, kab_kota, id_prov, prov, tahun, total_prod] = line.split(delimiter);
-          const valProd = parseFloat(total_prod) || 0;
-          sumProd += valProd;
 
           return {
-            kab_kota: kab_kota?.trim() || "Unknown",
-            prov: prov?.trim() || "Unknown",
-            total_prod: valProd
+            year: tahun?.trim() || "N/A",
+            flood: fValue,
+            drought: dValue,
           };
         });
 
-        const top15Prod = allProdData
-          .sort((a, b) => b.total_prod - a.total_prod)
-          .slice(0, 15);
-
         setHistData(parsedTahunan);
-        setRegencyData(parsedKabKota);
-        setProdData(top15Prod);
-        setTotals({ flood: sumFlood, drought: sumDrought, prod: sumProd });
-
       } catch (error) {
         console.error("Gagal mengambil data CSV:", error);
       } finally {
@@ -250,7 +221,9 @@ export default function MetodologiPage() {
               Metodologi Analisis Risiko Spasial
             </h1>
             <p className="mx-auto mt-5 max-w-3xl text-base leading-relaxed text-blue-100 md:text-lg">
-              PADIS mengintegrasikan pemodelan genangan, indeks kekeringan, dan analisis multihazard untuk memberikan visualisasi serta estimasi risiko wilayah padi secara presisi.
+              PADIS mengintegrasikan pemodelan genangan, indeks kekeringan, dan
+              analisis multihazard untuk memberikan visualisasi serta estimasi
+              risiko wilayah padi secara presisi.
             </p>
           </div>
         </div>
@@ -259,23 +232,28 @@ export default function MetodologiPage() {
       {/* 2. BASELINE DATA (BENCANA & PRODUKSI) */}
       <section className="relative overflow-hidden bg-slate-50 py-20 lg:py-24 text-gray-900 border-b border-gray-200">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
-          
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <div className="inline-flex items-center justify-center rounded-full bg-blue-100 px-3 py-1 mb-4 border border-blue-200">
                 <History className="h-4 w-4 text-blue-700 mr-2" />
-                <span className="text-sm font-medium text-blue-800">Baseline Data (Live CSV)</span>
+                <span className="text-sm font-medium text-blue-800">
+                  Baseline Data (Live CSV)
+                </span>
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                 Justifikasi Ancaman & Keterpaparan
               </h2>
               <p className="mt-4 text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
-                Pemodelan PADIS didasari oleh perbandingan antara riwayat tingginya frekuensi bencana (<span className="font-semibold text-gray-800">Hazard</span>) dengan wilayah-wilayah yang memiliki tingkat produksi padi terbesar (<span className="font-semibold text-gray-800">Exposure</span>).
+                Pemodelan PADIS didasari oleh perbandingan antara riwayat
+                tingginya frekuensi bencana{" "}
+                <span className="font-semibold text-gray-800">(Hazard)</span>{" "}
+                dengan wilayah-wilayah yang memiliki tingkat produksi padi
+                terbesar{" "}
+                <span className="font-semibold text-gray-800">(Exposure)</span>.
               </p>
             </div>
 
             <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-              
               {isLoading ? (
                 <div className="flex h-64 flex-col items-center justify-center text-slate-500">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-3" />
@@ -291,122 +269,141 @@ export default function MetodologiPage() {
                     </h4>
                     <div className="h-[350px] w-full rounded-xl border border-gray-100 bg-slate-50/30 p-4 pt-6">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={histData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                          <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} dy={10} />
-                          <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: '#64748B', fontSize: 11 }}
-                            tickFormatter={formatYAxis} 
-                            width={65} // <-- Perlebar menjadi 65 agar teks "Juta" tidak terpotong
+                        <LineChart
+                          data={histData}
+                          margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="#E2E8F0"
                           />
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                          <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                          <Line name="Kejadian Banjir" type="monotone" dataKey="flood" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                          <Line name="Kejadian Kekeringan" type="monotone" dataKey="drought" stroke="#F97316" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                          <XAxis
+                            dataKey="year"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#64748B", fontSize: 12 }}
+                            dy={10}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#64748B", fontSize: 11 }}
+                            tickFormatter={formatYAxis}
+                            width={65}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              borderRadius: "12px",
+                              border: "none",
+                              boxShadow:
+                                "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            }}
+                          />
+                          <Legend
+                            iconType="circle"
+                            wrapperStyle={{ paddingTop: "20px" }}
+                          />
+                          <Line
+                            name="Kejadian Banjir"
+                            type="monotone"
+                            dataKey="flood"
+                            stroke="#3B82F6"
+                            strokeWidth={3}
+                            dot={false}
+                            activeDot={{ r: 6 }}
+                          />
+                          <Line
+                            name="Kejadian Kekeringan"
+                            type="monotone"
+                            dataKey="drought"
+                            stroke="#F97316"
+                            strokeWidth={3}
+                            dot={false}
+                            activeDot={{ r: 6 }}
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
 
-                  {/* GRAFIK 2 & 3: PERBANDINGAN LOKASI (SIDE BY SIDE ON DESKTOP) */}
-                  <div className="grid gap-8 lg:grid-cols-2">
-                    
-                    {/* Bar Chart 1: Distribusi Bencana */}
-                    <div className="flex flex-col">
-                      <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-800">
-                        <MapPin className="h-5 w-5 text-red-500" />
-                        Top 15 Wilayah Terdampak Bencana
-                      </h4>
-                      <div className="h-[420px] w-full rounded-2xl border border-gray-100 bg-slate-50/50 p-5 shadow-sm transition-shadow hover:shadow-md">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={regencyData} margin={{ top: 10, right: 10, left: 0, bottom: 85 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                            <XAxis 
-                              dataKey="kabupaten" 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{ fill: '#64748B', fontSize: 11 }} 
-                              angle={-45}
-                              textAnchor="end"
-                              dy={12}
-                              interval={0}
-                            />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
-                            <Tooltip 
-                              cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }} 
-                              contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                              formatter={(value: any, name: any) => [new Intl.NumberFormat('id-ID').format(Number(value)), name]}
-                            />
-                            <Legend 
-                              verticalAlign="top" 
-                              wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} 
-                              iconType="circle" 
-                            />
-                            <Bar name="Banjir" dataKey="flood" stackId="a" fill="#3B82F6" radius={[0, 0, 4, 4]} maxBarSize={45} />
-                            <Bar name="Kekeringan" dataKey="drought" stackId="a" fill="#F97316" radius={[4, 4, 0, 0]} maxBarSize={45} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                  {/* CARD PEMBOBOTAN MULTIHAZARD */}
+                  <div className="mt-8 px-2 md:px-4">
+                    <div className="mx-auto max-w-[1100px]">
+                      <div className="mb-4 text-center">
+                        <h4 className="text-lg font-bold text-gray-800">
+                          Bobot Hazard untuk Analisis Multihazard
+                        </h4>
+                        <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                          Bobot berikut digunakan sebagai dasar komposisi
+                          analisis multihazard berdasarkan basis historis
+                          kejadian dan tingkat dampak ekonomi.
+                        </p>
                       </div>
-                    </div>
 
-                    {/* Bar Chart 2: Distribusi Produksi Padi */}
-                    <div className="flex flex-col">
-                      <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-800">
-                        <Wheat className="h-5 w-5 text-amber-500" />
-                        Top 15 Wilayah Produksi Padi (Ton)
-                      </h4>
-                      <div className="h-[420px] w-full rounded-2xl border border-amber-100/50 bg-amber-50/40 p-5 shadow-sm transition-shadow hover:shadow-md">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={prodData} margin={{ top: 10, right: 10, left: 0, bottom: 85 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                            <XAxis 
-                              dataKey="kab_kota" 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{ fill: '#64748B', fontSize: 11 }} 
-                              angle={-45}
-                              textAnchor="end"
-                              dy={12}
-                              interval={0}
-                            />
-                            <YAxis 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{ fill: '#64748B', fontSize: 11 }}
-                              tickFormatter={formatYAxis} 
-                              width={45}
-                            />
-                            <Tooltip 
-                              cursor={{ fill: 'rgba(245, 158, 11, 0.1)' }} 
-                              contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                              formatter={(value: any) => [`${new Intl.NumberFormat('id-ID').format(Number(value))} Ton`, 'Total Produksi']}
-                            />
-                            <Legend 
-                              verticalAlign="top" 
-                              wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', visibility: 'hidden' }} 
-                            />
-                            <Bar name="Total Produksi" dataKey="total_prod" fill="#F59E0B" radius={[4, 4, 0, 0]} maxBarSize={45} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {/* CARD BANJIR */}
+                        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-blue-700">
+                                Hazard
+                              </p>
+                              <h5 className="mt-1 text-xl font-bold text-blue-900">
+                                Banjir
+                              </h5>
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                              <Droplets className="h-5 w-5 text-blue-600" />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 rounded-xl border border-blue-100 bg-white px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500">
+                              Final Weight
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-gray-900">
+                              0.6776836021
+                            </p>
+                          </div>
+
+                          <p className="mt-3 text-sm leading-relaxed text-blue-800/80">
+                            Nilai ini merepresentasikan kontribusi relatif
+                            banjir dalam pembentukan analisis multihazard.
+                          </p>
+                        </div>
+
+                        {/* CARD KEKERINGAN */}
+                        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-orange-700">
+                                Hazard
+                              </p>
+                              <h5 className="mt-1 text-xl font-bold text-orange-900">
+                                Kekeringan
+                              </h5>
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                              <Leaf className="h-5 w-5 text-orange-600" />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 rounded-xl border border-orange-100 bg-white px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-500">
+                              Final Weight
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-gray-900">
+                              0.3223163979
+                            </p>
+                          </div>
+
+                          <p className="mt-3 text-sm leading-relaxed text-orange-800/80">
+                            Nilai ini merepresentasikan kontribusi relatif
+                            kekeringan dalam komposisi analisis multihazard.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-
-                  </div>
-
-                  {/* Footer action */}
-                  <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-6">
-                    <p className="text-sm text-gray-500 italic">
-                      *Sumber Data: Portal DIBI BNPB & Data Produksi BPS
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                      <a href="/total_prod_padi.csv" download className="inline-flex items-center gap-2 rounded-xl bg-amber-100 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-200">
-                        <Download className="h-4 w-4" /> Data Produksi
-                      </a>
-                      <a href="/historis/data_historis_banjir_kekeringan_DIBI_kabkota.csv" download className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-                        <Download className="h-4 w-4" /> Data Bencana
-                      </a>
                     </div>
                   </div>
                 </>
@@ -416,16 +413,15 @@ export default function MetodologiPage() {
         </div>
       </section>
 
-      {/* 3. KURVA KERENTANAN (HANYA GAMBAR & REFERENSI) */}
+      {/* 3. KURVA KERENTANAN */}
       <section className="relative overflow-hidden bg-white py-20 lg:py-24 text-gray-900 border-b border-gray-200">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
             title="Model Kerentanan (Vulnerability Curve)"
-            desc="Nilai Loss of Production (LOP) direpresentasikan berdasarkan fungsi model kerentanan historis untuk ekstraksi nilai piksel spasial."
+            desc="Kurva kerentanan merepresentasikan hubungan antara indeks bencana dan tingkat kehilangan produktivitas padi (loss of productivity) pada masing-masing hazard."
           />
 
           <div className="mt-16 grid gap-8 lg:grid-cols-2">
-            
             {/* KURVA BANJIR */}
             <div className="flex flex-col rounded-[2rem] border border-blue-200 bg-slate-50 p-8 shadow-sm transition hover:shadow-md">
               <div className="mb-6 flex items-center justify-between">
@@ -434,27 +430,98 @@ export default function MetodologiPage() {
                     <Droplets className="h-7 w-7 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Kerentanan Banjir</h3>
-                    <p className="text-sm text-gray-500 italic">Hendrawan & Komori (2021)</p>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Kerentanan Banjir
+                    </h3>
+                    <p className="text-sm text-gray-500 italic">
+                      Hendrawan &amp; Komori (2021)
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white aspect-[16/10] relative shadow-inner">
-                <Image 
-                  src="/kurva/kurva_banjir.jpeg"
-                  alt="Grafik Kurva Kerentanan Banjir Padi (Hendrawan & Komori, 2021)"
-                  fill
-                  className="object-contain p-2"
-                />
+              <div className="mb-6 h-[320px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-inner">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={floodCurveData}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#E2E8F0"
+                    />
+                    <XAxis
+                      dataKey="x"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      label={{
+                        value: "Kedalaman Genangan (m)",
+                        position: "insideBottom",
+                        offset: -5,
+                      }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      domain={[0, 1]}
+                      label={{
+                        value: "Loss of Productivity",
+                        angle: -90,
+                        position: "insideLeft",
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "none",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                      formatter={(value: any) => [value, "LOP"]}
+                      labelFormatter={(label) => `Kedalaman: ${label} m`}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: "16px" }} />
+                    <Line
+                      name="Kurva Kerentanan Banjir"
+                      type="monotone"
+                      dataKey="lop"
+                      stroke="#3B82F6"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
 
               <div className="mt-auto rounded-xl bg-blue-50 p-4 border border-blue-100">
-                <p className="font-medium text-blue-900 mb-1 flex items-center gap-2 text-sm">
-                  <Info className="w-4 h-4" /> Konteks Ekstraksi Spasial
+                <p className="font-medium text-blue-900 mb-2 flex items-center gap-2 text-sm">
+                  <Info className="w-4 h-4" /> Formulasi Kerentanan
                 </p>
-                <p className="text-blue-800/80 leading-relaxed text-sm">
-                  Kurva ini digunakan untuk mentransformasikan kedalaman genangan banjir menjadi nilai LOP. Indeks raster diekstraksi <strong>eksklusif hanya pada poligon lahan sawah</strong>.
+
+                <p className="text-blue-800/90 leading-relaxed text-sm">
+                  Kurva ini menunjukkan hubungan antara kedalaman genangan
+                  banjir dan kehilangan produktivitas padi (
+                  <strong>loss of productivity</strong>). Persamaan yang
+                  digunakan mengacu pada Hendrawan &amp; Komori (2021) dan
+                  diadaptasi untuk kebutuhan analisis PADIS.
+                </p>
+
+                <div className="mt-3 rounded-lg border border-blue-100 bg-white px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500">
+                    Persamaan
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    lop_banjir = 0.2885 ln(x) + 0.5148
+                  </p>
+                </div>
+
+                <p className="mt-3 text-blue-800/80 leading-relaxed text-sm">
+                  Nilai <strong>x</strong> merepresentasikan kedalaman genangan
+                  banjir (meter) yang diperoleh dari nilai indeks raster pada
+                  data peta hazard banjir.
                 </p>
               </div>
             </div>
@@ -467,31 +534,105 @@ export default function MetodologiPage() {
                     <Leaf className="h-7 w-7 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Kerentanan Kekeringan</h3>
-                    <p className="text-sm text-gray-500 italic">Guo dkk. (2021)</p>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Kerentanan Kekeringan
+                    </h3>
+                    <p className="text-sm text-gray-500 italic">
+                      Guo dkk. (2021)
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white aspect-[16/10] relative shadow-inner">
-                <Image 
-                  src="/kurva/kurva_kekeringan.jpeg"
-                  alt="Grafik Kurva Kerentanan Kekeringan Padi (Guo dkk., 2021)"
-                  fill
-                  className="object-contain p-2"
-                />
+              <div className="mb-6 h-[320px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-inner">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={droughtCurveData}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#E2E8F0"
+                    />
+                    <XAxis
+                      dataKey="x"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      label={{
+                        value: "SPI",
+                        position: "insideBottom",
+                        offset: -5,
+                      }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      domain={[0, 0.8]}
+                      label={{
+                        value: "Loss of Productivity",
+                        angle: -90,
+                        position: "insideLeft",
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "none",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                      formatter={(value: any) => [value, "LOP"]}
+                      labelFormatter={(label) => `SPI: ${label}`}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: "16px" }} />
+                    <Line
+                      name="Kurva Kerentanan Kekeringan"
+                      type="monotone"
+                      dataKey="lop"
+                      stroke="#F97316"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
 
               <div className="mt-auto rounded-xl bg-orange-50 p-4 border border-orange-100">
-                <p className="font-medium text-orange-900 mb-1 flex items-center gap-2 text-sm">
-                  <Info className="w-4 h-4" /> Konteks Ekstraksi Spasial
+                <p className="font-medium text-orange-900 mb-2 flex items-center gap-2 text-sm">
+                  <Info className="w-4 h-4" /> Formulasi Kerentanan
                 </p>
-                <p className="text-orange-800/80 leading-relaxed text-sm">
-                  Kurva ini digunakan untuk mengkonversi nilai raster SPI ke tingkat LOP. Sama seperti banjir, overlay spasial difokuskan <strong>hanya pada tutupan sawah aktif</strong>.
+
+                <p className="text-orange-800/90 leading-relaxed text-sm">
+                  Kurva ini menunjukkan hubungan langsung antara nilai SPI dan
+                  kehilangan produktivitas padi (
+                  <strong>loss of productivity</strong>). Formulasi yang
+                  digunakan mengacu pada pendekatan logistik yang diadaptasi
+                  dari Guo dkk. (2021) untuk merepresentasikan respons
+                  kekeringan pada analisis PADIS.
+                </p>
+
+                <div className="mt-3 rounded-lg border border-orange-100 bg-white px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-500">
+                    Persamaan Loss
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900 break-words">
+                    LR = 0.8 / (1 + e^(2.5 × (SPI + 1.1)))
+                  </p>
+                </div>
+
+                <p className="mt-3 text-orange-800/80 leading-relaxed text-sm">
+                  Pada formulasi ini, semakin negatif nilai <strong>SPI</strong>
+                  , maka nilai <strong>LR</strong> akan semakin besar dan
+                  mendekati maksimum <strong>0.8</strong>. Sebaliknya, ketika
+                  nilai <strong>SPI</strong> mendekati kondisi normal atau
+                  positif, maka kehilangan produktivitas akan menurun mendekati{" "}
+                  <strong>0</strong>.
                 </p>
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -508,18 +649,22 @@ export default function MetodologiPage() {
             {metadataRules.map((rule, index) => {
               const Icon = rule.icon;
               return (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="group flex flex-col md:flex-row gap-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
                 >
                   {/* Bagian Kiri: Judul & Deskripsi */}
                   <div className="flex-1 flex gap-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${rule.badgeColor}`}>
+                    <div
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${rule.badgeColor}`}
+                    >
                       <Icon className={`h-5 w-5 ${rule.iconColor}`} />
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight">{rule.name}</h3>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                          {rule.name}
+                        </h3>
                         <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
                           <Database className="h-3 w-3" />
                           {rule.source}
@@ -536,8 +681,12 @@ export default function MetodologiPage() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       {rule.specs.map((spec, idx) => (
                         <div key={idx} className="flex flex-col">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{spec.label}</span>
-                          <span className="text-xs font-medium text-gray-900 mt-0.5">{spec.value}</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                            {spec.label}
+                          </span>
+                          <span className="text-xs font-medium text-gray-900 mt-0.5">
+                            {spec.value}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -553,7 +702,6 @@ export default function MetodologiPage() {
       <section className="relative overflow-hidden bg-white pb-20 pt-20">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary-soft)]/40 via-white to-[var(--color-secondary-soft)]/30 p-10 text-center shadow-[var(--shadow-lg)]">
-            
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
               <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-[var(--color-secondary)]/10 blur-3xl" />
@@ -567,13 +715,21 @@ export default function MetodologiPage() {
                 Coba Langsung Analisis Risiko Padi
               </h3>
               <p className="mx-auto mt-4 max-w-2xl text-[var(--color-gray)] md:text-lg">
-                Gunakan dashboard PADIS untuk melihat estimasi kerugian, membandingkan skenario, dan mengidentifikasi wilayah prioritas secara spasial.
+                Gunakan dashboard PADIS untuk melihat estimasi kerugian,
+                membandingkan skenario, dan mengidentifikasi wilayah prioritas
+                secara spasial.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <Link href="/dashboard" className="btn-primary px-6 py-3 text-base font-semibold">
+                <Link
+                  href="/dashboard"
+                  className="btn-primary px-6 py-3 text-base font-semibold"
+                >
                   Buka Dashboard
                 </Link>
-                <Link href="/" className="inline-flex items-center gap-2 text-sm text-[var(--color-gray)] hover:text-[var(--color-text)]">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 text-sm text-[var(--color-gray)] hover:text-[var(--color-text)]"
+                >
                   Kembali ke Beranda <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>

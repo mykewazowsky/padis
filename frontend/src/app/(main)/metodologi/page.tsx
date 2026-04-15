@@ -23,6 +23,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Label,
 } from "recharts";
 
 // -- Tipe Data --
@@ -49,8 +50,8 @@ const metadataRules = [
     ],
   },
   {
-    name: "Lahan Baku Sawah",
-    source: "Kementerian ATR/BPN",
+    name: "Penutupan Lahan Sawah",
+    source: "Kementerian LHK",
     icon: Layers,
     iconColor: "text-emerald-500",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -58,7 +59,7 @@ const metadataRules = [
       "Layer spasial yang merepresentasikan footprint area persawahan. Digunakan untuk proses masking dan ekstraksi nilai hazard yang tumpang tindih (overlay).",
     specs: [
       { label: "Tipe Geometri", value: "Vector Polygon" },
-      { label: "Skala Pemetaan", value: "1:5.000" },
+      { label: "Skala Pemetaan", value: "1:250000" },
       { label: "Format File", value: ".SHP / .GPKG" },
       { label: "Validasi", value: "Clean Topology (No Self-Intersect)" },
     ],
@@ -73,7 +74,7 @@ const metadataRules = [
       "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai kedalaman genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
-      { label: "Resolusi Spasial", value: "8 Meter" },
+      { label: "Resolusi Spasial", value: "30 meter" },
       { label: "Skenario Baseline", value: "R25, R50, R100, R250" },
       { label: "Skenario Iklim", value: "RC25, RC50, RC100, RC250" },
     ],
@@ -88,7 +89,7 @@ const metadataRules = [
       "Layer raster nilai Standardized Precipitation Index yang merepresentasikan tingkat defisit curah hujan ekstrem berdasarkan observasi satelit dan proyeksi Multi-Model Ensemble.",
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
-      { label: "Resolusi Spasial", value: "~5 Kilometer" },
+      { label: "Resolusi Spasial", value: "~11 Kilometer" },
       { label: "Skenario GPM", value: "RP25, RP50, RP100, RP250" },
       { label: "Skenario MME", value: "RP25, RP50, RP100, RP250" },
     ],
@@ -116,12 +117,15 @@ function SectionHeader({
   );
 }
 
-// Fungsi formatter untuk mengubah angka besar ke format rb (Ribu) / Juta
+// Formatter angka besar
 const formatYAxis = (tickItem: number) => {
   if (tickItem >= 1000000) return `${(tickItem / 1000000).toFixed(1)} Juta`;
   if (tickItem >= 1000) return `${(tickItem / 1000).toFixed(0)} rb`;
   return tickItem.toString();
 };
+
+// Formatter persen untuk kurva kerentanan
+const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 
 export default function MetodologiPage() {
   const [histData, setHistData] = useState<HistoricalRecord[]>([]);
@@ -146,35 +150,36 @@ export default function MetodologiPage() {
 
   const floodCurveData = useMemo(() => {
     const data = [];
-    for (let x = 0.1; x <= 3.0; x += 0.1) {
-      const lop = 0.2885 * Math.log(x) + 0.5148;
+    for (let x = 0.2; x <= 1.9; x += 0.01) {
+      const y = 0.52 + 0.29 * Math.log(x);
       data.push({
-        x: Number(x.toFixed(1)),
-        lop: Number(Math.max(0, Math.min(1, lop)).toFixed(4)),
+        x: Number(x.toFixed(2)),
+        lop: Number(Math.max(0, Math.min(1, y)).toFixed(4)),
       });
     }
     return data;
   }, []);
 
   const droughtCurveData = useMemo(() => {
-  const data = [];
+    const data = [];
+    for (let x = 0.0; x <= 1.0; x += 0.01) {
+      const y =
+        -0.8381 * Math.pow(x, 3) +
+        0.8967 * Math.pow(x, 2) +
+        0.9064 * x -
+        0.0106;
 
-  for (let spi = 1.0; spi >= -3.0; spi -= 0.1) {
-    const lr = 0.8 / (1 + Math.exp(2.5 * (spi + 1.1)));
-
-    data.push({
-      x: Number(spi.toFixed(1)),
-      lop: Number(Math.max(0, Math.min(0.8, lr)).toFixed(4)),
-    });
-  }
-
-  return data;
-}, []);
+      data.push({
+        x: Number(x.toFixed(2)),
+        lop: Number(Math.max(0, Math.min(1, y)).toFixed(4)),
+      });
+    }
+    return data;
+  }, []);
 
   useEffect(() => {
     const fetchCSV = async () => {
       try {
-        // 1. Fetch Data Tahunan Bencana
         const resTahunan = await fetch(
           "/historis/data_historis_banjir_kekeringan_DIBI.csv"
         );
@@ -234,12 +239,6 @@ export default function MetodologiPage() {
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
-              <div className="inline-flex items-center justify-center rounded-full bg-blue-100 px-3 py-1 mb-4 border border-blue-200">
-                <History className="h-4 w-4 text-blue-700 mr-2" />
-                <span className="text-sm font-medium text-blue-800">
-                  Baseline Data (Live CSV)
-                </span>
-              </div>
               <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                 Justifikasi Ancaman & Keterpaparan
               </h2>
@@ -444,7 +443,7 @@ export default function MetodologiPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={floodCurveData}
-                    margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                    margin={{ top: 10, right: 20, left: 20, bottom: 10 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -456,6 +455,7 @@ export default function MetodologiPage() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#64748B", fontSize: 11 }}
+                      interval={15}
                       label={{
                         value: "Kedalaman Genangan (m)",
                         position: "insideBottom",
@@ -467,19 +467,31 @@ export default function MetodologiPage() {
                       tickLine={false}
                       tick={{ fill: "#64748B", fontSize: 11 }}
                       domain={[0, 1]}
-                      label={{
-                        value: "Loss of Productivity",
-                        angle: -90,
-                        position: "insideLeft",
-                      }}
-                    />
+                      tickFormatter={formatPercent}
+                      width={60}
+                    >
+                      <Label
+                        value="Loss of Productivity (%)"
+                        angle={-90}
+                        position="insideLeft"
+                        offset={10}
+                        style={{
+                          textAnchor: "middle",
+                          fill: "#64748B",
+                          fontSize: 12,
+                        }}
+                      />
+                    </YAxis>
                     <Tooltip
                       contentStyle={{
                         borderRadius: "12px",
                         border: "none",
                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                       }}
-                      formatter={(value: any) => [value, "LOP"]}
+                      formatter={(value: any) => [
+                        formatPercent(Number(value)),
+                        "Loss",
+                      ]}
                       labelFormatter={(label) => `Kedalaman: ${label} m`}
                     />
                     <Legend wrapperStyle={{ paddingTop: "16px" }} />
@@ -504,24 +516,26 @@ export default function MetodologiPage() {
                 <p className="text-blue-800/90 leading-relaxed text-sm">
                   Kurva ini menunjukkan hubungan antara kedalaman genangan
                   banjir dan kehilangan produktivitas padi (
-                  <strong>loss of productivity</strong>). Persamaan yang
-                  digunakan mengacu pada Hendrawan &amp; Komori (2021) dan
-                  diadaptasi untuk kebutuhan analisis PADIS.
+                  <strong>loss of productivity</strong>). Formulasi yang
+                  digunakan mengacu pada Hendrawan &amp; Komori (2021) untuk
+                  merepresentasikan respons kerentanan banjir pada analisis
+                  PADIS.
                 </p>
 
                 <div className="mt-3 rounded-lg border border-blue-100 bg-white px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500">
-                    Persamaan
+                    Persamaan Loss
                   </p>
                   <p className="mt-1 text-sm font-medium text-gray-900">
-                    lop_banjir = 0.2885 ln(x) + 0.5148
+                    y = 0.52 + 0.29 ln(x)
                   </p>
                 </div>
 
                 <p className="mt-3 text-blue-800/80 leading-relaxed text-sm">
-                  Nilai <strong>x</strong> merepresentasikan kedalaman genangan
-                  banjir (meter) yang diperoleh dari nilai indeks raster pada
-                  data peta hazard banjir.
+                  Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
+                  <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
+                  <strong>x</strong> merepresentasikan kedalaman genangan banjir
+                  maksimum (meter).
                 </p>
               </div>
             </div>
@@ -548,7 +562,7 @@ export default function MetodologiPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={droughtCurveData}
-                    margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                    margin={{ top: 10, right: 20, left: 20, bottom: 10 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -560,8 +574,9 @@ export default function MetodologiPage() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#64748B", fontSize: 11 }}
+                      interval={10}
                       label={{
-                        value: "SPI",
+                        value: "Indeks Kekeringan Ternormalisasi",
                         position: "insideBottom",
                         offset: -5,
                       }}
@@ -570,21 +585,33 @@ export default function MetodologiPage() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#64748B", fontSize: 11 }}
-                      domain={[0, 0.8]}
-                      label={{
-                        value: "Loss of Productivity",
-                        angle: -90,
-                        position: "insideLeft",
-                      }}
-                    />
+                      domain={[0, 1]}
+                      tickFormatter={formatPercent}
+                      width={60}
+                    >
+                      <Label
+                        value="Loss of Productivity (%)"
+                        angle={-90}
+                        position="insideLeft"
+                        offset={10}
+                        style={{
+                          textAnchor: "middle",
+                          fill: "#64748B",
+                          fontSize: 12,
+                        }}
+                      />
+                    </YAxis>
                     <Tooltip
                       contentStyle={{
                         borderRadius: "12px",
                         border: "none",
                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                       }}
-                      formatter={(value: any) => [value, "LOP"]}
-                      labelFormatter={(label) => `SPI: ${label}`}
+                      formatter={(value: any) => [
+                        formatPercent(Number(value)),
+                        "Loss",
+                      ]}
+                      labelFormatter={(label) => `Indeks: ${label}`}
                     />
                     <Legend wrapperStyle={{ paddingTop: "16px" }} />
                     <Line
@@ -606,12 +633,11 @@ export default function MetodologiPage() {
                 </p>
 
                 <p className="text-orange-800/90 leading-relaxed text-sm">
-                  Kurva ini menunjukkan hubungan langsung antara nilai SPI dan
-                  kehilangan produktivitas padi (
+                  Kurva ini menunjukkan hubungan antara intensitas kekeringan
+                  dan kehilangan produktivitas padi (
                   <strong>loss of productivity</strong>). Formulasi yang
-                  digunakan mengacu pada pendekatan logistik yang diadaptasi
-                  dari Guo dkk. (2021) untuk merepresentasikan respons
-                  kekeringan pada analisis PADIS.
+                  digunakan mengacu pada adaptasi kurva kerentanan kekeringan
+                  dari Guo dkk. (2021) untuk analisis PADIS.
                 </p>
 
                 <div className="mt-3 rounded-lg border border-orange-100 bg-white px-4 py-3">
@@ -619,17 +645,15 @@ export default function MetodologiPage() {
                     Persamaan Loss
                   </p>
                   <p className="mt-1 text-sm font-medium text-gray-900 break-words">
-                    LR = 0.8 / (1 + e^(2.5 × (SPI + 1.1)))
+                    y = −0.8381x³ + 0.8967x² + 0.9064x − 0.0106
                   </p>
                 </div>
 
                 <p className="mt-3 text-orange-800/80 leading-relaxed text-sm">
-                  Pada formulasi ini, semakin negatif nilai <strong>SPI</strong>
-                  , maka nilai <strong>LR</strong> akan semakin besar dan
-                  mendekati maksimum <strong>0.8</strong>. Sebaliknya, ketika
-                  nilai <strong>SPI</strong> mendekati kondisi normal atau
-                  positif, maka kehilangan produktivitas akan menurun mendekati{" "}
-                  <strong>0</strong>.
+                  Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
+                  <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
+                  <strong>x</strong> merepresentasikan indeks kekeringan yang
+                  telah dinormalisasi.
                 </p>
               </div>
             </div>

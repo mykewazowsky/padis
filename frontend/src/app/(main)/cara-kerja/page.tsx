@@ -180,7 +180,7 @@ export default function CaraKerjaPage() {
                 <div className="aspect-video w-full">
                   <iframe
                     className="h-full w-full"
-                    src="https://www.youtube.com/embed/aSte18D2_YE"
+                    src="https://www.youtube.com/embed/sXUgzCNxeGc"
                     title="Video Petunjuk Penggunaan PADIS"
                     allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen

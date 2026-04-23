@@ -1,9 +1,13 @@
 import type { DataBounds } from "@/types/map";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+export const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL as string;
 
 if (!BASE_URL) {
   throw new Error("NEXT_PUBLIC_API_BASE_URL is NOT set!");
+}
+
+if (BASE_URL.includes("127.0.0.1")) {
+  throw new Error("❌ Production is using localhost! Set NEXT_PUBLIC_API_BASE_URL correctly.");
 }
 
 console.log("BASE_URL:", BASE_URL);
@@ -57,6 +61,7 @@ export function buildTileUrl(
     run_id:   String(runId),
   });
   console.log("TILE PARAMS:", { layer, hazard, climate, scenario, runId });
+  console.log("FINAL TILE URL:", `${BASE_URL}/api/tiles/${layer}`);
   return `${BASE_URL}/api/tiles/${layer}/{z}/{x}/{y}?${params}`;
 }
 

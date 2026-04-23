@@ -16,7 +16,7 @@ export type WmsLayerConfig = {
 };
 
 // Gunakan environment variable untuk URL Geoserver
-const GEOSERVER_WMS_URL = process.env.NEXT_PUBLIC_GEOSERVER_URL || "http://localhost:8080/geoserver/PADIS/wms";
+const GEOSERVER_WMS_URL = process.env.NEXT_PUBLIC_GEOSERVER_URL as string;
 
 /**
  * Layer Dasar (Static Layers)

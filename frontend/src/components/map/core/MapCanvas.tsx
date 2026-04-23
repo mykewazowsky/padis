@@ -20,6 +20,7 @@ import type {
   Position,
 } from "geojson";
 import type { DataBounds, FeatureProps, GeoJsonData } from "../../../types/map";
+import { buildTileUrl, BASE_URL } from "@/services/fetchLayers";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,9 +115,6 @@ const BASEMAP_OPTIONS: Record<BasemapKey, { url: string; attribution: string }> 
     attribution: "&copy; OpenStreetMap contributors &copy; CartoDB",
   },
 };
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
 // ---------------------------------------------------------------------------
 // Utility
@@ -579,8 +577,6 @@ export default function MapCanvas({
       };
     };
 
-    const commonTileParams = `hazard=${hazard}&climate=${climate}&scenario=${scenario}&run_id=${runId}`;
-
     // ── Analysis layer (hazard / loss / aal) — rendered first (bottom) ──────
     const analysisKey: LayerKey | null = activeLayers.hazard
       ? "hazard"
@@ -591,7 +587,7 @@ export default function MapCanvas({
           : null;
 
     if (analysisKey && hasRequiredFilters) {
-      const tileUrl = `${API_URL}/api/tiles/${analysisKey}/{z}/{x}/{y}?${commonTileParams}`;
+      const tileUrl = buildTileUrl(analysisKey, hazard, scenario, climate, runId ?? 0);
 
       const vtLayer = LVG.vectorGrid.protobuf(tileUrl, {
         vectorTileLayerStyles: {
@@ -632,7 +628,7 @@ export default function MapCanvas({
     // ── Production overlay — always rendered on top of analysis ──────────────
     if (activeLayers.production && hasRequiredFilters) {
       const prodOpacity = layerOpacityMap.production;
-      const prodUrl = `${API_URL}/api/tiles/production/{z}/{x}/{y}?${commonTileParams}`;
+      const prodUrl = buildTileUrl("production", hazard, scenario, climate, runId ?? 0);
 
       const prodLayer = LVG.vectorGrid.protobuf(prodUrl, {
         vectorTileLayerStyles: {
@@ -678,7 +674,7 @@ export default function MapCanvas({
 
     // ── Regions boundary overlay ───────────────────────────────────────────
     if (activeLayers.regions) {
-      const regionUrl = `${API_URL}/api/tiles/regions/{z}/{x}/{y}`;
+      const regionUrl = `${BASE_URL}/api/tiles/regions/{z}/{x}/{y}`;
 
       const regionLayer = LVG.vectorGrid.protobuf(regionUrl, {
         vectorTileLayerStyles: {

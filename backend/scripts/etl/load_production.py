@@ -2,8 +2,8 @@ import pandas as pd
 from psycopg2.extras import execute_values
 from pathlib import Path
 
-from scripts.utils.db import get_conn
-from scripts.config.settings import FILES_PRODUCTION
+from backend.scripts.utils.db import get_conn
+from backend.scripts.config.settings import FILES_PRODUCTION
 
 
 # ===============================

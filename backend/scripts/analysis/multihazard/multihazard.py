@@ -1,7 +1,7 @@
 import re
 import geopandas as gpd
 
-from scripts.config.settings import GABAH_KERING_PANEN
+from backend.scripts.config.settings import GABAH_KERING_PANEN
 
 W_FLOOD = 0.678
 W_DROUGHT = 0.322

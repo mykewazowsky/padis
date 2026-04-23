@@ -2,8 +2,8 @@ import sys
 import time
 import json
 
-from scripts.pipeline.orchestrator import run_padis_pipeline
-from scripts.config.settings import DEBUG, VERBOSE
+from backend.scripts.pipeline.orchestrator import run_padis_pipeline
+from backend.scripts.config.settings import DEBUG, VERBOSE
 
 
 def pretty_print_results(results: dict):

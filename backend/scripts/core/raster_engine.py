@@ -5,7 +5,7 @@ import rasterio
 from rasterio.warp import calculate_default_transform, reproject
 from rasterio.enums import Resampling
 
-from scripts.config.settings import (
+from backend.scripts.config.settings import (
     DEFAULT_CRS,
     RASTER_RESAMPLING_METHOD,
     RASTER_NODATA,

@@ -1,5 +1,5 @@
 import os
-from scripts.config.analysis_registry import ANALYSIS_REGISTRY
+from backend.scripts.config.analysis_registry import ANALYSIS_REGISTRY
 
 
 def run_analysis(zonal_results: list[dict]) -> list[dict]:

@@ -2,8 +2,8 @@ import geopandas as gpd
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 
-from scripts.utils.db import get_conn
-from scripts.config.settings import FILE_SAWAH
+from backend.scripts.utils.db import get_conn
+from backend.scripts.config.settings import FILE_SAWAH
 
 
 def force_2d(geom):

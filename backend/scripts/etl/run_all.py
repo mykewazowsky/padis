@@ -1,11 +1,11 @@
-from scripts.utils.db import get_conn
+from backend.scripts.utils.db import get_conn
 
-from scripts.etl.load_regions_adm import run as load_regions
-from scripts.etl.load_sawah import run as load_sawah
-from scripts.etl.load_losses import run as load_losses
-from scripts.etl.load_aal import run as load_aal
-from scripts.etl.load_zonal_agg import run as load_zonal
-from scripts.etl.load_production import run as load_production
+from backend.scripts.etl.load_regions_adm import run as load_regions
+from backend.scripts.etl.load_sawah import run as load_sawah
+from backend.scripts.etl.load_losses import run as load_losses
+from backend.scripts.etl.load_aal import run as load_aal
+from backend.scripts.etl.load_zonal_agg import run as load_zonal
+from backend.scripts.etl.load_production import run as load_production
 
 
 # ===============================

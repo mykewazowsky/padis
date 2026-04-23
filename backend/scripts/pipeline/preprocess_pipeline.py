@@ -1,10 +1,10 @@
 import os
 
-from scripts.core.raster_engine import run_reproject_batch, run_normalize_batch
-from scripts.core.vector_engine import intersect_sawah_admin
+from backend.scripts.core.raster_engine import run_reproject_batch, run_normalize_batch
+from backend.scripts.core.vector_engine import intersect_sawah_admin
 
-from scripts.config.paths import DATA_DIR
-from scripts.config.hazard import HAZARDS
+from backend.scripts.config.paths import DATA_DIR
+from backend.scripts.config.hazard import HAZARDS
 
 # ===============================
 # PATHS

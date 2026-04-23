@@ -5,35 +5,35 @@ import pandas as pd
 # ===============================
 # FLOOD
 # ===============================
-from scripts.analysis.flood.lop import compute_lop_flood
-from scripts.analysis.flood.loss_kabkota import compute_loss_flood_kab
-from scripts.analysis.flood.aal import compute_aal_flood
-from scripts.analysis.flood.aggregate import aggregate_flood
+from backend.scripts.analysis.flood.lop import compute_lop_flood
+from backend.scripts.analysis.flood.loss_kabkota import compute_loss_flood_kab
+from backend.scripts.analysis.flood.aal import compute_aal_flood
+from backend.scripts.analysis.flood.aggregate import aggregate_flood
 
 # ===============================
 # DROUGHT
 # ===============================
-from scripts.analysis.drought.di import compute_di_drought
-from scripts.analysis.drought.lop import compute_lop_drought
-from scripts.analysis.drought.loss_kabkota import compute_loss_drought_kab
-from scripts.analysis.drought.aal import compute_aal_drought
-from scripts.analysis.drought.aggregate import aggregate_drought
+from backend.scripts.analysis.drought.di import compute_di_drought
+from backend.scripts.analysis.drought.lop import compute_lop_drought
+from backend.scripts.analysis.drought.loss_kabkota import compute_loss_drought_kab
+from backend.scripts.analysis.drought.aal import compute_aal_drought
+from backend.scripts.analysis.drought.aggregate import aggregate_drought
 
 # ===============================
 # MULTIHAZARD
 # ===============================
-from scripts.analysis.multihazard.multihazard import (
+from backend.scripts.analysis.multihazard.multihazard import (
     merge_hazards,
     compute_multihazard_loss
 )
-from scripts.analysis.multihazard.aal import compute_aal_multihazard
-from scripts.analysis.multihazard.aggregate import aggregate_multihazard
+from backend.scripts.analysis.multihazard.aal import compute_aal_multihazard
+from backend.scripts.analysis.multihazard.aggregate import aggregate_multihazard
 
 # ===============================
 # CONFIG
 # ===============================
-from scripts.config.paths import DATA_DIR, OUTPUT_ANALYSIS_DIR
-from scripts.config.settings import GABAH_KERING_PANEN
+from backend.scripts.config.paths import DATA_DIR, OUTPUT_ANALYSIS_DIR
+from backend.scripts.config.settings import GABAH_KERING_PANEN
 
 EXPOSURE_PATH = os.path.join(
     DATA_DIR, "raw", "exposure", "totalproduksipadi.csv"

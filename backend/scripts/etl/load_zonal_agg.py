@@ -1,9 +1,9 @@
 import geopandas as gpd
 from psycopg2.extras import execute_values
 
-from scripts.utils.db import get_conn
-from scripts.utils.parser import parse_zonal
-from scripts.config.settings import FILES_ZONAL
+from backend.scripts.utils.db import get_conn
+from backend.scripts.utils.parser import parse_zonal
+from backend.scripts.config.settings import FILES_ZONAL
 
 
 # ===============================

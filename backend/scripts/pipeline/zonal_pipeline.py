@@ -1,10 +1,10 @@
 import os
 
-from scripts.core.zonal_engine import run_zonal
+from backend.scripts.core.zonal_engine import run_zonal
 
-from scripts.config.paths import DATA_DIR
-from scripts.config.hazard import RASTER_HAZARDS
-from scripts.config.settings import ZONAL_CHUNK_SIZE
+from backend.scripts.config.paths import DATA_DIR
+from backend.scripts.config.hazard import RASTER_HAZARDS
+from backend.scripts.config.settings import ZONAL_CHUNK_SIZE
 
 # ===============================
 # PATHS

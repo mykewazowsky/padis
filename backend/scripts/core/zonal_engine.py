@@ -9,7 +9,7 @@ from rasterio.transform import rowcol
 from shapely.geometry import box
 from rasterstats import zonal_stats
 
-from scripts.config.settings import (
+from backend.scripts.config.settings import (
     ZONAL_CHUNK_SIZE,
     ZONAL_STATS,
     VERBOSE,

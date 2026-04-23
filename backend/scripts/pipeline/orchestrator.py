@@ -1,10 +1,10 @@
 import os
 import time
 
-from scripts.pipeline.preprocess_pipeline import run_preprocess
-from scripts.pipeline.zonal_pipeline import run_zonal_all, OUTPUT_FOLDER
-from scripts.pipeline.analysis_pipeline import run_analysis
-from scripts.config.hazard import RASTER_HAZARDS
+from backend.scripts.pipeline.preprocess_pipeline import run_preprocess
+from backend.scripts.pipeline.zonal_pipeline import run_zonal_all, OUTPUT_FOLDER
+from backend.scripts.pipeline.analysis_pipeline import run_analysis
+from backend.scripts.config.hazard import RASTER_HAZARDS
 
 
 # ===============================

@@ -8,7 +8,6 @@ import matplotlib.patheffects as pe
 
 import numpy as np
 
-from matplotlib_scalebar.scalebar import ScaleBar
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
@@ -561,6 +560,8 @@ def create_map_image(
 
     # ================= SCALE BAR =================
     try:
+        from matplotlib_scalebar.scalebar import ScaleBar
+
         scalebar = ScaleBar(
             dx=1,
             units="m",
@@ -570,6 +571,9 @@ def create_map_image(
             font_properties={"size": 8},
         )
         ax.add_artist(scalebar)
+
+    except ImportError:
+        print("[WARNING] matplotlib_scalebar not available, skip scalebar")
     except Exception:
         pass
 

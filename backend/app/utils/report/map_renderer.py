@@ -5,7 +5,7 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
-import contextily as ctx
+
 import numpy as np
 
 from matplotlib_scalebar.scalebar import ScaleBar
@@ -331,6 +331,12 @@ def _add_inset_map(ax, gdf_3857, region_name=None, accent="#1e63b5"):
 
 
 def _safe_add_basemap(ax):
+    try:
+        import contextily as ctx
+    except ImportError:
+        print("[WARNING] contextily not available, skip basemap")
+        return
+
     providers = [
         ctx.providers.CartoDB.PositronNoLabels,
         ctx.providers.CartoDB.Positron,

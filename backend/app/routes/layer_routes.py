@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import text
-from app.db.session import SessionLocal
+from ..db.session import SessionLocal
 import json
 
 layer_bp = Blueprint("layer_bp", __name__)

@@ -1,7 +1,7 @@
 # app/routes/layers/regions.py
 from flask import jsonify
 from sqlalchemy import text
-from app.db.session import SessionLocal
+from ...db.session import SessionLocal
 from . import layers_bp
 import json
 

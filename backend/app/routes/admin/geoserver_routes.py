@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 import logging # Tambahkan logging untuk memantau error di terminal
-from app.services.geoserver_service import publish_featuretype
+from ...services.geoserver_service import publish_featuretype
 
 # Inisialisasi logger
 logger = logging.getLogger(__name__)

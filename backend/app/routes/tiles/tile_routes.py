@@ -12,7 +12,7 @@ import traceback
 from flask import Response, jsonify, request
 from sqlalchemy import text
 
-from app.db.session import SessionLocal
+from ...db.session import SessionLocal
 from . import tiles_bp
 from .tile_cache import tile_cache
 

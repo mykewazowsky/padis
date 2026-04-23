@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, send_file
 
-from app.routes.auth.auth_utils import admin_required
+from ..auth.auth_utils import admin_required
 from .admin_utils import (
     OUTPUT_DIR,
     should_skip_output,

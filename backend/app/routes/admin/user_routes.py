@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
-from app.routes.auth.auth_utils import admin_required, get_current_user_from_request
-from app.routes.auth.auth_store import (
+from ..auth.auth_utils import admin_required, get_current_user_from_request
+from ..auth.auth_store import (
     list_users,
     find_user_by_id,
     update_user,

@@ -6,7 +6,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask import jsonify, request
 
-from app.routes.auth.auth_utils import admin_required, login_required
+from ..auth.auth_utils import admin_required, login_required
 from . import admin_bp
 from .admin_utils import (
     RAW_DIR,

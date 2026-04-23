@@ -7,7 +7,7 @@ import threading
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 
-from app.routes.auth.auth_utils import admin_required
+from ..auth.auth_utils import admin_required
 from .admin_utils import (
     PROCESS_LOCK,
     PROCESS_STATE,

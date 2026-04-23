@@ -5,14 +5,14 @@ from datetime import datetime
 from flask import Blueprint, request, send_file, jsonify, render_template
 from playwright.sync_api import sync_playwright
 
-from app.routes.auth.auth_utils import login_required
+from .auth.auth_utils import login_required
 
-from app.utils.report.report_context import (
+from ..utils.report.report_context import (
     build_report_context,
     make_region_slug,
 )
-from app.utils.report.map_renderer import create_map_image
-from app.utils.report.chart_renderer import create_chart_image
+from ..utils.report.map_renderer import create_map_image
+from ..utils.report.chart_renderer import create_chart_image
 
 
 report_bp = Blueprint("report_bp", __name__)

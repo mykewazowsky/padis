@@ -20,7 +20,7 @@ Returns: {
 from flask import jsonify, request
 from sqlalchemy import text
 
-from app.db.session import SessionLocal
+from ...db.session import SessionLocal
 from . import layers_bp
 
 # ── Source of truth: must match the database exactly. DO NOT edit. ────────────

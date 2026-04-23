@@ -1,39 +1,73 @@
+# ======================
+# ENV
+# ======================
 .env
 .env.*
 !.env.example
 
+# ======================
+# PYTHON
+# ======================
 backend/venv/
 backend/**/__pycache__/
 backend/**/*.pyc
 
-frontend/.next/
+# ======================
+# NODE
+# ======================
+node_modules/
 frontend/node_modules/
+backend/node_modules/
 
+# ======================
+# BUILD
+# ======================
+frontend/.next/
+dist/
+build/
+
+# ======================
+# SYSTEM
+# ======================
 .vscode/
 .DS_Store
 Thumbs.db
+
+# ======================
+# LOG
+# ======================
 *.log
 
-# ignore all data by default
+# ======================
+# DATA (CORE RULE 🚨)
+# ======================
+backend/data/
+db/data/
 data/
-backend/data/*
 
-# allow production output folder
-!backend/data/
-!backend/data/output/
+# ======================
+# PIPELINE OUTPUT
+# ======================
+backend/pipeline_result.json
 
-# allow only v2 files needed by app
-backend/data/output/*
-!backend/data/output/*_v2.csv
-!backend/data/output/*_v2.geojson
+# ======================
+# GENERATED FILES
+# ======================
+*.geojson
+*.tif
+*.gpkg
 
-# keep folder placeholders if needed
+# ======================
+# ARCHIVE / LEGACY
+# ======================
+backend/archive/
+
+# ======================
+# TOOLING
+# ======================
+.claude/
+
+# ======================
+# OPTIONAL PLACEHOLDER
+# ======================
 !backend/data/.gitkeep
-!backend/data/output/.gitkeep
-
-# ignore generated report/temp artifacts
-backend/data/output/_report_*
-backend/data/output/_temp_*
-backend/data/output/temp_*
-backend/data/output/*.gpkg
-backend/data/output/*.png

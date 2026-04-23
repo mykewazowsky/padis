@@ -4,6 +4,9 @@ from flask_cors import CORS
 
 from backend.app.routes.admin import admin_bp
 from backend.app.routes.layer_routes import layer_bp
+from backend.app.routes.layers import layers_bp
+from backend.app.routes.tiles import tiles_bp
+from backend.app.routes.report_routes import report_bp
 
 
 def create_app():
@@ -46,6 +49,11 @@ def create_app():
     # ===============================
     app.register_blueprint(admin_bp)
     app.register_blueprint(layer_bp, url_prefix="/api")
+
+    # 🔥 TAMBAHKAN INI
+    app.register_blueprint(layers_bp)
+    app.register_blueprint(tiles_bp) 
+    app.register_blueprint(report_bp) 
 
     @app.route("/")
     def home():

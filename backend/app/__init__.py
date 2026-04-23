@@ -9,12 +9,11 @@ from flask_cors import CORS
 # =========================
 # IMPORT ROUTES (UPDATED 🔥)
 # =========================
-from app.routes import analytics_bp, auth_bp, admin_bp
-from app.routes.layers import layers_bp
-from app.routes.tiles import tiles_bp
-from app.routes.report_routes import report_bp
-from app.routes.auth.auth_store import seed_default_users
-
+from .routes import analytics_bp, auth_bp, admin_bp
+from .routes.layers import layers_bp
+from .routes.tiles import tiles_bp
+from .routes.report_routes import report_bp
+from .routes.auth.auth_store import seed_default_users
 
 def create_app():
     app = Flask(__name__)

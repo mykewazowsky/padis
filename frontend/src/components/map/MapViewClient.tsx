@@ -2,143 +2,125 @@
 
 import { useMemo, useRef } from "react";
 import type { Layer, Map as LeafletMap } from "leaflet";
-import MapCanvas from "@/components/map/core/MapCanvas";
-import type { GeoJsonData } from "@/types/map";
+import MapCanvas from "./core/MapCanvas";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
+import type { DataBounds, GeoJsonData } from "@/types/map";
 
+// =========================
+// TYPES (FINAL)
+// =========================
 type Props = {
   scenario: string;
   hazard: string;
   climate: string;
+  runId: number;
   selectedRegion: string;
   onRegionSelect?: (region: string) => void;
+
   data: GeoJsonData | null;
+  dataBounds?: DataBounds | null;
+
+  layers: {
+    regions: GeoJsonData | null;
+    production: GeoJsonData | null;
+    loss: GeoJsonData | null;
+    aal: GeoJsonData | null;
+    hazard: GeoJsonData | null;
+  };
+
   resetViewSignal?: number;
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
 };
 
+// =========================
+// FORMAT RUPIAH
+// =========================
 function formatCompactRupiah(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "Rp 0";
 
   const abs = Math.abs(value);
 
-  if (abs >= 1_000_000_000_000) {
-    return `Rp ${(value / 1_000_000_000_000).toFixed(1).replace(".0", "")} T`;
-  }
-
-  if (abs >= 1_000_000_000) {
-    return `Rp ${(value / 1_000_000_000).toFixed(1).replace(".0", "")} M`;
-  }
-
-  if (abs >= 1_000_000) {
-    return `Rp ${(value / 1_000_000).toFixed(1).replace(".0", "")} jt`;
-  }
-
-  if (abs >= 1_000) {
-    return `Rp ${(value / 1_000).toFixed(1).replace(".0", "")} rb`;
-  }
+  if (abs >= 1_000_000_000_000)
+    return `Rp ${(value / 1_000_000_000_000).toFixed(1)} T`;
+  if (abs >= 1_000_000_000)
+    return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
+  if (abs >= 1_000_000)
+    return `Rp ${(value / 1_000_000).toFixed(1)} jt`;
 
   return `Rp ${value}`;
 }
 
-function getHazardPalette(hazard: string) {
-  if (hazard === "flood") {
-    return ["#eff6ff", "#bfdbfe", "#60a5fa", "#2563eb", "#1d4ed8"];
-  }
+// =========================
+// PALETTE (UNIFIED: hijau=rendah, merah=tinggi)
+// =========================
+// Dipakai untuk semua layer risiko (loss, aal, hazard)
+const RISK_PALETTE = ["#1a9850", "#91cf60", "#fee08b", "#fc8d59", "#d73027"];
 
-  if (hazard === "drought") {
-    return ["#fff7ed", "#fed7aa", "#fb923c", "#ea580c", "#c2410c"];
-  }
+// =========================
+// KLASIFIKASI
+// =========================
 
-  return ["#f5f3ff", "#d8b4fe", "#a78bfa", "#7c3aed", "#5b21b6"];
-}
-
-function getStyleConfig(hazard: string) {
-  if (hazard === "flood") {
-    return {
-      border: "#cbd5e1",
-      hoverBorder: "#2563eb",
-      topBorder: "#1d4ed8",
-      baseOpacity: 0.8,
-      hoverOpacity: 0.95,
-    };
-  }
-
-  if (hazard === "drought") {
-    return {
-      border: "#d6d3d1",
-      hoverBorder: "#c2410c",
-      topBorder: "#b45309",
-      baseOpacity: 0.82,
-      hoverOpacity: 0.96,
-    };
-  }
-
-  return {
-    border: "#d8d4fe",
-    hoverBorder: "#7c3aed",
-    topBorder: "#5b21b6",
-    baseOpacity: 0.82,
-    hoverOpacity: 0.96,
-  };
-}
-
-function createJenksLikeBreaks(values: number[], classCount = 5) {
+// Quantile — untuk data yang distribusinya merata (production)
+function quantileBreaks(values: number[], k = 5): number[] {
   if (!values.length) return [];
-
-  const sorted = [...values]
-    .filter((value) => Number.isFinite(value))
-    .sort((a, b) => a - b);
-
-  if (sorted.length === 1) return [sorted[0]];
-
+  const sorted = [...values].sort((a, b) => a - b);
   const breaks: number[] = [];
-
-  for (let i = 1; i < classCount; i += 1) {
-    const index = Math.min(
-      sorted.length - 1,
-      Math.floor((i / classCount) * sorted.length)
-    );
-    breaks.push(sorted[index]);
+  for (let i = 1; i < k; i++) {
+    breaks.push(sorted[Math.floor((i / k) * sorted.length)]);
   }
-
   breaks.push(sorted[sorted.length - 1]);
-
-  return Array.from(new Set(breaks));
+  return breaks;
 }
 
-function getColorFromBreaks(
+// Equal Interval — untuk indeks ternormalisasi (hazard index 0–1)
+function equalIntervalBreaks(values: number[], k = 5): number[] {
+  if (!values.length) return [];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) return Array(k).fill(max);
+  const step = (max - min) / k;
+  return Array.from({ length: k }, (_, i) => +(min + step * (i + 1)).toFixed(6));
+}
+
+// Log-Quantile — untuk data miring kanan (loss, AAL) agar kelas tidak didominasi outlier
+function logQuantileBreaks(values: number[], k = 5): number[] {
+  if (!values.length) return [];
+  const positives = values.filter((v) => v > 0);
+  if (positives.length < k) return quantileBreaks(values, k);
+  const logVals = positives.map((v) => Math.log10(v + 1));
+  const logBreaks = quantileBreaks(logVals, k);
+  return logBreaks.map((b) => +(Math.pow(10, b) - 1).toFixed(2));
+}
+
+// =========================
+// COLOR
+// =========================
+function getColor(
   value: number | null | undefined,
   breaks: number[],
-  hazard: string
-) {
-  if (value == null || Number.isNaN(value)) {
-    return "#f3f4f6";
+  _hazard: string
+): string {
+  if (value == null || Number.isNaN(value)) return "#e5e7eb";
+  for (let i = 0; i < breaks.length; i++) {
+    if (value <= breaks[i]) return RISK_PALETTE[i];
   }
-
-  const palette = getHazardPalette(hazard);
-
-  if (!breaks.length) {
-    return palette[0];
-  }
-
-  for (let i = 0; i < breaks.length; i += 1) {
-    if (value <= breaks[i]) {
-      return palette[Math.min(i, palette.length - 1)];
-    }
-  }
-
-  return palette[palette.length - 1];
+  return RISK_PALETTE[RISK_PALETTE.length - 1];
 }
 
+// =========================
+// COMPONENT
+// =========================
 export default function MapViewClient({
   scenario,
   hazard,
   climate,
+  runId,
   selectedRegion,
   onRegionSelect,
   data,
+  dataBounds,
+  layers,
   resetViewSignal = 0,
   activeLayers,
   onToggleLayer,
@@ -146,51 +128,80 @@ export default function MapViewClient({
   const mapRef = useRef<LeafletMap | null>(null);
   const featureLayersRef = useRef<Record<string, Layer>>({});
 
-  const losses = useMemo(() => {
-    if (!data?.features?.length) return [];
+  // =========================
+  // ACTIVE LAYER VALUES (untuk skala warna yang akurat per layer)
+  // =========================
+  const activeValues = useMemo(() => {
+    if (activeLayers.hazard && layers?.hazard?.features?.length) {
+      return layers.hazard.features.map(
+        (f: any) => Number(f?.properties?.mean_value ?? 0)
+      );
+    }
+    if (activeLayers.aal && layers?.aal?.features?.length) {
+      return layers.aal.features.map(
+        (f: any) => Number(f?.properties?.aal ?? 0)
+      );
+    }
+    if (activeLayers.loss && layers?.loss?.features?.length) {
+      return layers.loss.features.map(
+        (f: any) => Number(f?.properties?.loss ?? 0)
+      );
+    }
+    return [];
+  }, [layers.loss, layers.aal, layers.hazard, activeLayers.loss, activeLayers.aal, activeLayers.hazard]);
 
-    return data.features
-      .map((feature) => feature.properties?.loss ?? 0)
-      .filter((value) => Number.isFinite(value));
-  }, [data]);
-
-  const jenksBreaks = useMemo(() => {
-    return createJenksLikeBreaks(losses, 5);
-  }, [losses]);
+  const breaks = useMemo(() => {
+    if (!activeValues.length) return [];
+    if (activeLayers.hazard) return equalIntervalBreaks(activeValues);
+    if (activeLayers.aal || activeLayers.loss) return logQuantileBreaks(activeValues);
+    return quantileBreaks(activeValues);
+  }, [activeValues, activeLayers.hazard, activeLayers.aal, activeLayers.loss]);
 
   const topRegionKeys = useMemo(() => {
-    if (!data?.features?.length) return new Set<string>();
+    if (!layers?.loss?.features?.length) return new Set<string>();
 
-    const topFive = [...data.features]
-      .sort((a, b) => (b.properties?.loss ?? 0) - (a.properties?.loss ?? 0))
-      .slice(0, 5)
-      .map((item) => item.properties?.kab_kota?.toLowerCase().trim())
-      .filter(Boolean) as string[];
-
-    return new Set(topFive);
-  }, [data]);
-
-  const styleConfig = useMemo(() => getStyleConfig(hazard), [hazard]);
+    return new Set(
+      [...layers.loss.features]
+        .sort(
+          (a: any, b: any) =>
+            (b.properties?.loss ?? 0) - (a.properties?.loss ?? 0)
+        )
+        .slice(0, 5)
+        .map((f: any) =>
+          f.properties?.kab_kota?.toLowerCase().trim()
+        )
+    );
+  }, [layers.loss]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="relative h-full w-full">
       <MapCanvas
         data={data}
+        dataBounds={dataBounds}
+        layers={layers}
+
         hazard={hazard}
         scenario={scenario}
         climate={climate}
+        runId={runId}
         selectedRegion={selectedRegion}
+
         mapRef={mapRef}
         featureLayersRef={featureLayersRef}
-        jenksBreaks={jenksBreaks}
+
+        jenksBreaks={breaks}
         topRegionKeys={topRegionKeys}
-        styleConfig={styleConfig}
-        getColorFromBreaks={getColorFromBreaks}
+
+        getColorFromBreaks={getColor}
         formatCompactRupiah={formatCompactRupiah}
+
         onRegionSelect={onRegionSelect}
         resetViewSignal={resetViewSignal}
+
         activeLayers={activeLayers}
         onToggleLayer={onToggleLayer}
+        layerOpacity={1}
+        onOpacityChange={() => {}}
       />
     </div>
   );

@@ -119,9 +119,11 @@ function SectionHeader({
 
 // Formatter angka besar
 const formatYAxis = (tickItem: number) => {
-  if (tickItem >= 1000000) return `${(tickItem / 1000000).toFixed(1)} Juta`;
-  if (tickItem >= 1000) return `${(tickItem / 1000).toFixed(0)} rb`;
-  return tickItem.toString();
+  const value = Math.round(tickItem);
+
+  if (value >= 1000000) return `${Math.round(value / 1000000)} Juta`;
+  if (value >= 1000) return `${Math.round(value / 1000)} rb`;
+  return value.toString();
 };
 
 // Formatter persen untuk kurva kerentanan
@@ -189,8 +191,8 @@ export default function MetodologiPage() {
         const parsedTahunan = linesTahunan.map((line) => {
           const delimiter = line.includes(";") ? ";" : ",";
           const [tahun, banjir, kekeringan] = line.split(delimiter);
-          const fValue = parseFloat(banjir) || 0;
-          const dValue = parseFloat(kekeringan) || 0;
+          const fValue = Math.round(parseFloat(banjir) || 0);
+          const dValue = Math.round(parseFloat(kekeringan) || 0);
 
           return {
             year: tahun?.trim() || "N/A",
@@ -290,14 +292,19 @@ export default function MetodologiPage() {
                             tick={{ fill: "#64748B", fontSize: 11 }}
                             tickFormatter={formatYAxis}
                             width={65}
+                            allowDecimals={false}
                           />
                           <Tooltip
                             contentStyle={{
                               borderRadius: "12px",
                               border: "none",
-                              boxShadow:
-                                "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                             }}
+                            formatter={(value: any, name: any) => [
+                              Math.round(Number(value)), // 🔥 hilangkan desimal
+                              name === "Kejadian Banjir" ? "Banjir" : "Kekeringan",
+                            ]}
+                            labelFormatter={(label) => `Tahun: ${label}`}
                           />
                           <Legend
                             iconType="circle"
@@ -432,9 +439,14 @@ export default function MetodologiPage() {
                     <h3 className="text-xl font-bold text-gray-900">
                       Kerentanan Banjir
                     </h3>
-                    <p className="text-sm text-gray-500 italic">
+                    <a
+                      href="https://www.scopus.com/pages/publications/85099980139?origin=resultslist"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-gray-500 italic hover:text-blue-600 hover:underline"
+                    >
                       Hendrawan &amp; Komori (2021)
-                    </p>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -551,9 +563,14 @@ export default function MetodologiPage() {
                     <h3 className="text-xl font-bold text-gray-900">
                       Kerentanan Kekeringan
                     </h3>
-                    <p className="text-sm text-gray-500 italic">
+                    <a
+                      href="https://www.scopus.com/pages/publications/85090017371?origin=resultslist"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-gray-500 italic hover:text-orange-600 hover:underline"
+                    >
                       Guo dkk. (2021)
-                    </p>
+                    </a>
                   </div>
                 </div>
               </div>

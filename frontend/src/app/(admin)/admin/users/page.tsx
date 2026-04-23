@@ -210,14 +210,14 @@ export default function AdminUsersPage() {
       const json = await res.json().catch(() => []);
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memuat data user.");
+        throw new Error(json.error || "Gagal memuat data pengguna.");
       }
 
       setUsers(Array.isArray(json) ? json : []);
     } catch (err: any) {
       setNotice({
         type: "error",
-        message: err.message || "Terjadi kesalahan saat memuat user.",
+        message: err.message || "Terjadi kesalahan saat memuat data pengguna.",
       });
     } finally {
       setLoading(false);
@@ -364,7 +364,7 @@ export default function AdminUsersPage() {
       }
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memperbarui role user.");
+        throw new Error(json.error || "Gagal memperbarui role pengguna.");
       }
 
       setUsers((prev) =>
@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
 
       setNotice({
         type: "success",
-        message: "Role user berhasil diperbarui.",
+        message: "Role pengguna berhasil diperbarui.",
       });
     } catch (err: any) {
       setNotice({
@@ -421,7 +421,7 @@ export default function AdminUsersPage() {
       }
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memperbarui status user.");
+        throw new Error(json.error || "Gagal memperbarui status pengguna.");
       }
 
       setUsers((prev) =>
@@ -432,7 +432,7 @@ export default function AdminUsersPage() {
 
       setNotice({
         type: "success",
-        message: "Status user berhasil diperbarui.",
+        message: "Status pengguna berhasil diperbarui.",
       });
     } catch (err: any) {
       setNotice({
@@ -445,20 +445,19 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <main className="space-y-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
-              USER MANAGEMENT
+              USERS
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Kelola akun pengguna
+              Manajemen Pengguna
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-              Halaman ini digunakan untuk melihat seluruh akun yang terdaftar,
-              mengubah role user menjadi admin, serta mengatur status aktif atau
-              nonaktif akun.
+              Lihat daftar pengguna, ubah role, dan atur status akun yang dapat
+              mengakses sistem.
             </p>
           </div>
 
@@ -472,7 +471,7 @@ export default function AdminUsersPage() {
             {refreshing ? "Memuat ulang..." : "Refresh"}
           </button>
         </div>
-      </div>
+      </section>
 
       {notice ? (
         <div
@@ -514,10 +513,10 @@ export default function AdminUsersPage() {
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="md:col-span-1">
+            <div>
               <label className="mb-2 block text-sm font-semibold text-slate-800">
                 Pencarian
               </label>
@@ -527,7 +526,7 @@ export default function AdminUsersPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Cari nama atau email user"
+                  placeholder="Cari nama atau email pengguna"
                   className="w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none placeholder:text-slate-400"
                 />
               </div>
@@ -572,31 +571,32 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={resetFilters}
-              disabled={!hasActiveFilter}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <X className="h-4 w-4" />
-              Reset Filter
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={resetFilters}
+            disabled={!hasActiveFilter}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <X className="h-4 w-4" />
+            Reset Filter
+          </button>
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          Menampilkan <span className="font-semibold text-slate-900">{sortedUsers.length}</span>{" "}
-          user
-          {hasActiveFilter ? " berdasarkan filter aktif." : " dari seluruh data user."}
+          Menampilkan{" "}
+          <span className="font-semibold text-slate-900">{sortedUsers.length}</span>{" "}
+          pengguna
+          {hasActiveFilter
+            ? " berdasarkan filter aktif."
+            : " dari seluruh data pengguna."}
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm text-slate-500">Total User</p>
+              <p className="text-sm text-slate-500">Total Pengguna</p>
               <p className="mt-1 text-3xl font-bold text-slate-900">
                 {summary.total}
               </p>
@@ -648,23 +648,23 @@ export default function AdminUsersPage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
           <h2 className="text-lg font-bold text-slate-900">Daftar Pengguna</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Klik header kolom untuk mengurutkan data user.
+            Klik header kolom untuk mengurutkan data pengguna.
           </p>
         </div>
 
         {loading ? (
           <div className="px-6 py-10 text-sm text-slate-500">
-            Memuat data user...
+            Memuat data pengguna...
           </div>
         ) : paginatedUsers.length === 0 ? (
           <div className="px-6 py-10 text-sm text-slate-500">
-            Tidak ada user yang cocok dengan filter saat ini.
+            Tidak ada pengguna yang cocok dengan filter saat ini.
           </div>
         ) : (
           <>
@@ -674,7 +674,7 @@ export default function AdminUsersPage() {
                   <tr className="bg-slate-50 text-left">
                     <th className="px-6 py-4">
                       <SortButton
-                        label="User"
+                        label="Pengguna"
                         sortKey="name"
                         activeSortKey={sortKey}
                         direction={sortDirection}
@@ -857,7 +857,7 @@ export default function AdminUsersPage() {
                   <span className="font-semibold text-slate-900">
                     {sortedUsers.length}
                   </span>{" "}
-                  user
+                  pengguna
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -904,7 +904,7 @@ export default function AdminUsersPage() {
             </div>
           </>
         )}
-      </div>
-    </section>
+      </section>
+    </main>
   );
 }

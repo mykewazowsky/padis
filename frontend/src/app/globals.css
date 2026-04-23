@@ -629,3 +629,21 @@ body {
 .leaflet-tooltip {
   z-index: 20;
 }
+
+/* ── VectorGrid popup tooltip ─────────────────────────── */
+.vt-tooltip .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.14), 0 1px 4px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.vt-tooltip .leaflet-popup-content {
+  margin: 8px 12px;
+  font-family: Figtree, sans-serif;
+}
+
+.vt-tooltip .leaflet-popup-tip-container {
+  display: none;
+}

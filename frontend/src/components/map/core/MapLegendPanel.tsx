@@ -7,13 +7,20 @@ type LegendItem = {
   label: string;
 };
 
-export type LayerKey = "geojson" | "batas_adm" | "sawah";
+export type LayerKey =
+  | "regions"
+  | "production"
+  | "loss"
+  | "aal"
+  | "hazard";
 
 type Props = {
   title: string;
   items: LegendItem[];
   collapsed: boolean;
   onToggle: () => void;
+  /** When true, shows a Top-5 amber indicator matching the map highlight. */
+  showTop5Indicator?: boolean;
 };
 
 export default function MapLegendPanel({
@@ -21,20 +28,28 @@ export default function MapLegendPanel({
   items,
   collapsed,
   onToggle,
+  showTop5Indicator = false,
 }: Props) {
   return (
     <div className="absolute bottom-4 right-4 z-[1060] w-56 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-md backdrop-blur">
+      {/* HEADER */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
           <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
             <Palette className="h-3.5 w-3.5 text-[var(--color-primary)]" />
           </div>
+
           <div>
-            <h3 className="text-xs font-semibold text-gray-800">{title}</h3>
-            <p className="text-[10px] text-gray-500">Distribusi (quantile)</p>
+            <h3 className="text-xs font-semibold text-gray-800">
+              {title}
+            </h3>
+            <p className="text-[10px] text-gray-500">
+              Distribusi kelas data
+            </p>
           </div>
         </div>
 
+        {/* TOGGLE */}
         <button
           type="button"
           onClick={onToggle}
@@ -49,28 +64,39 @@ export default function MapLegendPanel({
         </button>
       </div>
 
-      {!collapsed ? (
+      {/* CONTENT */}
+      {!collapsed && (
         <>
           <div className="mt-3 space-y-1.5">
-            {items.map((item) => (
-              <div key={item.label} className="flex items-center gap-2">
+            {items.map((item, index) => (
+              <div
+                key={`${item.label}-${index}`}
+                className="flex items-center gap-2"
+              >
                 <div
-                  className="h-3 w-3 rounded-sm border border-gray-300"
+                  className="h-3 w-3 flex-shrink-0 rounded-sm border border-gray-300"
                   style={{ backgroundColor: item.color }}
                 />
-                <span className="text-[11px] text-gray-700">{item.label}</span>
+                <span className="text-[11px] text-gray-700">
+                  {item.label}
+                </span>
               </div>
             ))}
           </div>
 
-          <div className="mt-2.5 border-t border-gray-200 pt-2.5">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm border border-gray-500 bg-white" />
-              <span className="text-[11px] text-gray-700">Top 5 highlight</span>
+          {showTop5Indicator && (
+            <div className="mt-2.5 border-t border-gray-200 pt-2.5">
+              <div className="flex items-center gap-2">
+                {/* Amber border swatch matches the map highlight for top-5 regions */}
+                <div className="h-3 w-3 flex-shrink-0 rounded-sm border-2 border-amber-400 bg-white" />
+                <span className="text-[11px] text-gray-700">
+                  Top 5 wilayah terdampak
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </>
-      ) : null}
+      )}
     </div>
   );
 }

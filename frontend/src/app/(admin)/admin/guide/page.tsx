@@ -6,7 +6,6 @@ import {
   Database,
   FileOutput,
   Layers3,
-  Settings2,
   ShieldCheck,
   Users,
   Workflow,
@@ -15,6 +14,9 @@ import {
   FileText,
   TableProperties,
   FolderTree,
+  PlayCircle,
+  Map,
+  LayoutDashboard,
 } from "lucide-react";
 
 type UploadRule = {
@@ -43,12 +45,12 @@ type GuideNavItem = {
 
 const guideNavItems: GuideNavItem[] = [
   { id: "overview", label: "Overview", icon: BookOpen },
-  { id: "upload-standard", label: "Upload Standard", icon: FolderTree },
-  { id: "attribute-standard", label: "Attribute Standard", icon: TableProperties },
-  { id: "process-flow", label: "Process Flow", icon: Workflow },
-  { id: "output-reference", label: "Output Reference", icon: FileOutput },
-  { id: "menu-guide", label: "Admin Menu Guide", icon: Settings2 },
-  { id: "usage-flow", label: "Usage Flow", icon: ChevronRight },
+  { id: "upload-standard", label: "Standar Upload", icon: FolderTree },
+  { id: "attribute-standard", label: "Standar Atribut", icon: TableProperties },
+  { id: "process-flow", label: "Alur Proses", icon: Workflow },
+  { id: "output-reference", label: "Referensi Output", icon: FileOutput },
+  { id: "menu-guide", label: "Panduan Menu Admin", icon: ShieldCheck },
+  { id: "usage-flow", label: "Alur Kerja Admin", icon: ChevronRight },
   { id: "troubleshooting", label: "Troubleshooting", icon: AlertTriangle },
 ];
 
@@ -59,9 +61,9 @@ const uploadRules: UploadRule[] = [
     filename: "batas_adm_kabkota.*",
     destination: "data/raw",
     notes: [
-      "Digunakan sebagai referensi utama agregasi kabupaten/kota.",
+      "Dipakai sebagai batas wilayah utama untuk agregasi kabupaten/kota.",
       "Disarankan memiliki field id_kabkota, kab_kota, dan prov.",
-      "Pastikan geometri valid dan tidak korup.",
+      "Pastikan geometri valid dan tidak rusak.",
     ],
   },
   {
@@ -70,7 +72,7 @@ const uploadRules: UploadRule[] = [
     filename: "lulc_sawah.*",
     destination: "data/raw",
     notes: [
-      "Digunakan sebagai layer sawah sumber untuk overlay.",
+      "Dipakai sebagai layer sawah utama untuk overlay dan analisis.",
       "Pastikan layer benar-benar merepresentasikan area sawah.",
       "Disarankan polygon bersih dan tidak self-intersect.",
     ],
@@ -81,8 +83,8 @@ const uploadRules: UploadRule[] = [
     filename: "total_prod_padi.csv",
     destination: "data/raw",
     notes: [
-      "Dipakai untuk menghitung loss ekonomi.",
-      "Pastikan encoding CSV aman dibaca UTF-8 atau UTF-8-SIG.",
+      "Dipakai untuk menghitung nilai kerugian ekonomi.",
+      "Gunakan encoding CSV yang aman dibaca, seperti UTF-8 atau UTF-8-SIG.",
       "Gunakan identifier wilayah yang konsisten dengan admin boundary.",
     ],
   },
@@ -94,18 +96,19 @@ const uploadRules: UploadRule[] = [
     notes: [
       "Nama file harus sesuai standar agar lolos validasi upload.",
       "Set flood ideal mencakup current dan climate scenario.",
-      "Gunakan raster yang siap dipreprocess ke CRS target pipeline.",
+      "Pastikan raster bisa diproses dan memiliki extent/CRS yang valid.",
     ],
   },
   {
     name: "Drought Raster Set",
     format: ".tif / .tiff",
-    filename: "mme_rp25, mme_rp50, mme_rp100, mme_rp250, gpm_rp25, gpm_rp50, gpm_rp100, gpm_rp250",
+    filename:
+      "mme_rp25, mme_rp50, mme_rp100, mme_rp250, gpm_rp25, gpm_rp50, gpm_rp100, gpm_rp250",
     destination: "data/raw",
     notes: [
       "Nama file harus sesuai standar validasi upload.",
-      "Set drought ideal mencakup seluruh MME dan GPM scenario.",
-      "Pastikan raster bisa dibaca dan extent/CRS valid.",
+      "Set drought ideal mencakup seluruh scenario MME dan GPM.",
+      "Pastikan raster dapat dibaca dengan baik oleh sistem.",
     ],
   },
 ];
@@ -124,7 +127,7 @@ const attributeRules: AttributeRule[] = [
         name: "kab_kota",
         type: "string",
         required: true,
-        description: "Nama kabupaten/kota yang dipakai di dashboard dan laporan.",
+        description: "Nama kabupaten/kota untuk dashboard dan laporan.",
       },
       {
         name: "prov",
@@ -159,7 +162,7 @@ const attributeRules: AttributeRule[] = [
         name: "total_prod_padi",
         type: "number",
         required: true,
-        description: "Nilai total produksi padi yang dipakai dalam kalkulasi loss.",
+        description: "Nilai total produksi padi untuk kalkulasi kerugian.",
       },
     ],
   },
@@ -170,7 +173,7 @@ const attributeRules: AttributeRule[] = [
         name: "geometry",
         type: "polygon / multipolygon",
         required: true,
-        description: "Geometri area sawah yang valid dan dapat dioverlay.",
+        description: "Geometri area sawah yang valid dan bisa dioverlay.",
       },
     ],
   },
@@ -179,11 +182,11 @@ const attributeRules: AttributeRule[] = [
 const processModes = [
   {
     title: "Full",
-    desc: "Menjalankan seluruh tahapan pipeline dari awal sampai output web layer final.",
+    desc: "Menjalankan seluruh tahapan proses dari awal sampai hasil akhir.",
   },
   {
     title: "Preprocess",
-    desc: "Menjalankan tahap persiapan data awal seperti reprojection atau raster preprocessing.",
+    desc: "Menjalankan tahap persiapan data awal seperti reprojection dan pembersihan data.",
   },
   {
     title: "Analysis",
@@ -191,40 +194,45 @@ const processModes = [
   },
   {
     title: "Web",
-    desc: "Menyiapkan layer akhir yang dipakai untuk dashboard dan WebGIS frontend.",
+    desc: "Menyiapkan layer akhir yang dipakai untuk dashboard dan WebGIS.",
   },
 ];
 
 const adminMenuGuides = [
   {
     title: "Overview",
-    icon: BookOpen,
-    desc: "Menampilkan ringkasan sistem, status proses, jumlah output, dan statistik user/admin.",
+    icon: LayoutDashboard,
+    desc: "Menampilkan ringkasan sistem, status proses, hasil terbaru, dan akses cepat ke menu utama.",
   },
   {
     title: "Data Management",
     icon: Database,
-    desc: "Digunakan untuk upload data, melihat preview, menghapus file tertentu, dan memilih active source.",
+    desc: "Dipakai untuk upload data, melihat preview, menghapus file tertentu, dan memilih active source.",
   },
   {
     title: "Process Control",
-    icon: Workflow,
-    desc: "Digunakan untuk mengecek dependency pipeline, menjalankan analisis, dan memantau progress proses.",
+    icon: PlayCircle,
+    desc: "Dipakai untuk memilih hazard, menjalankan proses, dan memantau progress secara langsung.",
+  },
+  {
+    title: "Pipeline Monitor",
+    icon: Map,
+    desc: "Dipakai untuk melihat alur proses, tahapan utama, dan cabang hazard secara visual.",
   },
   {
     title: "Outputs",
     icon: FileOutput,
-    desc: "Dipakai untuk melihat output terbaru, preview file CSV/GeoJSON, dan mengunduh file hasil.",
+    desc: "Dipakai untuk melihat hasil analisis, preview file, dan mengunduh output akhir.",
   },
   {
     title: "Users",
     icon: Users,
-    desc: "Dipakai admin untuk mengelola akun, mengganti role user, dan mengubah status active/inactive.",
+    desc: "Dipakai untuk mengelola akun, mengganti role pengguna, dan mengubah status active atau inactive.",
   },
   {
     title: "Admin Guide",
     icon: ShieldCheck,
-    desc: "Dokumentasi operasional panel admin, format data, atribut wajib, dan panduan penggunaan.",
+    desc: "Dokumentasi operasional panel admin, format data, atribut wajib, dan panduan penggunaan sistem.",
   },
 ];
 
@@ -243,24 +251,24 @@ const outputReferences = [
   },
   {
     name: "web_flood_*_v2.geojson",
-    meaning: "Layer web flood yang dipakai dashboard frontend.",
+    meaning: "Layer web flood yang dipakai di dashboard frontend.",
   },
   {
     name: "web_drought_*_v2.geojson",
-    meaning: "Layer web drought yang dipakai dashboard frontend.",
+    meaning: "Layer web drought yang dipakai di dashboard frontend.",
   },
   {
     name: "web_multi_*_v2.geojson",
-    meaning: "Layer web multi-hazard yang dipakai dashboard frontend.",
+    meaning: "Layer web multi-hazard yang dipakai di dashboard frontend.",
   },
 ];
 
 const troubleshooting = [
   "Jika upload gagal, periksa nama file, ekstensi, dan struktur data.",
   "Jika preview kosong, cek apakah file benar-benar tersimpan di folder target.",
-  "Jika process gagal, periksa dependency script, raw input, dan log proses terakhir.",
-  "Jika output tidak muncul di dashboard, cek apakah file aktif adalah versi _v2 yang benar.",
-  "Jika user tidak bisa akses admin, pastikan role adalah admin dan status akun active.",
+  "Jika proses gagal, periksa data input, dependency script, dan log proses terakhir.",
+  "Jika hasil tidak muncul di dashboard, cek apakah file final yang aktif adalah versi yang benar.",
+  "Jika pengguna tidak bisa akses admin, pastikan role adalah admin dan status akun active.",
 ];
 
 function SectionHeader({
@@ -295,7 +303,10 @@ function GuideSection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-28 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section
+      id={id}
+      className="scroll-mt-28 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
       {children}
     </section>
   );
@@ -314,21 +325,20 @@ export default function AdminGuidePage() {
               ADMIN GUIDE
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-              PADIS Admin Operational Manual
+              Panduan Admin PADIS
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 md:text-base">
-              Panduan operasional untuk admin PADIS yang mencakup standar data,
-              atribut wajib, alur proses, referensi output, dan penggunaan
-              setiap menu administrasi.
+              Panduan operasional untuk admin PADIS yang menjelaskan standar data,
+              alur proses, referensi hasil, dan penggunaan setiap menu admin.
             </p>
           </div>
 
           <div className="rounded-2xl border border-[var(--color-secondary)] bg-[var(--color-secondary-soft)] px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary-dark)]">
-              Document Scope
+              Ruang Lingkup
             </p>
             <p className="mt-1 text-sm font-semibold text-slate-900">
-              Admin Panel Internal
+              Panel Admin Internal
             </p>
           </div>
         </div>
@@ -341,10 +351,10 @@ export default function AdminGuidePage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Quick Navigation
+                  Navigasi Cepat
                 </p>
                 <p className="text-xs text-slate-500">
-                  Lompat cepat ke section penting
+                  Lompat cepat ke bagian penting
                 </p>
               </div>
             </div>
@@ -378,10 +388,10 @@ export default function AdminGuidePage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-blue-900">
-                      Tujuan Guide
+                      Tujuan Panduan
                     </p>
                     <p className="mt-1 text-sm text-blue-800">
-                      Membantu admin memahami aturan data dan penggunaan sistem.
+                      Membantu admin memahami aturan data dan cara memakai sistem.
                     </p>
                   </div>
                 </div>
@@ -390,14 +400,14 @@ export default function AdminGuidePage() {
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="rounded-2xl bg-white p-2 shadow-sm">
-                    <Settings2 className="h-4 w-4 text-emerald-600" />
+                    <Workflow className="h-4 w-4 text-emerald-600" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-emerald-900">
-                      Fokus Operasional
+                      Fokus Utama
                     </p>
                     <p className="mt-1 text-sm text-emerald-800">
-                      Data upload, process control, outputs, dan user management.
+                      Data, proses, monitoring, hasil, dan pengguna.
                     </p>
                   </div>
                 </div>
@@ -413,7 +423,8 @@ export default function AdminGuidePage() {
                       Catatan Penting
                     </p>
                     <p className="mt-1 text-sm text-amber-800">
-                      Pastikan format file, atribut, dan nama file sesuai standar sebelum menjalankan pipeline.
+                      Pastikan format file, atribut, dan nama file sesuai standar
+                      sebelum menjalankan proses.
                     </p>
                   </div>
                 </div>
@@ -422,12 +433,12 @@ export default function AdminGuidePage() {
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-sm font-semibold text-slate-900">
-                Ringkasan isi guide
+                Ringkasan Isi Panduan
               </p>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 Halaman ini menjelaskan standar upload data, atribut minimum,
-                mode proses analisis, referensi output, fungsi setiap menu admin,
-                urutan kerja yang disarankan, dan troubleshooting dasar.
+                mode proses, referensi hasil, fungsi setiap menu admin, urutan
+                kerja yang disarankan, dan troubleshooting dasar.
               </p>
             </div>
           </div>
@@ -436,9 +447,9 @@ export default function AdminGuidePage() {
 
       <GuideSection id="upload-standard">
         <SectionHeader
-          eyebrow="UPLOAD STANDARD"
+          eyebrow="STANDAR UPLOAD"
           title="Format Data yang Didukung"
-          desc="Gunakan format, nama file, dan lokasi penyimpanan sesuai standar agar data dapat dibaca dan diproses oleh pipeline PADIS."
+          desc="Gunakan format, nama file, dan lokasi penyimpanan sesuai standar agar data dapat dibaca dan diproses oleh sistem."
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -481,7 +492,7 @@ export default function AdminGuidePage() {
 
       <GuideSection id="attribute-standard">
         <SectionHeader
-          eyebrow="ATTRIBUTE STANDARD"
+          eyebrow="STANDAR ATRIBUT"
           title="Atribut Wajib dan Disarankan"
           desc="Pastikan data yang diunggah memiliki field minimum yang dibutuhkan untuk agregasi, join, analisis, dan tampilan dashboard."
         />
@@ -552,9 +563,9 @@ export default function AdminGuidePage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <GuideSection id="process-flow">
           <SectionHeader
-            eyebrow="PROCESS FLOW"
-            title="Mode Pipeline"
-            desc="Pilih mode proses sesuai kebutuhan eksekusi agar analisis berjalan efisien dan sesuai dependency data."
+            eyebrow="ALUR PROSES"
+            title="Mode Proses"
+            desc="Pilih mode proses sesuai kebutuhan agar analisis berjalan efisien dan sesuai data yang tersedia."
           />
 
           <div className="space-y-3">
@@ -576,9 +587,9 @@ export default function AdminGuidePage() {
 
         <GuideSection id="output-reference">
           <SectionHeader
-            eyebrow="OUTPUT REFERENCE"
-            title="Referensi Output Utama"
-            desc="File berikut adalah output yang paling penting untuk analisis, monitoring admin, dan dashboard frontend."
+            eyebrow="REFERENSI OUTPUT"
+            title="Referensi Hasil Utama"
+            desc="File berikut adalah hasil yang paling penting untuk analisis, monitoring admin, dan dashboard frontend."
           />
 
           <div className="space-y-3">
@@ -587,7 +598,7 @@ export default function AdminGuidePage() {
                 key={item.name}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
               >
-                <p className="text-sm font-semibold break-all text-slate-900">
+                <p className="break-all text-sm font-semibold text-slate-900">
                   {item.name}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
@@ -601,9 +612,9 @@ export default function AdminGuidePage() {
 
       <GuideSection id="menu-guide">
         <SectionHeader
-          eyebrow="ADMIN MENU GUIDE"
-          title="Panduan Setiap Menu Admin"
-          desc="Gunakan ringkasan ini untuk memahami fungsi inti tiap halaman di panel administrasi PADIS."
+          eyebrow="PANDUAN MENU ADMIN"
+          title="Fungsi Setiap Menu"
+          desc="Gunakan ringkasan ini untuk memahami fungsi inti tiap halaman di panel admin PADIS."
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
@@ -637,19 +648,19 @@ export default function AdminGuidePage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <GuideSection id="usage-flow">
           <SectionHeader
-            eyebrow="USAGE FLOW"
-            title="Urutan Kerja Admin yang Disarankan"
+            eyebrow="ALUR KERJA ADMIN"
+            title="Urutan Kerja yang Disarankan"
             desc="Alur berikut membantu admin menjalankan PADIS secara lebih aman dan konsisten."
           />
 
           <div className="space-y-3">
             {[
               "Periksa data input pada menu Data Management.",
-              "Pastikan file utama aktif dan dependency tersedia.",
-              "Jalankan pipeline yang sesuai di Process Control.",
-              "Pantau progress, status, dan log proses.",
-              "Periksa hasil di menu Outputs.",
-              "Validasi apakah output final sudah terbaca di dashboard frontend.",
+              "Pastikan file utama aktif dan siap digunakan sistem.",
+              "Jalankan proses yang sesuai di Process Control.",
+              "Pantau tahapan dan status proses di Pipeline Monitor.",
+              "Periksa hasil akhir di menu Outputs.",
+              "Kelola akses pengguna bila diperlukan di menu Users.",
             ].map((step, idx) => (
               <div
                 key={idx}
@@ -668,15 +679,15 @@ export default function AdminGuidePage() {
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <SectionHeader
-            eyebrow="LEGEND"
-            title="Jenis Konten Guide"
-            desc="Ringkasan ikon dan konteks dokumentasi operasional."
+            eyebrow="RINGKASAN"
+            title="Jenis Isi Panduan"
+            desc="Ringkasan isi dokumentasi operasional admin."
           />
 
           <div className="space-y-3 text-sm">
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <Database className="mt-0.5 h-4 w-4 text-blue-600" />
-              <p className="text-slate-600">Standar data dan struktur upload</p>
+              <p className="text-slate-600">Standar data dan aturan upload</p>
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <Layers3 className="mt-0.5 h-4 w-4 text-emerald-600" />
@@ -688,7 +699,7 @@ export default function AdminGuidePage() {
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <FileOutput className="mt-0.5 h-4 w-4 text-purple-600" />
-              <p className="text-slate-600">Output final untuk dashboard dan admin</p>
+              <p className="text-slate-600">Hasil akhir untuk admin dan dashboard</p>
             </div>
           </div>
         </section>
@@ -724,8 +735,8 @@ export default function AdminGuidePage() {
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               Ke depan, guide ini bisa dikembangkan lagi dengan contoh template
-              CSV, contoh struktur atribut GeoJSON atau GPKG, dependency checklist
-              tiap hazard, quick FAQ error pipeline, dan tombol unduh template.
+              CSV, contoh struktur atribut GeoJSON atau GPKG, checklist data per
+              hazard, FAQ error proses, dan tombol unduh template file.
             </p>
           </div>
         </div>

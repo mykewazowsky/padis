@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { buildApiUrl } from "@/lib/api";
-import { clearToken, getToken } from "@/lib/auth";
+import { clearToken, decodeToken, getToken } from "@/lib/auth";
 
 type UserInfo = {
   id?: string;
@@ -97,7 +97,7 @@ function CenterNav({
   const items = getVisibleNavItems(user, isAuthenticated);
 
   return (
-    <nav className="hidden xl:flex items-center justify-center gap-8">
+    <nav className="hidden xl:flex items-center justify-center gap-8 flex-nowrap whitespace-nowrap min-w-0">
       {items.map((item) => {
         const active = isActivePath(pathname, item.href);
 
@@ -361,6 +361,30 @@ export default function SiteShell({
   const meUrl = useMemo(() => buildApiUrl("/api/me"), []);
   const logoutUrl = useMemo(() => buildApiUrl("/api/logout"), []);
 
+  // ── Phase 1: read JWT payload immediately on mount (synchronous, no network) ──
+  // This makes the admin menu and user badge appear instantly without waiting
+  // for the /api/me network call.
+  useEffect(() => {
+    const payload = decodeToken();
+
+    if (payload) {
+      setIsAuthenticated(true);
+      setUser({
+        email: payload.email ?? "",
+        name: payload.name ?? "",
+        role: payload.role,
+        status: payload.status,
+      });
+      setAuthChecked(true);
+    } else if (!getToken()) {
+      // No token at all → show login buttons immediately
+      setAuthChecked(true);
+    }
+    // If token exists but is expired/malformed, wait for Phase 2 to handle it
+  }, []);
+
+  // ── Phase 2: verify with server on every navigation ──
+  // Updates state with fresh server data. Only clears token on 401.
   useEffect(() => {
     let isMounted = true;
 
@@ -377,34 +401,46 @@ export default function SiteShell({
 
       try {
         const res = await fetch(meUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
+        // Token rejected by server → clear and log out
+        if (res.status === 401) {
+          clearToken();
+          if (!isMounted) return;
+          setIsAuthenticated(false);
+          setUser(null);
+          setAuthChecked(true);
+          return;
+        }
+
+        // Server error (5xx) or network issue → keep existing state, don't clear token
         if (!res.ok) {
-          throw new Error("Sesi tidak valid");
+          if (!isMounted) return;
+          setAuthChecked(true);
+          return;
         }
 
         const json: MeResponse = await res.json();
         const currentUser = json.user ?? null;
 
         if (!currentUser) {
-          throw new Error("User tidak ditemukan");
+          clearToken();
+          if (!isMounted) return;
+          setIsAuthenticated(false);
+          setUser(null);
+          setAuthChecked(true);
+          return;
         }
 
         if (!isMounted) return;
         setIsAuthenticated(true);
         setUser(currentUser);
+        setAuthChecked(true);
       } catch {
-        clearToken();
+        // Network error → keep existing JWT-based state, do NOT clear token
         if (!isMounted) return;
-        setIsAuthenticated(false);
-        setUser(null);
-      } finally {
-        if (isMounted) {
-          setAuthChecked(true);
-        }
+        setAuthChecked(true);
       }
     }
 
@@ -458,7 +494,7 @@ export default function SiteShell({
     <div className="flex min-h-screen flex-col bg-white">
       <header className="sticky top-0 z-[1200] border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="section-container py-4">
-          <div className="grid grid-cols-[1fr_auto] items-center gap-4 xl:grid-cols-3">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 xl:grid-cols-3">
             <div className="flex items-center">
               <Brand />
             </div>
@@ -525,6 +561,8 @@ export default function SiteShell({
       <footer className="mt-16 bg-[var(--color-dark-bg)] text-white">
         <div className="section-container py-12">
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+            
+            {/* 1. Logo & Deskripsi */}
             <div>
               <div className="mb-3 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white">
@@ -551,6 +589,7 @@ export default function SiteShell({
               </p>
             </div>
 
+            {/* 2. Navigasi */}
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
                 Navigasi
@@ -564,26 +603,10 @@ export default function SiteShell({
               </div>
             </div>
 
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
-                Cakupan Sistem
-              </p>
-              <div className="mt-4 space-y-3 text-sm text-blue-100">
-                <div className="flex items-start gap-3">
-                  <Layers3 className="mt-0.5 h-4 w-4 text-[var(--color-secondary)]" />
-                  <p>Banjir, Kekeringan, dan Multi-hazard</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CloudRain className="mt-0.5 h-4 w-4 text-[var(--color-secondary)]" />
-                  <p>Iklim & Non-Iklim, Periode Ulang 25, 50, 100, dan 250</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <BarChart3 className="mt-0.5 h-4 w-4 text-[var(--color-secondary)]" />
-                  <p>Luaran utama: Kerugian Langsung, AAL, dan visualisasi WebGIS</p>
-                </div>
-              </div>
-            </div>
+            {/* 3. Placeholder (menggantikan Cakupan Sistem) */}
+            <div className="hidden xl:block"></div>
 
+            {/* 4. Konteks Proyek (tetap di kanan) */}
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
                 Konteks Proyek
@@ -600,8 +623,10 @@ export default function SiteShell({
                 </p>
               </div>
             </div>
+
           </div>
 
+          {/* Bottom bar */}
           <div className="mt-12 border-t border-white/10 pt-5">
             <div className="flex flex-col gap-3 text-xs text-blue-100/80 md:flex-row md:items-center md:justify-between">
               <p>© 2026 PADIS. Hak cipta dilindungi.</p>

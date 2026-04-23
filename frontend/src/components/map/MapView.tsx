@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import DashboardMapOverlay from "@/components/dashboard/DashboardMapOverlay";
-import type { GeoJsonData } from "@/types/map";
+import type { DataBounds, GeoJsonData } from "@/types/map";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 
 const MapViewClient = dynamic(() => import("./MapViewClient"), {
@@ -11,31 +11,35 @@ const MapViewClient = dynamic(() => import("./MapViewClient"), {
   loading: () => (
     <div className="map-shell relative h-full w-full overflow-hidden">
       <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100" />
-
-      <div className="absolute left-4 top-4 rounded-xl bg-white/90 px-4 py-3 shadow-sm">
-        <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
-        <div className="mt-2 h-3 w-32 animate-pulse rounded bg-gray-100" />
-      </div>
-
-      <div className="absolute bottom-4 right-4 rounded-xl bg-white/90 px-4 py-3 shadow-sm">
-        <div className="h-3 w-20 animate-pulse rounded bg-gray-200" />
-        <div className="mt-2 h-3 w-28 animate-pulse rounded bg-gray-100" />
-      </div>
     </div>
   ),
 });
 
+// =========================
+// TYPES
+// =========================
 type Props = {
   scenario: string;
   hazard: string;
   climate: string;
+  runId: number;
   selectedRegion: string;
+
   onRegionSelect?: (region: string) => void;
   onResetView?: () => void;
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
-  data: GeoJsonData | null;
+
+  layers: {
+    regions: GeoJsonData | null;
+    production: GeoJsonData | null;
+    loss: GeoJsonData | null;
+    aal: GeoJsonData | null;
+    hazard: GeoJsonData | null;
+  };
+
   resetViewSignal?: number;
+
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
 };
@@ -44,80 +48,173 @@ export default function MapView({
   scenario,
   hazard,
   climate,
+  runId,
   selectedRegion,
+  layers,
   onRegionSelect,
   onResetView,
   onDownloadCsv,
   onGenerateReport,
-  data,
   resetViewSignal,
   activeLayers,
   onToggleLayer,
 }: Props) {
+  // =========================
+  // SELECT ACTIVE DATA (for MapViewClient classification breaks)
+  // =========================
+  const data: GeoJsonData | null = useMemo(() => {
+    if (activeLayers.loss && layers.loss) return layers.loss;
+    if (activeLayers.aal && layers.aal) return layers.aal;
+    if (activeLayers.hazard && layers.hazard) return layers.hazard;
+    if (activeLayers.production && layers.production) return layers.production;
+    return layers.regions ?? null;
+  }, [
+    layers.loss, layers.aal, layers.hazard, layers.production, layers.regions,
+    activeLayers.loss, activeLayers.aal, activeLayers.hazard, activeLayers.production,
+  ]);
+
+  // =========================
+  // NORMALIZE REGION
+  // =========================
   const normalizedSelectedRegion = useMemo(
-    () => selectedRegion.toLowerCase().trim(),
+    () => selectedRegion?.toLowerCase().trim() ?? "",
     [selectedRegion]
   );
 
+  // =========================
+  // SELECTED FEATURE — merged from ALL layers
+  // Ensures the overlay card always has complete data regardless of which
+  // layer is currently active on the map.
+  // =========================
   const selectedFeature = useMemo(() => {
-    if (!data?.features?.length || !normalizedSelectedRegion) return null;
+    if (!normalizedSelectedRegion) return null;
 
-    return (
-      data.features.find(
-        (feature) =>
-          feature.properties.kab_kota.toLowerCase().trim() ===
-          normalizedSelectedRegion
-      ) ?? null
-    );
-  }, [data, normalizedSelectedRegion]);
+    const findProps = (layerData: GeoJsonData | null) =>
+      layerData?.features?.find(
+        (f) => f?.properties?.kab_kota?.toLowerCase().trim() === normalizedSelectedRegion
+      )?.properties ?? null;
 
+    const lossProps    = findProps(layers.loss);
+    const aalProps     = findProps(layers.aal);
+    const hazardProps  = findProps(layers.hazard);
+    const prodProps    = findProps(layers.production);
+
+    // Need at least one source to confirm the region exists
+    const primary = lossProps ?? aalProps ?? hazardProps ?? prodProps;
+    if (!primary) return null;
+
+    return {
+      properties: {
+        kab_kota:   primary.kab_kota,
+        prov:       primary.prov,
+        loss:       lossProps?.loss             ?? null,
+        aal:        aalProps?.aal               ?? null,
+        mean_value: hazardProps?.mean_value     ?? null,
+        total_prod: prodProps?.total_prod       ?? null,
+      },
+    };
+  }, [layers.loss, layers.aal, layers.hazard, layers.production, normalizedSelectedRegion]);
+
+  // =========================
+  // TOTAL LOSS & AAL
+  // =========================
   const totalLoss = useMemo(() => {
-    if (!data?.features?.length) return 0;
-
-    return data.features.reduce(
-      (sum, feature) => sum + (feature.properties.loss ?? 0),
-      0
+    if (!layers?.loss?.features?.length) return 0;
+    return layers.loss.features.reduce(
+      (sum, f) => sum + Number(f?.properties?.loss ?? 0), 0
     );
-  }, [data]);
+  }, [layers.loss]);
 
+  const totalAal = useMemo(() => {
+    if (!layers?.aal?.features?.length) return 0;
+    return layers.aal.features.reduce(
+      (sum, f) => sum + Number(f?.properties?.aal ?? 0), 0
+    );
+  }, [layers.aal]);
+
+  // =========================
+  // REGION SHARE — always computed from respective layer totals
+  // =========================
   const selectedRegionShare = useMemo(() => {
-    if (!selectedFeature?.properties.loss || !totalLoss) return null;
-    return (selectedFeature.properties.loss / totalLoss) * 100;
-  }, [selectedFeature, totalLoss]);
-
-  const isTopRegion = useMemo(() => {
-    if (!data?.features?.length || !selectedFeature) return false;
-
-    const topFive = [...data.features]
-      .sort((a, b) => (b.properties.loss ?? 0) - (a.properties.loss ?? 0))
-      .slice(0, 5)
-      .map((item) => item.properties.kab_kota.toLowerCase().trim());
-
-    return topFive.includes(
-      selectedFeature.properties.kab_kota.toLowerCase().trim()
+    if (!normalizedSelectedRegion || !totalLoss) return null;
+    const lossFeature = layers.loss?.features?.find(
+      (f) => f?.properties?.kab_kota?.toLowerCase().trim() === normalizedSelectedRegion
     );
-  }, [data, selectedFeature]);
+    const loss = lossFeature?.properties?.loss;
+    if (loss == null || loss === 0) return null;
+    return (Number(loss) / totalLoss) * 100;
+  }, [layers.loss, normalizedSelectedRegion, totalLoss]);
 
+  const selectedRegionAalShare = useMemo(() => {
+    if (!normalizedSelectedRegion || !totalAal) return null;
+    const aalFeature = layers.aal?.features?.find(
+      (f) => f?.properties?.kab_kota?.toLowerCase().trim() === normalizedSelectedRegion
+    );
+    const aal = aalFeature?.properties?.aal;
+    if (aal == null || aal === 0) return null;
+    return (Number(aal) / totalAal) * 100;
+  }, [layers.aal, normalizedSelectedRegion, totalAal]);
+
+  // =========================
+  // DATA BOUNDS — auto-fit map to the extent of regions that have data
+  // =========================
+  const dataBounds = useMemo((): DataBounds | null => {
+    if (activeLayers.loss)   return layers.loss?.data_bounds   ?? null;
+    if (activeLayers.aal)    return layers.aal?.data_bounds    ?? null;
+    if (activeLayers.hazard) return layers.hazard?.data_bounds ?? null;
+    return null;
+  }, [
+    activeLayers.loss, activeLayers.aal, activeLayers.hazard,
+    layers.loss, layers.aal, layers.hazard,
+  ]);
+
+  // =========================
+  // TOP 5 (from loss layer)
+  // =========================
+  const isTopRegion = useMemo(() => {
+    if (!normalizedSelectedRegion || !layers?.loss?.features?.length) return false;
+
+    const topFive = [...layers.loss.features]
+      .sort((a, b) => Number(b?.properties?.loss ?? 0) - Number(a?.properties?.loss ?? 0))
+      .slice(0, 5)
+      .map((item) => item?.properties?.kab_kota?.toLowerCase().trim());
+
+    return topFive.includes(normalizedSelectedRegion);
+  }, [layers.loss, normalizedSelectedRegion]);
+
+  // =========================
+  // RENDER
+  // =========================
   return (
     <div className="map-shell relative h-full w-full overflow-hidden">
+      {/* MAP */}
       <MapViewClient
         scenario={scenario}
         hazard={hazard}
         climate={climate}
+        runId={runId}
         selectedRegion={selectedRegion}
         onRegionSelect={onRegionSelect}
+
         data={data}
+        layers={layers}
+        dataBounds={dataBounds}
+
         resetViewSignal={resetViewSignal}
         activeLayers={activeLayers}
         onToggleLayer={onToggleLayer}
       />
 
+      {/* OVERLAY */}
       <DashboardMapOverlay
         selectedFeature={selectedFeature}
         hasActiveRegion={!!selectedRegion}
         selectedRegionShare={selectedRegionShare ?? undefined}
+        selectedRegionAalShare={selectedRegionAalShare ?? undefined}
         isTopRegion={isTopRegion}
+        activeLayers={activeLayers}
         onResetView={onResetView}
+        onClearRegion={onRegionSelect ? () => onRegionSelect("") : undefined}
         onDownloadCsv={onDownloadCsv}
         onGenerateReport={onGenerateReport}
       />

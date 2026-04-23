@@ -74,9 +74,9 @@ const partnerCards = [
     logo: "/partners/bpbd.png",
   },
   {
-    name: "PT Reasuransi Nasional Indonesia",
-    short: "RNI",
-    logo: "/partners/rni.png",
+    name: "PT Reasuransi Indonesia Utama",
+    short: "RIU",
+    logo: "/partners/riu.png",
   },
 ];
 

@@ -31,6 +31,7 @@ export default function AdminGuard({
 
   useEffect(() => {
     let mounted = true;
+    const controller = new AbortController();
 
     async function verifyAccess() {
       const token = getToken();
@@ -45,6 +46,7 @@ export default function AdminGuard({
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          signal: controller.signal,
         });
 
         if (res.status === 401) {
@@ -75,6 +77,7 @@ export default function AdminGuard({
         if (user.role !== "admin") {
           if (!mounted) return;
           setForbidden(true);
+          setErrorMessage("");
           setChecking(false);
           return;
         }
@@ -84,8 +87,12 @@ export default function AdminGuard({
         setErrorMessage("");
         setChecking(false);
       } catch (err: any) {
-        if (!mounted) return;
-        setErrorMessage(err?.message || "Terjadi kesalahan saat memverifikasi akses admin.");
+        if (!mounted || err?.name === "AbortError") return;
+
+        setForbidden(false);
+        setErrorMessage(
+          err?.message || "Terjadi kesalahan saat memverifikasi akses admin."
+        );
         setChecking(false);
       }
     }
@@ -94,6 +101,7 @@ export default function AdminGuard({
 
     return () => {
       mounted = false;
+      controller.abort();
     };
   }, [pathname, router]);
 
@@ -104,9 +112,11 @@ export default function AdminGuard({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)]">
             <ShieldCheck className="h-7 w-7 text-[var(--color-primary)]" />
           </div>
+
           <h2 className="mt-5 text-xl font-bold text-slate-900">
             Memverifikasi akses admin
           </h2>
+
           <p className="mt-2 text-sm text-slate-500">
             PADIS sedang memeriksa role dan status akun Anda.
           </p>
@@ -122,9 +132,11 @@ export default function AdminGuard({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
             <AlertTriangle className="h-7 w-7 text-red-600" />
           </div>
+
           <h2 className="mt-5 text-xl font-bold text-slate-900">
             Akses admin ditolak
           </h2>
+
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             Akun Anda berhasil login, tetapi tidak memiliki hak akses untuk
             membuka panel administrasi PADIS.
@@ -159,9 +171,11 @@ export default function AdminGuard({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
             <AlertTriangle className="h-7 w-7 text-amber-600" />
           </div>
+
           <h2 className="mt-5 text-xl font-bold text-slate-900">
             Gagal memverifikasi akses admin
           </h2>
+
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             {errorMessage}
           </p>

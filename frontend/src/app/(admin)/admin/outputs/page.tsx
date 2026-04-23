@@ -2,6 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import {
+  Download,
+  Eye,
+  FileOutput,
+  Filter,
+  Map,
+  RefreshCw,
+} from "lucide-react";
 import { buildApiUrl } from "../../../../lib/api";
 import { getToken } from "../../../../lib/auth";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
@@ -53,29 +61,95 @@ type PreviewData =
       message: string;
     };
 
-const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "flood", label: "Flood" },
-  { key: "drought", label: "Drought" },
-  { key: "multi", label: "Multi-hazard" },
-  { key: "aal", label: "AAL" },
-  { key: "report", label: "Report" },
-  { key: "other", label: "Other" },
+const FILTER_OPTIONS: { key: FilterKey; label: string; desc: string }[] = [
+  { key: "all", label: "Semua", desc: "Tampilkan semua hasil." },
+  { key: "flood", label: "Flood", desc: "Hasil untuk analisis flood." },
+  { key: "drought", label: "Drought", desc: "Hasil untuk analisis drought." },
+  { key: "multi", label: "Multi-hazard", desc: "Hasil untuk analisis multi-hazard." },
+  { key: "aal", label: "AAL", desc: "Ringkasan nilai AAL." },
+  { key: "report", label: "Report", desc: "Dokumen dan aset laporan." },
+  { key: "other", label: "Other", desc: "File lain di luar kategori utama." },
 ];
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function categorizeOutput(filename: string): FilterKey {
+  const name = filename.toLowerCase();
+
+  if (name.includes("aal")) return "aal";
+
+  if (name.startsWith("web_flood") || name.includes("kabkota_flood")) {
+    return "flood";
+  }
+
+  if (name.startsWith("web_drought") || name.includes("kabkota_drought")) {
+    return "drought";
+  }
+
+  if (
+    name.startsWith("web_multi") ||
+    name.startsWith("web_multihazard") ||
+    name.includes("kabkota_multihazard")
+  ) {
+    return "multi";
+  }
+
+  if (
+    name.startsWith("_report") ||
+    name.startsWith("_temp_report") ||
+    name.endsWith(".pdf") ||
+    name.endsWith(".png")
+  ) {
+    return "report";
+  }
+
+  return "other";
+}
+
+function getCategoryLabel(category: FilterKey) {
+  if (category === "flood") return "Flood";
+  if (category === "drought") return "Drought";
+  if (category === "multi") return "Multi-hazard";
+  if (category === "aal") return "AAL";
+  if (category === "report") return "Report";
+  if (category === "other") return "Other";
+  return "All";
+}
 
 export default function AdminOutputPage() {
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+
   const [downloadingFile, setDownloadingFile] = useState("");
   const [previewingFile, setPreviewingFile] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
+
   const [previewMap, setPreviewMap] = useState<Record<string, PreviewData>>({});
   const [geoJsonMap, setGeoJsonMap] = useState<Record<string, any>>({});
 
-  const loadOutputs = useCallback(async () => {
+  const loadOutputs = useCallback(async (showRefresh = false) => {
     try {
+      if (showRefresh) setRefreshing(true);
       setLoading(true);
       setError("");
 
@@ -83,7 +157,7 @@ export default function AdminOutputPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memuat output.");
+        throw new Error(json.error || "Gagal memuat hasil.");
       }
 
       const sorted = [...json].sort(
@@ -94,77 +168,16 @@ export default function AdminOutputPage() {
       setOutputs(sorted);
     } catch (err: any) {
       console.error("Load outputs error:", err);
-      setError(err.message || "Gagal memuat output.");
+      setError(err.message || "Gagal memuat hasil.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     loadOutputs();
   }, [loadOutputs]);
-
-  function formatBytes(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) {
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-  }
-
-  function formatDateTime(value: string) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-
-    return date.toLocaleString("id-ID", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  }
-
-  function categorizeOutput(filename: string): FilterKey {
-    const name = filename.toLowerCase();
-
-    if (name.includes("aal")) return "aal";
-
-    if (name.startsWith("web_flood") || name.includes("kabkota_flood")) {
-      return "flood";
-    }
-
-    if (name.startsWith("web_drought") || name.includes("kabkota_drought")) {
-      return "drought";
-    }
-
-    if (
-      name.startsWith("web_multi") ||
-      name.startsWith("web_multihazard") ||
-      name.includes("kabkota_multihazard")
-    ) {
-      return "multi";
-    }
-
-    if (
-      name.startsWith("_report") ||
-      name.startsWith("_temp_report") ||
-      name.endsWith(".pdf") ||
-      name.endsWith(".png")
-    ) {
-      return "report";
-    }
-
-    return "other";
-  }
-
-  function getCategoryLabel(category: FilterKey) {
-    if (category === "flood") return "Flood";
-    if (category === "drought") return "Drought";
-    if (category === "multi") return "Multi-hazard";
-    if (category === "aal") return "AAL";
-    if (category === "report") return "Report";
-    if (category === "other") return "Other";
-    return "All";
-  }
 
   const countsByCategory = useMemo(() => {
     const counts: Record<FilterKey, number> = {
@@ -187,12 +200,12 @@ export default function AdminOutputPage() {
 
   const groupedOutputs = useMemo<OutputGroup[]>(() => {
     const groups: Record<Exclude<FilterKey, "all">, OutputGroup> = {
-      flood: { key: "flood", title: "Flood Outputs", files: [] },
-      drought: { key: "drought", title: "Drought Outputs", files: [] },
-      multi: { key: "multi", title: "Multi-hazard Outputs", files: [] },
-      aal: { key: "aal", title: "AAL Outputs", files: [] },
-      report: { key: "report", title: "Report Assets", files: [] },
-      other: { key: "other", title: "Other Outputs", files: [] },
+      flood: { key: "flood", title: "Hasil Flood", files: [] },
+      drought: { key: "drought", title: "Hasil Drought", files: [] },
+      multi: { key: "multi", title: "Hasil Multi-hazard", files: [] },
+      aal: { key: "aal", title: "Hasil AAL", files: [] },
+      report: { key: "report", title: "Laporan", files: [] },
+      other: { key: "other", title: "File Lainnya", files: [] },
     };
 
     for (const file of outputs) {
@@ -338,21 +351,27 @@ export default function AdminOutputPage() {
 
   const summaryCards = [
     {
+      title: "Total Hasil",
+      value: loading ? "Loading..." : totalOutputs,
+      desc: "Jumlah seluruh file hasil yang tersedia.",
+      valueClass: "text-[var(--color-primary)]",
+    },
+    {
       title: "Flood Outputs",
       value: loading ? "Loading..." : countsByCategory.flood,
-      desc: "Jumlah file output untuk analisis flood.",
+      desc: "Jumlah hasil untuk analisis flood.",
       valueClass: "text-blue-600",
     },
     {
       title: "Drought Outputs",
       value: loading ? "Loading..." : countsByCategory.drought,
-      desc: "Jumlah file output untuk analisis drought.",
+      desc: "Jumlah hasil untuk analisis drought.",
       valueClass: "text-orange-600",
     },
     {
       title: "Multi-hazard Outputs",
       value: loading ? "Loading..." : countsByCategory.multi,
-      desc: "Jumlah file output untuk analisis multi-hazard.",
+      desc: "Jumlah hasil untuk analisis multi-hazard.",
       valueClass: "text-red-600",
     },
   ];
@@ -364,11 +383,10 @@ export default function AdminOutputPage() {
           OUTPUTS
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
-          Output Sistem PADIS
+          Hasil Analisis
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-gray-600 md:text-base">
-          Halaman ini menampilkan file output PADIS yang dikelompokkan berdasarkan
-          kategori analisis agar lebih mudah dikelola oleh admin.
+          Lihat, preview, dan unduh hasil akhir dari proses yang sudah dijalankan.
         </p>
       </section>
 
@@ -378,7 +396,7 @@ export default function AdminOutputPage() {
         </div>
       )}
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
           <div
             key={card.title}
@@ -397,64 +415,65 @@ export default function AdminOutputPage() {
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-semibold tracking-wide text-[var(--color-primary)]">
-              OUTPUT FILTER
+              FILTER
             </p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-gray-900">
-              Filter Kategori
+              Filter Hasil
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Pilih kategori output yang ingin ditampilkan.
+              Pilih kategori hasil yang ingin ditampilkan.
             </p>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Total Output</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {loading ? "Loading..." : totalOutputs}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Latest Update</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {loading
-                    ? "Loading..."
-                    : latestModified
-                      ? formatDateTime(latestModified)
-                      : "-"}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Active Categories</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {loading ? "Loading..." : activeCategoryCount}
-                </p>
-              </div>
-            </div>
-
-            {latestFile ? (
-              <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                  File Terbaru
-                </p>
-                <p className="mt-1 break-all text-sm font-semibold text-gray-900">
-                  {latestFile.filename}
-                </p>
-              </div>
-            ) : null}
           </div>
 
           <button
             type="button"
-            onClick={loadOutputs}
-            className="btn-outline text-sm font-medium"
+            onClick={() => loadOutputs(true)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            Refresh Output
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Memuat..." : "Refresh"}
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs text-gray-500">Total Hasil</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {loading ? "Loading..." : totalOutputs}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs text-gray-500">Latest Update</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {loading
+                ? "Loading..."
+                : latestModified
+                ? formatDateTime(latestModified)
+                : "-"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs text-gray-500">Kategori Aktif</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {loading ? "Loading..." : activeCategoryCount}
+            </p>
+          </div>
+        </div>
+
+        {latestFile ? (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+              File Terbaru
+            </p>
+            <p className="mt-1 break-all text-sm font-semibold text-gray-900">
+              {latestFile.filename}
+            </p>
+          </div>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap gap-2">
           {FILTER_OPTIONS.map((item) => {
             const isActive = activeFilter === item.key;
 
@@ -468,6 +487,7 @@ export default function AdminOutputPage() {
                     ? "rounded-2xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
                     : "rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
                 }
+                title={item.desc}
               >
                 {item.label} ({countsByCategory[item.key]})
               </button>
@@ -479,23 +499,23 @@ export default function AdminOutputPage() {
       <section className="rounded-3xl border bg-white p-6 shadow-sm">
         <div className="mb-5">
           <p className="text-sm font-semibold tracking-wide text-[var(--color-primary)]">
-            OUTPUT GROUPS
+            HASIL
           </p>
           <h2 className="mt-1 text-xl font-bold tracking-tight text-gray-900">
-            Daftar Output per Kategori
+            Daftar Hasil per Kategori
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            File output dikelompokkan agar lebih mudah ditinjau, dipreview, dan diunduh.
+            Hasil dikelompokkan agar lebih mudah dilihat, dipreview, dan diunduh.
           </p>
         </div>
 
         {loading ? (
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
-            Memuat daftar output...
+            Memuat daftar hasil...
           </div>
         ) : groupedOutputs.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
-            Tidak ada file output pada kategori ini.
+            Tidak ada file hasil pada kategori ini.
           </div>
         ) : (
           <div className="space-y-6">
@@ -553,21 +573,23 @@ export default function AdminOutputPage() {
                             <button
                               type="button"
                               onClick={() => handlePreview(item.filename)}
-                              className="btn-outline text-sm font-medium"
+                              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                             >
+                              <Eye className="h-4 w-4" />
                               {previewingFile === item.filename
                                 ? "Loading..."
                                 : isExpanded
-                                  ? "Tutup Preview"
-                                  : "Preview"}
+                                ? "Tutup"
+                                : "Preview"}
                             </button>
 
                             <button
                               type="button"
                               onClick={() => handleDownload(item.filename)}
                               disabled={downloadingFile === item.filename}
-                              className="btn-outline text-sm font-medium disabled:opacity-60"
+                              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                             >
+                              <Download className="h-4 w-4" />
                               {downloadingFile === item.filename
                                 ? "Downloading..."
                                 : "Download"}
@@ -632,9 +654,12 @@ export default function AdminOutputPage() {
 
                                     {geoJsonMap[item.filename] ? (
                                       <div>
-                                        <p className="mb-2 text-xs text-gray-500">
-                                          Mini Map Preview
-                                        </p>
+                                        <div className="mb-2 flex items-center gap-2">
+                                          <Map className="h-4 w-4 text-slate-500" />
+                                          <p className="text-xs text-gray-500">
+                                            Mini Map Preview
+                                          </p>
+                                        </div>
                                         <GeoJsonMiniMap data={geoJsonMap[item.filename]} />
                                       </div>
                                     ) : (

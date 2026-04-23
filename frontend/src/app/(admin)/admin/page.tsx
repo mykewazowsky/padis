@@ -6,13 +6,15 @@ import {
   Activity,
   AlertCircle,
   ArrowRight,
+  BookOpen,
+  Clock3,
   Database,
   FileOutput,
+  FolderTree,
+  Gauge,
   PlayCircle,
   RefreshCw,
-  ShieldCheck,
   Users,
-  Wrench,
 } from "lucide-react";
 
 import { fetchJsonWithAuth } from "../../../lib/fetcher-auth";
@@ -47,6 +49,7 @@ type AdminProcessStatus = {
   total_steps?: number;
   progress_percent?: number;
   updated_outputs?: string[] | AdminOutputItem[];
+  started_at?: string | null;
 };
 
 type AdminUserItem = {
@@ -63,6 +66,16 @@ type SummaryCard = {
   desc: string;
   valueClass: string;
   icon: React.ComponentType<{ className?: string }>;
+  iconWrapClass: string;
+  iconClass: string;
+};
+
+type NavItem = {
+  title: string;
+  href: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accentClass: string;
   iconWrapClass: string;
   iconClass: string;
 };
@@ -94,7 +107,38 @@ function capitalize(text?: string | null) {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
-export default function AdminPage() {
+function getStatusTone(status?: string | null) {
+  const normalized = String(status || "").toLowerCase();
+
+  if (
+    normalized.includes("fail") ||
+    normalized.includes("error") ||
+    normalized.includes("degraded")
+  ) {
+    return "text-red-600";
+  }
+
+  if (
+    normalized.includes("run") ||
+    normalized.includes("progress") ||
+    normalized.includes("warning")
+  ) {
+    return "text-amber-600";
+  }
+
+  if (
+    normalized.includes("success") ||
+    normalized.includes("online") ||
+    normalized.includes("ok") ||
+    normalized.includes("idle")
+  ) {
+    return "text-green-600";
+  }
+
+  return "text-slate-900";
+}
+
+export default function AdminOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -117,8 +161,6 @@ export default function AdminPage() {
 
     if (showRefresh) {
       setRefreshing(true);
-    } else {
-      setLoading((prev) => prev);
     }
 
     setLoadError("");
@@ -222,11 +264,19 @@ export default function AdminPage() {
 
   const outputReadyCount = useMemo(() => outputs.length, [outputs]);
 
+  const latestUpdate = useMemo(() => {
+    return formatDateTime(dataSummary.latest_update);
+  }, [dataSummary.latest_update]);
+
+  const lastSyncedLabel = useMemo(() => {
+    return formatDateTime(lastSyncedAt);
+  }, [lastSyncedAt]);
+
   const processDisplay = useMemo(() => {
     if (!processStatus) {
       return {
         label: "Unknown",
-        desc: "Status proses analisis belum tersedia.",
+        desc: "Status proses belum tersedia.",
         valueClass: "text-slate-900",
       };
     }
@@ -236,7 +286,7 @@ export default function AdminPage() {
         label: `Running ${processStatus.progress_percent ?? 0}%`,
         desc:
           processStatus.message ||
-          "Pipeline analisis sedang berjalan di backend.",
+          "Proses sedang berjalan dan dipantau secara langsung.",
         valueClass: "text-amber-600",
       };
     }
@@ -246,7 +296,7 @@ export default function AdminPage() {
         label: "Idle (OK)",
         desc:
           processStatus.message ||
-          "Tidak ada proses aktif dan hasil terakhir sukses.",
+          "Tidak ada proses aktif dan hasil terakhir berhasil.",
         valueClass: "text-green-600",
       };
     }
@@ -263,8 +313,7 @@ export default function AdminPage() {
 
     return {
       label: capitalize(processStatus.status || "idle"),
-      desc:
-        processStatus.message || "Status proses analisis tersedia di sistem.",
+      desc: processStatus.message || "Status proses tersedia di sistem.",
       valueClass: "text-slate-900",
     };
   }, [processStatus]);
@@ -289,14 +338,14 @@ export default function AdminPage() {
     if (outputReadyCount > 0) {
       return {
         label: `${outputReadyCount} Files`,
-        desc: "File output tersedia untuk preview, unduh, dan inspeksi admin.",
+        desc: "Hasil analisis tersedia untuk dilihat atau diunduh.",
         valueClass: "text-[var(--color-primary)]",
       };
     }
 
     return {
       label: "No Output",
-      desc: "Belum ada file output yang terdeteksi di registry backend.",
+      desc: "Belum ada hasil analisis yang terdeteksi.",
       valueClass: "text-slate-900",
     };
   }, [outputReadyCount]);
@@ -311,7 +360,7 @@ export default function AdminPage() {
 
   const summaryCards: SummaryCard[] = [
     {
-      title: "System Status",
+      title: "Status Sistem",
       value: systemStatus.label,
       desc: systemStatus.desc,
       valueClass: systemStatus.valueClass,
@@ -320,7 +369,7 @@ export default function AdminPage() {
       iconClass: "text-green-600",
     },
     {
-      title: "Pipeline Status",
+      title: "Status Proses",
       value: processDisplay.label,
       desc: processDisplay.desc,
       valueClass: processDisplay.valueClass,
@@ -329,7 +378,7 @@ export default function AdminPage() {
       iconClass: "text-amber-600",
     },
     {
-      title: "Output State",
+      title: "Hasil Tersedia",
       value: outputState.label,
       desc: outputState.desc,
       valueClass: outputState.valueClass,
@@ -338,7 +387,7 @@ export default function AdminPage() {
       iconClass: "text-[var(--color-primary)]",
     },
     {
-      title: "User Accounts",
+      title: "Pengguna",
       value: userState.label,
       desc: userState.desc,
       valueClass: userState.valueClass,
@@ -348,57 +397,74 @@ export default function AdminPage() {
     },
   ];
 
-  const quickLinks = [
-    {
-      title: "Data Management",
-      href: "/admin/data",
-      desc: "Kelola upload, validasi, dan ketersediaan input data PADIS.",
-      icon: Database,
-      accentClass: "border-blue-200 bg-blue-50",
-      iconWrapClass: "bg-white",
-      iconClass: "text-blue-600",
-    },
-    {
-      title: "Process Control",
-      href: "/admin/process",
-      desc: "Jalankan pipeline, pantau progress, dan kontrol proses analisis.",
-      icon: PlayCircle,
-      accentClass: "border-amber-200 bg-amber-50",
-      iconWrapClass: "bg-white",
-      iconClass: "text-amber-600",
-    },
-    {
-      title: "Outputs",
-      href: "/admin/output",
-      desc: "Lihat output terbaru, preview hasil, dan kesiapan file sistem.",
-      icon: FileOutput,
-      accentClass: "border-green-200 bg-green-50",
-      iconWrapClass: "bg-white",
-      iconClass: "text-green-600",
-    },
-    {
-      title: "Users",
-      href: "/admin/users",
-      desc: "Kelola akun, role admin, dan status akses pengguna PADIS.",
-      icon: Users,
-      accentClass: "border-purple-200 bg-purple-50",
-      iconWrapClass: "bg-white",
-      iconClass: "text-purple-600",
-    },
-  ];
+  const alerts = useMemo(() => {
+    const list: { title: string; desc: string; tone: string }[] = [];
 
-  const quickActions = [
-    { label: "Kelola Data", href: "/admin/data" },
-    { label: "Jalankan Proses", href: "/admin/process" },
-    { label: "Lihat Output", href: "/admin/output" },
-    { label: "Kelola Users", href: "/admin/users" },
-  ];
+    if (loadError) {
+      list.push({
+        title: "Sebagian data tidak berhasil dimuat",
+        desc: loadError,
+        tone: "red",
+      });
+    }
 
-  const nextSteps = [
-    "Tambahkan monitoring dependency agar admin cepat mengetahui data atau proses yang belum siap.",
-    "Tambahkan widget recent outputs dan recent process logs langsung di overview.",
-    "Siapkan environment configuration dan Docker untuk deployment yang lebih stabil.",
-  ];
+    if (processStatus?.last_result === "failed") {
+      list.push({
+        title: "Proses terakhir gagal",
+        desc:
+          processStatus.message ||
+          "Periksa halaman Process Control untuk melihat detail masalah.",
+        tone: "red",
+      });
+    }
+
+    if (processStatus?.status === "running") {
+      list.push({
+        title: "Proses sedang berjalan",
+        desc: `Progress ${processStatus.progress_percent ?? 0}%${
+          processStatus.current_script
+            ? ` · langkah aktif ${processStatus.current_script}`
+            : ""
+        }.`,
+        tone: "amber",
+      });
+    }
+
+    if (outputReadyCount === 0) {
+      list.push({
+        title: "Belum ada hasil analisis",
+        desc: "Periksa proses dan data untuk memastikan semuanya siap.",
+        tone: "amber",
+      });
+    }
+
+    if ((dataSummary.raw_count ?? 0) > (dataSummary.processed_count ?? 0)) {
+      list.push({
+        title: "Sebagian data belum diproses",
+        desc: `Raw data: ${dataSummary.raw_count ?? 0}, processed data: ${
+          dataSummary.processed_count ?? 0
+        }.`,
+        tone: "amber",
+      });
+    }
+
+    if (totalInactiveUsers > 0) {
+      list.push({
+        title: "Ada akun yang tidak aktif",
+        desc: `${totalInactiveUsers} akun berstatus inactive dan perlu ditinjau.`,
+        tone: "amber",
+      });
+    }
+
+    return list.slice(0, 5);
+  }, [
+    loadError,
+    processStatus,
+    outputReadyCount,
+    dataSummary.raw_count,
+    dataSummary.processed_count,
+    totalInactiveUsers,
+  ]);
 
   const recentOutputs = useMemo(() => {
     return [...outputs]
@@ -410,33 +476,201 @@ export default function AdminPage() {
       .slice(0, 5);
   }, [outputs]);
 
-  const latestUpdate = useMemo(() => {
-    return formatDateTime(dataSummary.latest_update);
-  }, [dataSummary.latest_update]);
+  const recentActivities = useMemo(() => {
+    const items: {
+      title: string;
+      desc: string;
+      time: string;
+      tone: string;
+    }[] = [];
 
-  const lastSyncedLabel = useMemo(() => {
-    return formatDateTime(lastSyncedAt);
-  }, [lastSyncedAt]);
+    if (processStatus?.status === "running") {
+      items.push({
+        title: "Proses sedang berjalan",
+        desc:
+          processStatus.message ||
+          `Langkah ${processStatus.current_step ?? 0} dari ${
+            processStatus.total_steps ?? 0
+          }.`,
+        time: formatDateTime(processStatus.started_at),
+        tone: "amber",
+      });
+    }
+
+    if (processStatus?.last_result === "success") {
+      items.push({
+        title: "Proses terakhir berhasil",
+        desc:
+          processStatus.message || "Hasil terakhir berhasil diselesaikan sistem.",
+        time: lastSyncedLabel,
+        tone: "green",
+      });
+    }
+
+    if (processStatus?.last_result === "failed") {
+      items.push({
+        title: "Proses terakhir gagal",
+        desc:
+          processStatus.message ||
+          "Buka Process Control untuk meninjau proses terakhir.",
+        time: lastSyncedLabel,
+        tone: "red",
+      });
+    }
+
+    if (recentOutputs[0]) {
+      items.push({
+        title: "Output terbaru tersedia",
+        desc: recentOutputs[0].filename,
+        time: formatDateTime(recentOutputs[0].modified_at),
+        tone: "blue",
+      });
+    }
+
+    if (latestUpdate !== "-") {
+      items.push({
+        title: "Data diperbarui",
+        desc: "Ringkasan data terbaru tersedia di sistem.",
+        time: latestUpdate,
+        tone: "slate",
+      });
+    }
+
+    return items.slice(0, 5);
+  }, [processStatus, recentOutputs, latestUpdate, lastSyncedLabel]);
+
+  const adminPages: NavItem[] = [
+    {
+      title: "Data Management",
+      href: "/admin/data-management",
+      desc: "Kelola data yang digunakan dalam sistem.",
+      icon: Database,
+      accentClass: "border-blue-200 bg-blue-50",
+      iconWrapClass: "bg-white",
+      iconClass: "text-blue-600",
+    },
+    {
+      title: "Process Control",
+      href: "/admin/process-control",
+      desc: "Jalankan dan pantau proses analisis data.",
+      icon: PlayCircle,
+      accentClass: "border-amber-200 bg-amber-50",
+      iconWrapClass: "bg-white",
+      iconClass: "text-amber-600",
+    },
+    {
+      title: "Pipeline Monitor",
+      href: "/admin/pipeline-monitor",
+      desc: "Lihat alur proses dan status setiap tahap.",
+      icon: FolderTree,
+      accentClass: "border-indigo-200 bg-indigo-50",
+      iconWrapClass: "bg-white",
+      iconClass: "text-indigo-600",
+    },
+    {
+      title: "Outputs",
+      href: "/admin/outputs",
+      desc: "Lihat dan unduh hasil analisis.",
+      icon: FileOutput,
+      accentClass: "border-green-200 bg-green-50",
+      iconWrapClass: "bg-white",
+      iconClass: "text-green-600",
+    },
+    {
+      title: "Users",
+      href: "/admin/users",
+      desc: "Kelola akun pengguna dan akses.",
+      icon: Users,
+      accentClass: "border-purple-200 bg-purple-50",
+      iconWrapClass: "bg-white",
+      iconClass: "text-purple-600",
+    },
+    {
+      title: "Admin Guide",
+      href: "/admin/guide",
+      desc: "Panduan penggunaan sistem.",
+      icon: BookOpen,
+      accentClass: "border-emerald-200 bg-emerald-50",
+      iconWrapClass: "bg-white",
+      iconClass: "text-emerald-600",
+    },
+  ];
+
+  const quickActions = [
+    { label: "Data", href: "/admin/data-management" },
+    { label: "Run Process", href: "/admin/process-control" },
+    { label: "Pipeline", href: "/admin/pipeline-monitor" },
+    { label: "Outputs", href: "/admin/outputs" },
+  ];
+
+  const renderNavGrid = (items: NavItem[]) => {
+    return (
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {items.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <div
+              key={item.href}
+              className={`rounded-3xl border p-5 ${item.accentClass}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className={`rounded-2xl p-3 shadow-sm ${item.iconWrapClass}`}>
+                  <Icon className={`h-5 w-5 ${item.iconClass}`} />
+                </div>
+
+                <Link
+                  href={item.href}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 transition hover:text-slate-900"
+                >
+                  Buka
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              <h3 className="mt-4 text-lg font-bold text-slate-900">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                {item.desc}
+              </p>
+
+              <div className="mt-5">
+                <Link
+                  href={item.href}
+                  className="btn-outline text-sm font-medium"
+                >
+                  Buka Halaman
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <main className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-4xl">
             <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              ADMIN OVERVIEW
+              OVERVIEW
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-              PADIS System Control Center
+
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+              Dashboard Admin
             </h1>
+
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 md:text-base">
-              Ringkasan panel administrasi PADIS untuk mengelola data,
-              mengontrol proses analisis, memantau output sistem, dan mengatur
-              pengguna dari satu tempat.
+              Lihat kondisi sistem, status proses, dan hasil terbaru dalam satu
+              tampilan.
             </p>
 
             <p className="mt-3 text-xs text-slate-500">
-              Auto refresh setiap {POLL_INTERVAL_MS / 1000} detik · terakhir sinkron:{" "}
+              Auto refresh setiap {POLL_INTERVAL_MS / 1000} detik · terakhir
+              sinkron:{" "}
               <span className="font-semibold text-slate-700">
                 {lastSyncedLabel}
               </span>
@@ -468,60 +702,6 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-white p-2 shadow-sm">
-                <Wrench className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-blue-900">
-                  Operational Note
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-blue-800">
-                  Overview ini menampilkan ringkasan operasional live sebelum
-                  admin masuk ke modul data, process, output, atau user
-                  management.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-white p-2 shadow-sm">
-                <ShieldCheck className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-amber-900">
-                  Security Note
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                  Panel admin hanya boleh diakses akun dengan role
-                  administrator dan wajib tetap diproteksi di frontend dan
-                  backend.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {loadError ? (
-          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-white p-2 shadow-sm">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-red-800">
-                  Gagal memuat sebagian overview
-                </p>
-                <p className="mt-1 text-sm text-red-700">{loadError}</p>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -569,20 +749,104 @@ export default function AdminPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
+                PERLU DILIHAT
+              </p>
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
+                Butuh Perhatian
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Informasi penting yang perlu dilihat sebelum membuka halaman
+                lain.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+              {alerts.length} Alert
+            </div>
+          </div>
+
+          {alerts.length === 0 ? (
+            <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-8 text-sm text-green-700">
+              Tidak ada alert aktif. Sistem terlihat stabil saat ini.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {alerts.map((item, index) => {
+                const colorClass =
+                  item.tone === "red"
+                    ? "border-red-200 bg-red-50 text-red-800"
+                    : "border-amber-200 bg-amber-50 text-amber-800";
+
+                return (
+                  <div
+                    key={`${item.title}-${index}`}
+                    className={`rounded-2xl border px-4 py-4 ${colorClass}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-2xl bg-white p-2 shadow-sm">
+                        <AlertCircle className="h-4 w-4 text-current" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-semibold">{item.title}</p>
+                        <p className="mt-1 text-sm leading-relaxed opacity-90">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5">
             <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              SYSTEM SNAPSHOT
+              AKSES CEPAT
             </p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Ringkasan Sistem
+              Menu Utama
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Shortcut ke halaman yang paling sering dipakai.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {quickActions.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="btn-outline text-sm font-medium"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
+              RINGKASAN DATA
+            </p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
+              Kondisi Data
             </h2>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Raw Datasets
+                Raw Data
               </p>
               <p className="mt-1 text-lg font-bold text-slate-900">
                 {dataSummary.raw_count ?? 0}
@@ -591,7 +855,7 @@ export default function AdminPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Processed Datasets
+                Processed Data
               </p>
               <p className="mt-1 text-lg font-bold text-slate-900">
                 {dataSummary.processed_count ?? 0}
@@ -600,10 +864,10 @@ export default function AdminPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Registry Items
+                Active Sources
               </p>
               <p className="mt-1 text-lg font-bold text-slate-900">
-                {dataSummary.registry_count ?? 0}
+                {dataSummary.active_count ?? 0}
               </p>
             </div>
 
@@ -621,30 +885,37 @@ export default function AdminPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5">
             <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              PROCESS MONITOR
+              STATUS PROSES
             </p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Status Proses
+              Proses Analisis
             </h2>
           </div>
 
           <div className="space-y-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Status
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {capitalize(processStatus?.status || "unknown")}
-              </p>
-            </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Current Status
+                  </p>
+                  <p
+                    className={`mt-1 text-lg font-bold ${getStatusTone(
+                      processStatus?.status || processStatus?.last_result
+                    )}`}
+                  >
+                    {capitalize(
+                      processStatus?.status === "running"
+                        ? processStatus?.status
+                        : processStatus?.last_result ||
+                            processStatus?.status ||
+                            "unknown"
+                    )}
+                  </p>
+                </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Last Result
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {capitalize(processStatus?.last_result || "-")}
-              </p>
+                <Gauge className="h-5 w-5 text-slate-400" />
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -654,64 +925,53 @@ export default function AdminPage() {
               <p className="mt-1 text-lg font-bold text-slate-900">
                 {processStatus?.progress_percent ?? 0}%
               </p>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-[var(--color-primary)] transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.max(0, processStatus?.progress_percent ?? 0)
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Langkah Aktif
+                </p>
+                <p className="mt-1 break-all text-sm font-semibold text-slate-900">
+                  {processStatus?.current_script || "-"}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Hazard / Mode
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {capitalize(processStatus?.hazard || "-")} ·{" "}
+                  {capitalize(processStatus?.mode || "-")}
+                </p>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Current Script
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900 break-all">
-                {processStatus?.current_script || "-"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              USER SUMMARY
-            </p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Ringkasan Pengguna
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Total Users
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {users.length}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Admin Accounts
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {totalAdmins}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Active Accounts
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {totalActiveUsers}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Inactive Accounts
-              </p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {totalInactiveUsers}
-              </p>
+              <div className="flex items-start gap-3">
+                <Clock3 className="mt-0.5 h-4 w-4 text-slate-400" />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Keterangan
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                    {processStatus?.message || "Belum ada proses aktif."}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -720,153 +980,110 @@ export default function AdminPage() {
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
           <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-            ADMIN MODULES
+            MENU ADMIN
           </p>
           <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-            Modul Administrasi
+            Halaman Utama
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Akses cepat ke modul utama pengelolaan PADIS.
+            Akses ke semua fitur utama dalam sistem admin.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-4">
-          {quickLinks.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <div
-                key={item.href}
-                className={`rounded-3xl border p-5 ${item.accentClass}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div
-                    className={`rounded-2xl p-3 shadow-sm ${item.iconWrapClass}`}
-                  >
-                    <Icon className={`h-5 w-5 ${item.iconClass}`} />
-                  </div>
-
-                  <Link
-                    href={item.href}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 transition hover:text-slate-900"
-                  >
-                    Buka
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-
-                <h3 className="mt-4 text-lg font-bold text-slate-900">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  {item.desc}
-                </p>
-
-                <div className="mt-5">
-                  <Link
-                    href={item.href}
-                    className="btn-outline text-sm font-medium"
-                  >
-                    Buka Modul
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {renderNavGrid(adminPages)}
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5">
             <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              QUICK ACTION
+              AKTIVITAS TERBARU
             </p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Aksi Cepat
+              Aktivitas Sistem
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Shortcut ke modul yang paling sering digunakan admin.
+              Ringkasan perubahan terbaru dari proses, data, dan hasil.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            {quickActions.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="btn-outline text-sm font-medium"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          {recentActivities.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
+              Belum ada aktivitas terbaru yang dapat ditampilkan.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentActivities.map((item, index) => {
+                const toneClass =
+                  item.tone === "red"
+                    ? "border-red-200 bg-red-50"
+                    : item.tone === "amber"
+                    ? "border-amber-200 bg-amber-50"
+                    : item.tone === "green"
+                    ? "border-green-200 bg-green-50"
+                    : item.tone === "blue"
+                    ? "border-blue-200 bg-blue-50"
+                    : "border-slate-200 bg-slate-50";
+
+                return (
+                  <div
+                    key={`${item.title}-${index}`}
+                    className={`rounded-2xl border px-4 py-4 ${toneClass}`}
+                  >
+                    <p className="text-sm font-semibold text-slate-900">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      {item.desc}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">{item.time}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5">
             <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              NEXT STEP
+              HASIL TERBARU
             </p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Pengembangan Berikutnya
+              Output Terbaru
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Prioritas peningkatan overview admin setelah fondasi sistem
-              berjalan stabil.
+              Lima file hasil terbaru yang terdeteksi dari backend.
             </p>
           </div>
 
-          <div className="space-y-3">
-            {nextSteps.map((item, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-600"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+          {recentOutputs.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
+              Belum ada output terbaru yang dapat ditampilkan.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentOutputs.map((item, index) => (
+                <div
+                  key={`${item.filename}-${index}`}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <p className="break-all text-sm font-semibold text-slate-900">
+                    {item.filename}
+                  </p>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5">
-          <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-            RECENT OUTPUTS
-          </p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-            Output Terbaru
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Lima file output terbaru yang terdeteksi dari backend.
-          </p>
-        </div>
+                  <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
+                    {item.category || "unknown"} · {item.status || "unknown"}
+                  </p>
 
-        {recentOutputs.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
-            Belum ada output terbaru yang dapat ditampilkan.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-5">
-            {recentOutputs.map((item) => (
-              <div
-                key={item.filename}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <p className="text-sm font-semibold text-slate-900 break-all">
-                  {item.filename}
-                </p>
-                <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
-                  {item.category || "unknown"} · {item.status || "unknown"}
-                </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  {formatDateTime(item.modified_at)}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+                  <p className="mt-2 text-xs text-slate-500">
+                    {formatDateTime(item.modified_at)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );

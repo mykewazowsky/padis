@@ -1,52 +1,59 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MapLegendPanel, { type LayerKey } from "./MapLegendPanel";
 import MapLayerControlPanel from "./MapLayerControlPanel";
-import {
-  GeoJSON,
-  MapContainer,
-  Marker,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import type {
   DivIcon,
-  GeoJSON as LeafletGeoJSON,
   LatLngBoundsExpression,
   Layer,
   Map as LeafletMap,
-  PathOptions,
 } from "leaflet";
 import type {
   Feature,
-  FeatureCollection,
   Geometry,
   MultiPolygon,
   Polygon,
   Position,
 } from "geojson";
-import type { FeatureProps, GeoJsonData } from "../../../types/map";
+import type { DataBounds, FeatureProps, GeoJsonData } from "../../../types/map";
 
-type Props = {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type StyleConfig = {
+  border: string;
+  hoverBorder: string;
+  topBorder: string;
+  baseOpacity: number;
+  hoverOpacity: number;
+};
+
+const DEFAULT_STYLE_CONFIG: StyleConfig = {
+  border: "#6b7280",
+  hoverBorder: "#374151",
+  topBorder: "#f59e0b",
+  baseOpacity: 0.7,
+  hoverOpacity: 0.85,
+};
+
+type MapCanvasProps = {
   data: GeoJsonData | null;
   hazard: string;
   scenario: string;
   climate: string;
+  runId?: number;
   selectedRegion: string;
   mapRef: React.MutableRefObject<LeafletMap | null>;
   featureLayersRef: React.MutableRefObject<Record<string, Layer>>;
   jenksBreaks: number[];
   topRegionKeys: Set<string>;
-  styleConfig: {
-    border: string;
-    hoverBorder: string;
-    topBorder: string;
-    baseOpacity: number;
-    hoverOpacity: number;
-  };
+  styleConfig?: StyleConfig;
+  layers?: Partial<Record<LayerKey, GeoJsonData | null>>;
   getColorFromBreaks: (
     value: number | null | undefined,
     breaks: number[],
@@ -57,6 +64,9 @@ type Props = {
   resetViewSignal?: number;
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
+  layerOpacity?: number;
+  onOpacityChange?: (value: number) => void;
+  dataBounds?: DataBounds | null;
 };
 
 type RegionFeature = Feature<Geometry, FeatureProps>;
@@ -67,25 +77,20 @@ type RegionLabel = {
   position: L.LatLngExpression;
 };
 
-type BoundedLayer = Layer & {
-  getBounds?: () => L.LatLngBounds;
-  setStyle?: (style: PathOptions) => void;
-  bringToFront?: () => BoundedLayer;
-  bindTooltip?: (content: string, options?: L.TooltipOptions) => unknown;
-  on?: (eventMap: L.LeafletEventHandlerFnMap) => unknown;
-};
-
 type FeatureWithOptionalCentroidProps = FeatureProps & {
   centroid?: [number, number] | { lat: number; lng: number };
 };
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const DEFAULT_CENTER: [number, number] = [-2.5, 118.0];
 const DEFAULT_ZOOM = 5;
 const LABEL_MIN_ZOOM = 7;
 
 const FIT_BOUNDS_PADDING: L.PointExpression = [16, 16];
-const FOCUS_BOUNDS_PADDING: L.PointExpression = [32, 32];
-const FLY_DURATION = 0.5;
+const CLICK_FLY_DURATION = 0.7;
 const RESET_DURATION = 0.6;
 
 const INDONESIA_BOUNDS: LatLngBoundsExpression = [
@@ -93,34 +98,29 @@ const INDONESIA_BOUNDS: LatLngBoundsExpression = [
   [6.5, 141.5],
 ];
 
-const BASEMAP = {
-  attribution: "&copy; OpenStreetMap contributors",
-  url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-};
+export type BasemapKey = "imagery" | "dark" | "light";
 
-const GEOSERVER_WMS_URL = "http://localhost/geoserver/PADIS/wms";
-const SAWAH_PANE = "wms-sawah-pane";
-const BATAS_ADM_PANE = "wms-batas-pane";
-
-const WMS_CONFIG: Record<
-  Exclude<LayerKey, "geojson">,
-  {
-    pane: string;
-    zIndex: number;
-    layers: string;
-  }
-> = {
-  sawah: {
-    pane: SAWAH_PANE,
-    zIndex: 320,
-    layers: "PADIS:lulc_sawah",
+const BASEMAP_OPTIONS: Record<BasemapKey, { url: string; attribution: string }> = {
+  imagery: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "&copy; Esri &mdash; Source: Esri, USGS, AeroGRID",
   },
-  batas_adm: {
-    pane: BATAS_ADM_PANE,
-    zIndex: 330,
-    layers: "PADIS:batas_adm_kabkota",
+  dark: {
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution: "&copy; OpenStreetMap contributors &copy; CartoDB",
+  },
+  light: {
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attribution: "&copy; OpenStreetMap contributors &copy; CartoDB",
   },
 };
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
+
+// ---------------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------------
 
 function normalizeRegionKey(value: string | null | undefined) {
   return (value ?? "").toLowerCase().trim();
@@ -142,29 +142,9 @@ function getSelectedBorderColor(hazard: string) {
 }
 
 function getAccentColors(hazard: string) {
-  if (hazard === "drought") {
-    return { soft: "#fff3bf", dark: "#8a6300" };
-  }
-
-  if (hazard === "flood") {
-    return { soft: "#eaf2ff", dark: "#174f92" };
-  }
-
+  if (hazard === "drought") return { soft: "#fff3bf", dark: "#8a6300" };
+  if (hazard === "flood") return { soft: "#eaf2ff", dark: "#174f92" };
   return { soft: "#f3e8ff", dark: "#5b21b6" };
-}
-
-function getLabelFontSize(zoom: number) {
-  if (zoom >= 10) return 12;
-  if (zoom >= 9) return 11;
-  if (zoom >= 8) return 10;
-  if (zoom >= 7) return 9;
-  return 8;
-}
-
-function getLabelPadding(zoom: number) {
-  if (zoom >= 10) return "2px 6px";
-  if (zoom >= 9) return "2px 5px";
-  return "1px 4px";
 }
 
 function isPolygonGeometry(
@@ -175,31 +155,24 @@ function isPolygonGeometry(
 
 function getRingCentroid(ring: Position[]): [number, number] | null {
   if (!ring.length) return null;
-
   let twiceArea = 0;
   let x = 0;
   let y = 0;
-
   for (let i = 0; i < ring.length - 1; i += 1) {
     const current = ring[i];
     const next = ring[i + 1];
-
     if (!current || !next) continue;
-
     const [x1, y1] = current;
     const [x2, y2] = next;
     const factor = x1 * y2 - x2 * y1;
-
     twiceArea += factor;
     x += (x1 + x2) * factor;
     y += (y1 + y2) * factor;
   }
-
   if (Math.abs(twiceArea) < 1e-7) {
     const first = ring[0];
     return first ? [first[0], first[1]] : null;
   }
-
   const areaFactor = twiceArea * 3;
   return [x / areaFactor, y / areaFactor];
 }
@@ -213,7 +186,6 @@ function getFeatureLabelPosition(
   if (Array.isArray(centroid) && centroid.length === 2) {
     return [centroid[1], centroid[0]];
   }
-
   if (
     centroid &&
     !Array.isArray(centroid) &&
@@ -225,7 +197,6 @@ function getFeatureLabelPosition(
   ) {
     return [centroid.lat, centroid.lng];
   }
-
   if (!isPolygonGeometry(feature.geometry)) return null;
 
   if (feature.geometry.type === "Polygon") {
@@ -236,139 +207,206 @@ function getFeatureLabelPosition(
 
   let bestRing: Position[] | null = null;
   let bestSize = -1;
-
   for (const polygon of feature.geometry.coordinates) {
     const outerRing = polygon[0];
     if (!outerRing?.length) continue;
-
     if (outerRing.length > bestSize) {
       bestRing = outerRing;
       bestSize = outerRing.length;
     }
   }
-
   const point = bestRing ? getRingCentroid(bestRing) : null;
   return point ? [point[1], point[0]] : null;
 }
 
-function buildFeatureStyle(params: {
-  feature: RegionFeature;
-  normalizedSelectedRegion: string;
-  normalizedTopRegionKeys: Set<string>;
-  selectedBorderColor: string;
-  styleConfig: Props["styleConfig"];
-  getColorFromBreaks: Props["getColorFromBreaks"];
-  jenksBreaks: number[];
-  hazard: string;
-}): PathOptions {
-  const {
-    feature,
-    normalizedSelectedRegion,
-    normalizedTopRegionKeys,
-    selectedBorderColor,
-    styleConfig,
-    getColorFromBreaks,
-    jenksBreaks,
-    hazard,
-  } = params;
+// ---------------------------------------------------------------------------
+// Vector tile style function
+// ---------------------------------------------------------------------------
 
-  const props = feature.properties;
-  const regionKey = normalizeRegionKey(props?.kab_kota);
-  const isSelected =
-    Boolean(normalizedSelectedRegion) && regionKey === normalizedSelectedRegion;
-  const isTopRegion = normalizedTopRegionKeys.has(regionKey);
+function getVtStyle(
+  props: Record<string, unknown>,
+  activeLayers: Record<LayerKey, boolean>,
+  getColorFromBreaks: MapCanvasProps["getColorFromBreaks"],
+  jenksBreaks: number[],
+  hazard: string,
+  normalizedTopRegionKeys: Set<string>,
+  selectedRegion: string,
+  layerOpacity: number
+): Record<string, unknown> {
+  const regionKey = normalizeRegionKey(props.kab_kota as string | undefined);
+  const hasSelection = Boolean(selectedRegion);
+  const isSelected = hasSelection && regionKey === normalizeRegionKey(selectedRegion);
+  const isDimmed = hasSelection && !isSelected;
 
-  let color = styleConfig.border;
-  let weight = 0.8;
-  let dashArray: string | undefined;
-  let fillOpacity = styleConfig.baseOpacity;
-
-  if (isSelected) {
-    color = selectedBorderColor;
-    weight = 3.2;
-    fillOpacity = 1;
-  } else if (isTopRegion) {
-    color = styleConfig.topBorder;
-    weight = 1.3;
-    dashArray = "4 2";
-    fillOpacity = 0.9;
+  if (!props.has_data) {
+    return {
+      fill: true,
+      fillColor: "#d1d5db",
+      fillOpacity: isDimmed ? 0.06 : 0.22,
+      color: "#9ca3af",
+      weight: isDimmed ? 0.3 : 0.5,
+      opacity: isDimmed ? 0.3 : 1,
+    };
   }
 
+  const isTopRegion = !isDimmed && normalizedTopRegionKeys.has(regionKey);
+
+  let value: number | null | undefined = props.mean_value as
+    | number
+    | null
+    | undefined;
+  if (activeLayers.loss) value = props.loss as number | null | undefined;
+  if (activeLayers.aal) value = props.aal as number | null | undefined;
+
+  const fillOpacity = isDimmed ? Math.max(0.05, layerOpacity * 0.12) : layerOpacity;
+
   return {
-    color,
-    weight,
-    dashArray,
-    fillColor: getColorFromBreaks(props?.loss, jenksBreaks, hazard),
+    fill: true,
+    fillColor: getColorFromBreaks(value, jenksBreaks, hazard),
     fillOpacity,
+    color: isSelected
+      ? getSelectedBorderColor(hazard)
+      : isDimmed
+        ? "#d1d5db"
+        : isTopRegion
+          ? "#f59e0b"
+          : "#6b7280",
+    weight: isSelected ? 2.5 : isDimmed ? 0.3 : isTopRegion ? 1.3 : 0.8,
+    opacity: isDimmed ? 0.3 : 1,
+    dashArray: isSelected ? undefined : isTopRegion ? "4 2" : undefined,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Layer-aware value formatter (synced between tooltip and legend)
+// ---------------------------------------------------------------------------
+
+function formatLayerValue(
+  value: number | null | undefined,
+  activeLayers: Record<LayerKey, boolean>,
+  formatCompactRupiah: MapCanvasProps["formatCompactRupiah"]
+): string {
+  if (value == null || Number.isNaN(value)) return "-";
+  if (activeLayers.hazard) return value.toFixed(3);
+  if (activeLayers.production) return `${value.toLocaleString("id-ID")} ton`;
+  return formatCompactRupiah(value); // loss / aal → Rupiah
+}
+
+// ---------------------------------------------------------------------------
+// Tooltip HTML
+// ---------------------------------------------------------------------------
+
+function getValueLabel(activeLayers: Record<LayerKey, boolean>): string {
+  if (activeLayers.hazard) return "Indeks Bahaya";
+  if (activeLayers.loss) return "Kerugian (Loss)";
+  if (activeLayers.aal) return "Risiko Tahunan (AAL)";
+  if (activeLayers.production) return "Total Produksi";
+  return "Nilai";
 }
 
 function createTooltipHtml(params: {
   props: FeatureProps | null | undefined;
   accentColors: { soft: string; dark: string };
-  formatCompactRupiah: Props["formatCompactRupiah"];
+  formatCompactRupiah: MapCanvasProps["formatCompactRupiah"];
+  activeLayers: Record<LayerKey, boolean>;
+  normalizedTopRegionKeys: Set<string>;
 }) {
-  const { props, accentColors, formatCompactRupiah } = params;
+  const { props, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys } = params;
   const safeKabKota = escapeHtml(props?.kab_kota ?? "-");
   const safeProv = escapeHtml(props?.prov ?? "-");
-  const safeLoss = escapeHtml(formatCompactRupiah(props?.loss));
+  const regionKey = normalizeRegionKey(props?.kab_kota);
+  const isTop5 = normalizedTopRegionKeys.has(regionKey);
+  const valueLabel = getValueLabel(activeLayers);
+
+  let value: number | null | undefined = props?.mean_value;
+  if (activeLayers.loss) value = props?.loss;
+  if (activeLayers.aal) value = props?.aal;
+  if (activeLayers.production) value = props?.total_prod;
+
+  const safeValue = escapeHtml(
+    formatLayerValue(value, activeLayers, formatCompactRupiah)
+  );
+
+  const top5Badge = isTop5
+    ? `<span style="
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+        border-radius: 999px;
+        padding: 1px 7px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      ">★ Top 5</span>`
+    : "";
 
   return `
     <div style="
-      min-width: 140px;
-      font-family: Figtree, Figtree, sans-serif;
-      color: #111827;
-      line-height: 1.35;
+      min-width: 160px;
+      max-width: 200px;
+      font-family: Figtree, sans-serif;
+      line-height: 1.4;
+      overflow: hidden;
     ">
       <div style="
-        font-size: 12px;
-        font-weight: 800;
-        margin-bottom: 3px;
-      ">
-        ${safeKabKota}
-      </div>
-
-      <div style="
-        font-size: 10px;
-        color: #6b7280;
-        margin-bottom: 6px;
-      ">
-        ${safeProv}
-      </div>
-
-      <div style="
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 3px 8px;
-        font-size: 10px;
-        font-weight: 700;
         background: ${accentColors.soft};
-        color: ${accentColors.dark};
+        margin: -8px -12px 8px -12px;
+        padding: 7px 12px 6px;
+        border-bottom: 1px solid ${accentColors.dark}22;
       ">
-        ${safeLoss}
+        <div style="font-size: 11.5px; font-weight: 800; color: ${accentColors.dark}; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          ${safeKabKota}
+        </div>
+        <div style="font-size: 9.5px; color: ${accentColors.dark}99;">
+          ${safeProv}
+        </div>
+      </div>
+
+      <div style="padding: 0 2px;">
+        <div style="font-size: 9px; font-weight: 600; color: #9ca3af; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px;">
+          ${escapeHtml(valueLabel)}
+        </div>
+        <div style="
+          font-size: 13px;
+          font-weight: 800;
+          color: #111827;
+          margin-bottom: ${isTop5 ? "6px" : "0"};
+        ">
+          ${safeValue}
+        </div>
+        ${top5Badge}
+      </div>
+
+      <div style="
+        margin: 7px -12px -8px;
+        padding: 4px 12px;
+        background: #f9fafb;
+        border-top: 1px solid #f3f4f6;
+        font-size: 9px;
+        color: #9ca3af;
+      ">
+        Klik untuk zoom ke wilayah ini
       </div>
     </div>
   `;
 }
 
-function FitBounds({
-  selectedRegion,
-}: {
-  selectedRegion: string;
-}) {
+// ---------------------------------------------------------------------------
+// Inner React sub-components
+// ---------------------------------------------------------------------------
+
+function FitBounds({ selectedRegion }: { selectedRegion: string }) {
   const map = useMap();
 
   useEffect(() => {
     if (selectedRegion) return;
-
     const timer = window.setTimeout(() => {
       map.invalidateSize();
-      map.fitBounds(INDONESIA_BOUNDS, {
-        padding: FIT_BOUNDS_PADDING,
-      });
+      map.fitBounds(INDONESIA_BOUNDS, { padding: FIT_BOUNDS_PADDING });
     }, 0);
-
     return () => window.clearTimeout(timer);
   }, [map, selectedRegion]);
 
@@ -386,7 +424,6 @@ function ResetViewController({
 
   useEffect(() => {
     if (!resetViewSignal) return;
-
     if (!selectedRegion) {
       map.flyToBounds(INDONESIA_BOUNDS, {
         padding: FIT_BOUNDS_PADDING,
@@ -394,10 +431,7 @@ function ResetViewController({
       });
       return;
     }
-
-    map.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, {
-      duration: RESET_DURATION,
-    });
+    map.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, { duration: RESET_DURATION });
   }, [resetViewSignal, map, selectedRegion]);
 
   return null;
@@ -427,7 +461,6 @@ function ForceResize() {
     const timer = window.setTimeout(() => {
       map.invalidateSize();
     }, 120);
-
     return () => window.clearTimeout(timer);
   }, [map]);
 
@@ -442,235 +475,275 @@ function LabelZoomWatcher({
   const map = useMap();
 
   useEffect(() => {
-    const updateZoom = () => {
-      onZoomChange(map.getZoom());
-    };
-
+    const updateZoom = () => onZoomChange(map.getZoom());
     updateZoom();
     map.on("zoomend", updateZoom);
-
-    return () => {
-      map.off("zoomend", updateZoom);
-    };
+    return () => { map.off("zoomend", updateZoom); };
   }, [map, onZoomChange]);
 
   return null;
 }
 
-function RegionZoomController({
-  selectedRegion,
-  featureLayersRef,
-  geoJsonVisible,
-  layerBuildVersion,
-}: {
-  selectedRegion: string;
-  featureLayersRef: React.MutableRefObject<Record<string, Layer>>;
-  geoJsonVisible: boolean;
-  layerBuildVersion: number;
-}) {
-  const map = useMap();
-  const lastZoomedRegionRef = useRef<string>("");
-
-  useEffect(() => {
-    if (!selectedRegion || !geoJsonVisible) {
-      lastZoomedRegionRef.current = "";
-      return;
-    }
-
-    const normalizedKey = normalizeRegionKey(selectedRegion);
-    const targetLayer = featureLayersRef.current[normalizedKey] as
-      | BoundedLayer
-      | undefined;
-
-    if (!targetLayer?.getBounds) return;
-
-    const zoomKey = `${normalizedKey}::${layerBuildVersion}`;
-    if (lastZoomedRegionRef.current === zoomKey) return;
-
-    lastZoomedRegionRef.current = zoomKey;
-
-    const rafId = window.requestAnimationFrame(() => {
-      map.invalidateSize();
-
-      const bounds = targetLayer.getBounds?.();
-      if (!bounds) return;
-
-      map.flyToBounds(bounds, {
-        padding: FOCUS_BOUNDS_PADDING,
-        duration: FLY_DURATION,
-      });
-    });
-
-    return () => window.cancelAnimationFrame(rafId);
-  }, [selectedRegion, geoJsonVisible, map, featureLayersRef, layerBuildVersion]);
-
-  return null;
-}
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export default function MapCanvas({
   data,
   hazard,
   scenario,
   climate,
+  runId,
   selectedRegion,
   mapRef,
-  featureLayersRef,
+  featureLayersRef: _featureLayersRef,
   jenksBreaks,
   topRegionKeys,
-  styleConfig,
+  styleConfig: _styleConfig = DEFAULT_STYLE_CONFIG,
   getColorFromBreaks,
   formatCompactRupiah,
   onRegionSelect,
   resetViewSignal = 0,
   activeLayers,
   onToggleLayer,
-}: Props) {
-  const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
-  const wmsLayersRef = useRef<
-    Record<Exclude<LayerKey, "geojson">, L.TileLayer.WMS | null>
-  >({
-    batas_adm: null,
-    sawah: null,
-  });
+}: MapCanvasProps) {
+  const vtLayersRef = useRef<Partial<Record<LayerKey | "thematic", L.Layer>>>({});
+  const popupRef = useRef<L.Popup | null>(null);
 
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_ZOOM);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [layerBuildVersion, setLayerBuildVersion] = useState(0);
+  const [basemapKey, setBasemapKey] = useState<BasemapKey>("light");
+  const [layerOpacityMap, setLayerOpacityMap] = useState<Record<LayerKey, number>>({
+    hazard: 1, loss: 1, aal: 1, production: 1, regions: 1,
+  });
 
-  const normalizedSelectedRegion = useMemo(
-    () => normalizeRegionKey(selectedRegion),
-    [selectedRegion]
+  const normalizedTopRegionKeys = useMemo(
+    () => new Set(Array.from(topRegionKeys).map(normalizeRegionKey)),
+    [topRegionKeys]
   );
-
-  const normalizedTopRegionKeys = useMemo(() => {
-    return new Set(
-      Array.from(topRegionKeys).map((key) => normalizeRegionKey(key))
-    );
-  }, [topRegionKeys]);
 
   const hasRequiredFilters = Boolean(hazard && scenario && climate);
 
-  const canShowGeoJson = Boolean(
-    data && hasRequiredFilters && activeLayers.geojson
-  );
-
-  const selectedBorderColor = useMemo(
-    () => getSelectedBorderColor(hazard),
-    [hazard]
+  const hasActiveTileLayer = Boolean(
+    hasRequiredFilters &&
+      (activeLayers.hazard ||
+        activeLayers.loss ||
+        activeLayers.aal ||
+        activeLayers.production)
   );
 
   const accentColors = useMemo(() => getAccentColors(hazard), [hazard]);
 
-  const getFeatureStyle = useCallback(
-    (feature?: RegionFeature): PathOptions => {
-      if (!feature) return {};
+  // Opacity for the analysis layer only (production is handled in its own VT layer)
+  const activeLayerOpacity = useMemo(() => {
+    if (activeLayers.hazard) return layerOpacityMap.hazard;
+    if (activeLayers.loss) return layerOpacityMap.loss;
+    if (activeLayers.aal) return layerOpacityMap.aal;
+    return 1;
+  }, [activeLayers, layerOpacityMap]);
 
-      return buildFeatureStyle({
-        feature,
-        normalizedSelectedRegion,
-        normalizedTopRegionKeys,
-        selectedBorderColor,
-        styleConfig,
-        getColorFromBreaks,
-        jenksBreaks,
-        hazard,
-      });
-    },
-    [
-      normalizedSelectedRegion,
-      normalizedTopRegionKeys,
-      selectedBorderColor,
-      styleConfig,
-      getColorFromBreaks,
-      jenksBreaks,
-      hazard,
-    ]
-  );
-
+  // ── Vector tile layer management ──────────────────────────────────────────
   useEffect(() => {
-    featureLayersRef.current = {};
-    setLayerBuildVersion((prev) => prev + 1);
-  }, [data, hazard, scenario, climate, featureLayersRef]);
-
-  useEffect(() => {
+    if (typeof window === "undefined") return;
     if (!isMapReady) return;
-
     const map = mapRef.current;
     if (!map) return;
 
-    (
-      Object.entries(WMS_CONFIG) as Array<
-        [
-          Exclude<LayerKey, "geojson">,
-          (typeof WMS_CONFIG)[Exclude<LayerKey, "geojson">]
-        ]
-      >
-    ).forEach(([key, config]) => {
-      let pane = map.getPane(config.pane);
+    let cancelled = false;
 
-      if (!pane) {
-        pane = map.createPane(config.pane);
-        pane.style.zIndex = String(config.zIndex);
-        pane.style.pointerEvents = "none";
-      }
+    (async () => {
+      await import("leaflet.vectorgrid");
+      if (cancelled) return;
 
-      if (!wmsLayersRef.current[key]) {
-        wmsLayersRef.current[key] = L.tileLayer.wms(GEOSERVER_WMS_URL, {
-          layers: config.layers,
-          format: "image/png",
-          transparent: true,
-          version: "1.1.0",
-          pane: config.pane,
-        });
-      }
-
-      const layer = wmsLayersRef.current[key];
-      if (!layer) return;
-
-      if (activeLayers[key]) {
-        if (!map.hasLayer(layer)) {
-          layer.addTo(map);
-        }
-      } else if (map.hasLayer(layer)) {
-        map.removeLayer(layer);
-      }
+    // Remove all existing VT layers
+    Object.values(vtLayersRef.current).forEach((layer) => {
+      if (layer && map.hasLayer(layer)) map.removeLayer(layer);
     });
-  }, [activeLayers, isMapReady, mapRef]);
+    vtLayersRef.current = {};
 
-  const handleZoomIn = useCallback(() => {
-    mapRef.current?.zoomIn();
-  }, [mapRef]);
+    // Reusable popup
+    if (!popupRef.current) {
+      popupRef.current = L.popup({
+        closeButton: false,
+        autoPan: false,
+        className: "vt-tooltip",
+      });
+    }
 
-  const handleZoomOut = useCallback(() => {
-    mapRef.current?.zoomOut();
-  }, [mapRef]);
+    const LVG = L as unknown as {
+      vectorGrid: {
+        protobuf: (url: string, opts: Record<string, unknown>) => L.Layer & {
+          on: (event: string, handler: (e: Record<string, unknown>) => void) => void;
+        };
+      };
+    };
 
+    const commonTileParams = `hazard=${hazard}&climate=${climate}&scenario=${scenario}&run_id=${runId}`;
+
+    // ── Analysis layer (hazard / loss / aal) — rendered first (bottom) ──────
+    const analysisKey: LayerKey | null = activeLayers.hazard
+      ? "hazard"
+      : activeLayers.loss
+        ? "loss"
+        : activeLayers.aal
+          ? "aal"
+          : null;
+
+    if (analysisKey && hasRequiredFilters) {
+      const tileUrl = `${API_URL}/api/tiles/${analysisKey}/{z}/{x}/{y}?${commonTileParams}`;
+
+      const vtLayer = LVG.vectorGrid.protobuf(tileUrl, {
+        vectorTileLayerStyles: {
+          [analysisKey]: (props: Record<string, unknown>) =>
+            getVtStyle(
+              props,
+              activeLayers,
+              getColorFromBreaks,
+              jenksBreaks,
+              hazard,
+              normalizedTopRegionKeys,
+              selectedRegion,
+              activeLayerOpacity
+            ),
+        },
+        interactive: true,
+        maxNativeZoom: 12,
+      });
+
+      vtLayer.on("mouseover", (e) => {
+        const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
+        popupRef.current
+          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys }))
+          .setLatLng(ev.latlng)
+          .openOn(map);
+      });
+      vtLayer.on("mouseout", () => { popupRef.current?.close(); });
+      vtLayer.on("click", (e) => {
+        const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
+        onRegionSelect?.(ev.layer.properties?.kab_kota ?? "");
+        if (ev.latlng) map.flyTo(ev.latlng, 9, { duration: CLICK_FLY_DURATION });
+      });
+
+      vtLayer.addTo(map);
+      vtLayersRef.current.thematic = vtLayer;
+    }
+
+    // ── Production overlay — always rendered on top of analysis ──────────────
+    if (activeLayers.production && hasRequiredFilters) {
+      const prodOpacity = layerOpacityMap.production;
+      const prodUrl = `${API_URL}/api/tiles/production/{z}/{x}/{y}?${commonTileParams}`;
+
+      const prodLayer = LVG.vectorGrid.protobuf(prodUrl, {
+        vectorTileLayerStyles: {
+          production: (props: Record<string, unknown>) => {
+            const rk = normalizeRegionKey(props.kab_kota as string | undefined);
+            const hasSel = Boolean(selectedRegion);
+            const isSel = hasSel && rk === normalizeRegionKey(selectedRegion);
+            const isDim = hasSel && !isSel;
+
+            return {
+              fill: true,
+              fillColor: "#ffa200",
+              fillOpacity: isDim ? Math.max(0.05, prodOpacity * 0.12) : prodOpacity,
+              color: isSel ? getSelectedBorderColor(hazard) : isDim ? "#d1d5db" : "#ffb700",
+              weight: isSel ? 2.5 : isDim ? 0.3 : 1.2,
+              opacity: isDim ? 0.3 : 1,
+            };
+          },
+        },
+        interactive: true,
+        maxNativeZoom: 12,
+      });
+
+      const productionOnlyLayers = { regions: false, hazard: false, loss: false, aal: false, production: true } as Record<LayerKey, boolean>;
+
+      prodLayer.on("mouseover", (e) => {
+        const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
+        popupRef.current
+          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers: productionOnlyLayers, normalizedTopRegionKeys }))
+          .setLatLng(ev.latlng)
+          .openOn(map);
+      });
+      prodLayer.on("mouseout", () => { popupRef.current?.close(); });
+      prodLayer.on("click", (e) => {
+        const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
+        onRegionSelect?.(ev.layer.properties?.kab_kota ?? "");
+        if (ev.latlng) map.flyTo(ev.latlng, 9, { duration: CLICK_FLY_DURATION });
+      });
+
+      prodLayer.addTo(map);
+      vtLayersRef.current.production = prodLayer;
+    }
+
+    // ── Regions boundary overlay ───────────────────────────────────────────
+    if (activeLayers.regions) {
+      const regionUrl = `${API_URL}/api/tiles/regions/{z}/{x}/{y}`;
+
+      const regionLayer = LVG.vectorGrid.protobuf(regionUrl, {
+        vectorTileLayerStyles: {
+          regions: () => ({
+            fill: false,
+            fillOpacity: 0,
+            color: "#9ca3af",
+            weight: 1,
+            opacity: 0.6,
+          }),
+        },
+        interactive: false,
+        maxNativeZoom: 12,
+      });
+
+      regionLayer.addTo(map);
+      vtLayersRef.current.regions = regionLayer;
+    }
+    })();
+
+    return () => { cancelled = true; };
+  }, [
+    isMapReady,
+    mapRef,
+    activeLayers,
+    hazard,
+    scenario,
+    climate,
+    runId,
+    jenksBreaks,
+    hasRequiredFilters,
+    getColorFromBreaks,
+    formatCompactRupiah,
+    accentColors,
+    onRegionSelect,
+    normalizedTopRegionKeys,
+    selectedRegion,
+    activeLayerOpacity,
+    layerOpacityMap.production,
+  ]);
+
+  // ── Legend items ──────────────────────────────────────────────────────────
   const legendItems = useMemo(() => {
     if (!jenksBreaks.length) return [];
-
     return jenksBreaks.map((upper, index) => {
       const lower = index === 0 ? 0 : (jenksBreaks[index - 1] ?? 0);
       const sampleValue = upper ?? lower;
-
       return {
         color: getColorFromBreaks(sampleValue, jenksBreaks, hazard),
-        label: `${formatCompactRupiah(lower)} - ${formatCompactRupiah(upper)}`,
+        label: `${formatLayerValue(lower, activeLayers, formatCompactRupiah)} – ${formatLayerValue(upper, activeLayers, formatCompactRupiah)}`,
       };
     });
-  }, [jenksBreaks, hazard, getColorFromBreaks, formatCompactRupiah]);
+  }, [jenksBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah]);
 
-  const showLabels = currentZoom >= LABEL_MIN_ZOOM && canShowGeoJson;
+  // ── Region labels (from geometry-free data with centroid prop) ────────────
+  const showLabels = currentZoom >= LABEL_MIN_ZOOM && hasActiveTileLayer;
 
   const regionLabels = useMemo<RegionLabel[]>(() => {
     if (!showLabels || !data?.features?.length) return [];
 
     return data.features
       .map((rawFeature, index) => {
-        const feature = rawFeature as RegionFeature;
+        const feature = rawFeature as unknown as RegionFeature;
         const props = feature.properties;
         const name = props?.kab_kota?.trim();
-
         if (!name) return null;
 
         const position = getFeatureLabelPosition(feature);
@@ -685,11 +758,7 @@ export default function MapCanvas({
       .filter((item): item is RegionLabel => Boolean(item));
   }, [data, showLabels]);
 
-  const geoJsonData = useMemo(() => {
-    if (!data) return null;
-    return data as FeatureCollection<Geometry, FeatureProps>;
-  }, [data]);
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="relative h-full w-full overflow-hidden">
       <MapContainer
@@ -704,123 +773,35 @@ export default function MapCanvas({
           mapRef={mapRef}
           onReady={() => setIsMapReady(true)}
         />
-
         <ForceResize />
         <LabelZoomWatcher onZoomChange={setCurrentZoom} />
-        <TileLayer attribution={BASEMAP.attribution} url={BASEMAP.url} />
+        <TileLayer
+          key={basemapKey}
+          attribution={BASEMAP_OPTIONS[basemapKey].attribution}
+          url={BASEMAP_OPTIONS[basemapKey].url}
+        />
         <FitBounds selectedRegion={selectedRegion} />
-
         <ResetViewController
           resetViewSignal={resetViewSignal}
           selectedRegion={selectedRegion}
         />
 
-        <RegionZoomController
-          selectedRegion={selectedRegion}
-          featureLayersRef={featureLayersRef}
-          geoJsonVisible={canShowGeoJson}
-          layerBuildVersion={layerBuildVersion}
-        />
-
-        {canShowGeoJson && geoJsonData && (
-          <GeoJSON
-            key={`${hazard}-${scenario}-${climate}-${geoJsonData.features.length}`}
-            ref={(instance) => {
-              geoJsonRef.current = instance;
-            }}
-            data={geoJsonData}
-            style={(feature) => getFeatureStyle(feature as RegionFeature)}
-            onEachFeature={(feature, layer) => {
-              const typedFeature = feature as RegionFeature;
-              const typedLayer = layer as BoundedLayer;
-              const props = typedFeature.properties;
-              const rawRegionName = props?.kab_kota ?? "";
-              const normalizedRegionName = normalizeRegionKey(rawRegionName);
-
-              featureLayersRef.current[normalizedRegionName] = typedLayer;
-
-              typedLayer.bindTooltip?.(
-                createTooltipHtml({
-                  props,
-                  accentColors,
-                  formatCompactRupiah,
-                }),
-                {
-                  sticky: true,
-                  direction: "top",
-                  opacity: 0.96,
-                }
-              );
-
-              typedLayer.on?.({
-                mouseover: (e: L.LeafletMouseEvent) => {
-                  const hoveredKey = normalizeRegionKey(props?.kab_kota);
-                  const isSelected =
-                    Boolean(normalizedSelectedRegion) &&
-                    hoveredKey === normalizedSelectedRegion;
-                  const isTop = normalizedTopRegionKeys.has(hoveredKey);
-                  const target = e.target as BoundedLayer;
-
-                  target.setStyle?.({
-                    weight: isSelected ? 3.2 : isTop ? 1.8 : 1.5,
-                    color: isSelected
-                      ? selectedBorderColor
-                      : styleConfig.hoverBorder,
-                    fillOpacity: isSelected ? 1 : styleConfig.hoverOpacity,
-                    dashArray: isSelected
-                      ? undefined
-                      : isTop
-                        ? "4 2"
-                        : undefined,
-                  });
-
-                  if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                    target.bringToFront?.();
-                  }
-                },
-
-                mouseout: () => {
-                  typedLayer.setStyle?.(getFeatureStyle(typedFeature));
-                },
-
-                click: () => {
-                  const bounds = typedLayer.getBounds?.();
-                  if (bounds) {
-                    mapRef.current?.flyToBounds(bounds, {
-                      padding: FOCUS_BOUNDS_PADDING,
-                      duration: FLY_DURATION,
-                    });
-                  }
-
-                  onRegionSelect?.(rawRegionName);
-                },
-              });
-            }}
-          />
-        )}
-
         {showLabels &&
           regionLabels.map((item) => {
-            const fontSize = 9; // fixed
-            const padding = "2px 5px"; // fixed
-
             const icon: DivIcon = L.divIcon({
               className: "kabkota-label-icon",
               html: `
                 <div style="
-                  font-family: Figtree, Figtree, sans-serif;
-                  font-size: ${fontSize}px;
+                  font-family: Figtree, sans-serif;
+                  font-size: 9px;
                   font-weight: 600;
                   color: #ffffff;
                   line-height: 1.1;
                   white-space: nowrap;
                   pointer-events: none;
                   transform: translate(-50%, -50%);
-                  padding: ${padding};
+                  padding: 2px 5px;
                   border-radius: 4px;
-
-                  text-shadow: none;
-                  box-shadow: none;
                 ">
                   ${escapeHtml(item.name)}
                 </div>
@@ -844,6 +825,12 @@ export default function MapCanvas({
       <MapLayerControlPanel
         activeLayers={activeLayers}
         onToggleLayer={onToggleLayer}
+        layerOpacity={layerOpacityMap}
+        onOpacityChange={(key, val) =>
+          setLayerOpacityMap((prev) => ({ ...prev, [key]: val }))
+        }
+        basemap={basemapKey}
+        onBasemapChange={setBasemapKey}
       />
 
       <MapLegendPanel

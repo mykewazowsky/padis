@@ -15,15 +15,12 @@ import {
 } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
+import { fetchAllLayers, fetchLatestRunId } from "../../../services/fetchLayers";
 import { buildApiUrl } from "../../../lib/api";
 import { getToken, clearToken } from "../../../lib/auth";
 import DashboardLoadingBlock from "../../../components/dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../../../components/dashboard/DashboardEmptyState";
-import type {
-  AalSummary,
-  GeoFeature,
-  GeoJsonData,
-} from "../../../types/map";
+import type { AalSummary } from "../../../types/map";
 import type { LayerKey } from "../../../components/map/core/MapLegendPanel";
 
 const MapView = dynamic(() => import("../../../components/map/MapView"), {
@@ -235,20 +232,30 @@ function DashboardSectionHeader({
 }
 
 export default function DashboardPage() {
+  const [runId, setRunId] = useState<number | null>(null);
   const [scenario, setScenario] = useState("rp25");
   const [hazard, setHazard] = useState("multi");
   const [climate, setClimate] = useState("nonclimate");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [regions, setRegions] = useState<RegionItem[]>([]);
   const [aalSummary, setAalSummary] = useState<AalSummary | null>(null);
-  const [layerData, setLayerData] = useState<GeoJsonData | null>(null);
+  const [regionAalSummary, setRegionAalSummary] = useState<AalSummary | null>(null);
+  const [layers, setLayers] = useState<any>({
+    regions: null,
+    production: null,
+    loss: null,
+    aal: null,
+    hazard: null,
+  });
 
   const [loadingRegions, setLoadingRegions] = useState(false);
   const [loadingAAL, setLoadingAAL] = useState(false);
+  const [loadingRegionAAL, setLoadingRegionAAL] = useState(false);
   const [loadingLayer, setLoadingLayer] = useState(false);
 
   const [errorRegions, setErrorRegions] = useState<string | null>(null);
   const [errorAAL, setErrorAAL] = useState<string | null>(null);
+  const [errorRegionAAL, setErrorRegionAAL] = useState<string | null>(null);
   const [errorLayer, setErrorLayer] = useState<string | null>(null);
 
   const [resetSignal, setResetSignal] = useState(0);
@@ -259,32 +266,34 @@ export default function DashboardPage() {
   );
 
   const [activeLayers, setActiveLayers] = useState<Record<LayerKey, boolean>>({
-    geojson: false,
-    batas_adm: true,
-    sawah: true,
+    regions: false,
+    production: false,
+    loss: true,
+    aal: false,
+    hazard: false,
   });
+
+  useEffect(() => {
+    fetchLatestRunId()
+      .then(setRunId)
+      .catch((err) => {
+        console.error("Failed to fetch latest run_id:", err);
+      });
+  }, []);
 
   useEffect(() => {
     setLoadingRegions(true);
     setErrorRegions(null);
 
-    fetchJson<RegionItem[]>(
-      `/api/regions?hazard=${hazard}&scenario=${scenario}&climate=${climate}`
-    )
-      .then((json: RegionItem[]) => {
-        setRegions(json);
-
-        const stillExists = json.some(
-          (region) =>
-            region.kab_kota.toLowerCase().trim() ===
-            selectedRegion.toLowerCase().trim()
-        );
-
-        if (!selectedRegion) return;
-
-        if (!stillExists) {
-          setSelectedRegion("");
-        }
+    // Fetch region list once from the static production values endpoint (no geometry).
+    // All kabupaten are present regardless of hazard/scenario/climate filter.
+    fetchJson(`/api/layers/values/production`)
+      .then((json: any) => {
+        const items = (json.data || []) as { kab_kota: string; prov: string }[];
+        setRegions(items.map((item) => ({
+          kab_kota: item.kab_kota || "",
+          prov: item.prov || "",
+        })));
       })
       .catch((err) => {
         console.error("Regions fetch error:", err);
@@ -293,7 +302,16 @@ export default function DashboardPage() {
         setSelectedRegion("");
       })
       .finally(() => setLoadingRegions(false));
-  }, [hazard, scenario, climate, selectedRegion]);
+  }, []);
+
+  // Validasi: jika filter berubah dan selectedRegion tidak ada di data baru, reset
+  useEffect(() => {
+    if (!selectedRegion || !regions.length) return;
+    const stillExists = regions.some(
+      (r) => r.kab_kota.toLowerCase().trim() === selectedRegion.toLowerCase().trim()
+    );
+    if (!stillExists) setSelectedRegion("");
+  }, [regions, selectedRegion]);
 
   useEffect(() => {
     setLoadingAAL(true);
@@ -310,20 +328,51 @@ export default function DashboardPage() {
   }, [hazard]);
 
   useEffect(() => {
-    setLoadingLayer(true);
-    setErrorLayer(null);
+    if (!selectedRegion.trim()) {
+      setRegionAalSummary(null);
+      setErrorRegionAAL(null);
+      setLoadingRegionAAL(false);
+      return;
+    }
 
-    fetchJson<GeoJsonData>(
-      `/api/layer?hazard=${hazard}&scenario=${scenario}&climate=${climate}`
-    )
-      .then((json) => setLayerData(json))
+    setLoadingRegionAAL(true);
+    setErrorRegionAAL(null);
+
+    const params = new URLSearchParams({
+      hazard,
+      region: selectedRegion.trim(),
+    });
+
+    fetchJson<AalSummary>(`/api/aal-summary?${params.toString()}`)
+      .then((json) => setRegionAalSummary(json))
       .catch((err) => {
-        console.error("Layer fetch error:", err);
-        setErrorLayer("Gagal memuat data layer.");
-        setLayerData(null);
+        console.error("Region AAL summary fetch error:", err);
+        setErrorRegionAAL("Gagal memuat AAL wilayah terpilih.");
+        setRegionAalSummary(null);
       })
-      .finally(() => setLoadingLayer(false));
-  }, [hazard, scenario, climate]);
+      .finally(() => setLoadingRegionAAL(false));
+  }, [hazard, selectedRegion]);
+
+  // Fetch all layer values (geometry-free) whenever filter or runId changes.
+  // Uses lightweight values endpoints (~30 KB total) instead of full GeoJSON (~20 MB).
+  // Actual map rendering uses MVT tiles fetched on demand by Leaflet.
+  useEffect(() => {
+    if (runId === null) return; // wait until latest run_id is loaded
+    async function fetchLayerData() {
+      try {
+        setLoadingLayer(true);
+        setErrorLayer(null);
+        const data = await fetchAllLayers({ hazard, scenario, climate, runId: runId! });
+        setLayers(data);
+      } catch (err) {
+        console.error("Fetch layers error:", err);
+        setErrorLayer("Gagal memuat layer peta.");
+      } finally {
+        setLoadingLayer(false);
+      }
+    }
+    fetchLayerData();
+  }, [hazard, scenario, climate, runId]);
 
   const regionOptions = useMemo<OptionType[]>(() => {
     return regions.map((region) => ({
@@ -382,13 +431,6 @@ export default function DashboardPage() {
   function handleRegionChange(region: string | null) {
     const nextRegion = region?.trim() ?? "";
     setSelectedRegion(nextRegion);
-
-    if (nextRegion) {
-      setActiveLayers((prev) => ({
-        ...prev,
-        geojson: true,
-      }));
-    }
   }
 
   function handleResetView() {
@@ -401,10 +443,13 @@ export default function DashboardPage() {
     setClimate("nonclimate");
     setScenario("rp25");
     setSelectedRegion("");
+
     setActiveLayers({
-      geojson: false,
-      batas_adm: true,
-      sawah: true,
+      regions: false,
+      production: false,
+      loss: true,
+      aal: false,
+      hazard: false,
     });
   }
 
@@ -415,7 +460,7 @@ export default function DashboardPage() {
     setSelectedRegion("");
     setActiveLayers((prev) => ({
       ...prev,
-      geojson: false,
+      loss: true,
     }));
   }
 
@@ -436,11 +481,16 @@ export default function DashboardPage() {
     }
 
     try {
-      const res = await fetch(buildApiUrl(path), {
+      const url = buildApiUrl(path);
+      console.log("Request URL:", url);
+
+      const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      console.log("Response status:", res.status);
 
       if (res.status === 401) {
         clearToken();
@@ -453,14 +503,17 @@ export default function DashboardPage() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("File request failed:", {
-          status: res.status,
-          statusText: res.statusText,
-          body: errorText,
-        });
+        throw new Error(`Error ${res.status}: ${errorText}`);
+      }
+
+      const contentType = res.headers.get("Content-Type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const json = await res.json();
+        console.error("Server JSON:", json);
 
         throw new Error(
-          `Gagal memproses file. [${res.status}] ${errorText || res.statusText}`
+          json.error || json.message || "Server tidak mengirim file."
         );
       }
 
@@ -472,9 +525,7 @@ export default function DashboardPage() {
 
       if (disposition) {
         const match = disposition.match(/filename="?([^"]+)"?/);
-        if (match?.[1]) {
-          filename = match[1];
-        }
+        if (match?.[1]) filename = match[1];
       }
 
       const link = document.createElement("a");
@@ -487,7 +538,7 @@ export default function DashboardPage() {
       window.URL.revokeObjectURL(objectUrl);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Terjadi kesalahan saat mengunduh file.");
+      alert(err.message || "Gagal download file.");
     }
   }
 
@@ -506,11 +557,13 @@ export default function DashboardPage() {
       climate,
     });
 
-    const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
-
     if (selectedRegion.trim()) {
       params.set("region", selectedRegion.trim());
     }
+
+    const regionSlug = selectedRegion.trim()
+      ? toSlug(selectedRegion)
+      : "indonesia";
 
     openProtectedDownload(
       `/api/download-csv?${params.toString()}`,
@@ -525,11 +578,13 @@ export default function DashboardPage() {
       climate,
     });
 
-    const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
-
     if (selectedRegion.trim()) {
       params.set("region", selectedRegion.trim());
     }
+
+    const regionSlug = selectedRegion.trim()
+      ? toSlug(selectedRegion)
+      : "indonesia";
 
     openProtectedDownload(
       `/api/generate-report-v2?${params.toString()}`,
@@ -538,7 +593,7 @@ export default function DashboardPage() {
   }
 
   const layerSummary = useMemo(() => {
-    if (!layerData?.features) {
+    if (!layers?.loss?.features) {
       return {
         totalLoss: 0,
         topRegion: "-",
@@ -547,34 +602,41 @@ export default function DashboardPage() {
       };
     }
 
-    const validFeatures = layerData.features.filter(
-      (f) =>
+    const validFeatures = layers.loss.features.filter(
+      (f: any) =>
         f.properties?.loss !== null &&
         f.properties?.loss !== undefined &&
         !Number.isNaN(Number(f.properties.loss))
     );
 
     const totalLoss = validFeatures.reduce(
-      (sum, f) => sum + Number(f.properties.loss ?? 0),
+      (sum: number, f: any) => sum + Number(f.properties.loss ?? 0),
       0
     );
 
-    const topFeature = validFeatures.reduce<GeoFeature | null>((max, f) => {
-      if (!max) return f;
-      return Number(f.properties.loss ?? 0) > Number(max.properties.loss ?? 0)
-        ? f
-        : max;
-    }, null);
+    const topFeature = validFeatures.reduce(
+      (max: any | null, f: any) => {
+        if (!max) return f;
+
+        return Number(f.properties.loss ?? 0) >
+          Number(max.properties.loss ?? 0)
+          ? f
+          : max;
+      },
+      null as any
+    );
 
     return {
       totalLoss,
       topRegion: topFeature
         ? `${topFeature.properties.kab_kota}, ${topFeature.properties.prov}`
         : "-",
-      topLoss: topFeature ? Number(topFeature.properties.loss ?? 0) : 0,
+      topLoss: topFeature
+        ? Number(topFeature.properties.loss ?? 0)
+        : 0,
       dataCount: validFeatures.length,
     };
-  }, [layerData]);
+  }, [layers?.loss]);
 
   const climateChangeInfo = useMemo(() => {
     return formatPercentChange(
@@ -582,6 +644,17 @@ export default function DashboardPage() {
       aalSummary?.total_aal_nonclimate ?? 0
     );
   }, [aalSummary]);
+
+  const selectedRegionClimateChangeInfo = useMemo(() => {
+    if (!selectedRegion || !regionAalSummary) {
+      return null;
+    }
+
+    return formatPercentChange(
+      regionAalSummary.total_aal_climate ?? 0,
+      regionAalSummary.total_aal_nonclimate ?? 0
+    );
+  }, [selectedRegion, regionAalSummary]);
 
   const topRegionShare = useMemo(() => {
     if (!layerSummary.totalLoss || !layerSummary.topLoss) return 0;
@@ -599,6 +672,35 @@ export default function DashboardPage() {
     }
     return climateChangeInfo.description;
   }, [loadingAAL, errorAAL, climateChangeInfo]);
+
+  const selectedRegionClimateSignalText = useMemo(() => {
+    if (!selectedRegion) {
+      return "Pilih kabupaten/kota untuk melihat indikasi perubahan iklim wilayah.";
+    }
+
+    if (loadingRegionAAL) {
+      return "Menganalisis perubahan iklim wilayah terpilih...";
+    }
+
+    if (errorRegionAAL) {
+      return errorRegionAAL;
+    }
+
+    if (!selectedRegionClimateChangeInfo) {
+      return "Data indikasi perubahan iklim wilayah belum tersedia.";
+    }
+
+    if (selectedRegionClimateChangeInfo.label === "N/A") {
+      return "Belum ada cukup data untuk menghitung perubahan AAL wilayah.";
+    }
+
+    return selectedRegionClimateChangeInfo.description;
+  }, [
+    selectedRegion,
+    loadingRegionAAL,
+    errorRegionAAL,
+    selectedRegionClimateChangeInfo,
+  ]);
 
   const smartInsight = useMemo(() => {
     if (loadingLayer || loadingAAL) {
@@ -880,20 +982,25 @@ export default function DashboardPage() {
               </div>
 
               <div className="relative h-[60vh] w-full md:h-[70vh] xl:h-[75vh]">
-                <MapView
-                  scenario={scenario}
-                  hazard={hazard}
-                  climate={climate}
-                  selectedRegion={selectedRegion}
-                  onRegionSelect={handleRegionChange}
-                  onResetView={handleResetView}
-                  onDownloadCsv={handleDownloadCsv}
-                  onGenerateReport={handleGenerateReport}
-                  data={layerData}
-                  resetViewSignal={resetSignal}
-                  activeLayers={activeLayers}
-                  onToggleLayer={handleToggleLayer}
-                />
+                {runId !== null && (
+                  <MapView
+                    scenario={scenario}
+                    hazard={hazard}
+                    climate={climate}
+                    runId={runId}
+                    selectedRegion={selectedRegion}
+                    onRegionSelect={handleRegionChange}
+                    onResetView={handleResetView}
+                    onDownloadCsv={handleDownloadCsv}
+                    onGenerateReport={handleGenerateReport}
+
+                    layers={layers}
+
+                    resetViewSignal={resetSignal}
+                    activeLayers={activeLayers}
+                    onToggleLayer={handleToggleLayer}
+                  />
+                )}
 
                 {!selectedRegion && (
                   <div className="pointer-events-none absolute top-4 left-1/2 z-20 -translate-x-1/2">
@@ -919,7 +1026,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {layerData && layerData.features?.length === 0 && (
+                {layers?.loss && layers.loss.features?.length === 0 && (
                   <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
                     <div className="rounded-xl bg-white/90 px-4 py-2 text-sm text-gray-600 shadow backdrop-blur">
                       Tidak ada data untuk filter ini — coba ubah filter
@@ -954,7 +1061,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -1070,6 +1177,53 @@ export default function DashboardPage() {
 
                   <p className="mt-1 text-sm text-gray-600">
                     {climateSignalText}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 xl:min-h-[160px]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-gray-500">Indikasi Iklim Wilayah</p>
+                      <h3 className="mt-1 text-lg font-bold leading-snug text-gray-900">
+                        {!selectedRegion ? (
+                          <span className="text-base font-medium text-gray-400">
+                            Pilih wilayah
+                          </span>
+                        ) : loadingRegionAAL ? (
+                          <span className="animate-pulse text-gray-400">
+                            Loading...
+                          </span>
+                        ) : errorRegionAAL ? (
+                          <span className="text-base font-medium text-red-500">
+                            Error
+                          </span>
+                        ) : selectedRegionClimateChangeInfo ? (
+                          selectedRegionClimateChangeInfo.label
+                        ) : (
+                          <span className="text-base font-medium text-gray-400">
+                            N/A
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+
+                    <div className="rounded-xl bg-white/80 p-2">
+                      {!selectedRegion ? (
+                        <MapPinned className="h-5 w-5 text-blue-600" />
+                      ) : selectedRegionClimateChangeInfo?.isUp ? (
+                        <TrendingUp className="h-5 w-5 text-red-600" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5 text-green-600" />
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-sm font-semibold text-blue-700">
+                    {selectedRegion || "Belum ada wilayah dipilih"}
+                  </p>
+
+                  <p className="mt-1 text-sm text-gray-600">
+                    {selectedRegionClimateSignalText}
                   </p>
                 </div>
               </div>

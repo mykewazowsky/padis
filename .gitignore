@@ -71,3 +71,10 @@ backend/archive/
 # OPTIONAL PLACEHOLDER
 # ======================
 !backend/data/.gitkeep
+
+# local analysis / temp
+PROJECT_STRUCTURE.md
+
+# local db & docs (temporary)
+db/
+docs/alur_pipeline.md

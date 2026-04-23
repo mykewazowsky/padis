@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
+
+[phases.build]
+cmds = [
+  "python -m venv /app/.venv",
+  ". /app/.venv/bin/activate",
+  "pip install -r backend/requirements.txt",
+  "playwright install chromium"
+]
+
+[start]
+cmd = "cd backend && gunicorn run:app"

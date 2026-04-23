@@ -1,7 +1,12 @@
 import type { DataBounds } from "@/types/map";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:5000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+
+if (!BASE_URL) {
+  throw new Error("NEXT_PUBLIC_API_BASE_URL is NOT set!");
+}
+
+console.log("BASE_URL:", BASE_URL);
 
 async function fetchJson(path: string) {
   const res = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });

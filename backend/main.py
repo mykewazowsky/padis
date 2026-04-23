@@ -2,8 +2,8 @@ import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from .routes.admin import admin_bp
-from .routes.layer_routes import layer_bp   # ✅ TAMBAHKAN INI
+from backend.app.routes.admin import admin_bp
+from backend.app.routes.layer_routes import layer_bp
 
 def create_app():
     app = Flask(__name__)

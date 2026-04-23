@@ -51,12 +51,19 @@ def create_app():
     app.register_blueprint(layer_bp, url_prefix="/api")
 
     # 🔥 TAMBAHKAN INI
-    app.register_blueprint(layers_bp)
-    app.register_blueprint(tiles_bp) 
-    app.register_blueprint(report_bp) 
+    app.register_blueprint(layers_bp, url_prefix="/api")
+    app.register_blueprint(tiles_bp, url_prefix="/api")
+    app.register_blueprint(report_bp, url_prefix="/api")
 
     @app.route("/")
     def home():
         return jsonify({"message": "PADIS Backend Running."})
 
+    # ===============================
+    # DEBUG ROUTES
+    # ===============================
+    print("\n========== ROUTES ==========")
+    print(app.url_map)
+    print("============================\n")
+    
     return app

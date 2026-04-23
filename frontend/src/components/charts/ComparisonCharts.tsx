@@ -54,8 +54,9 @@ function safeNumber(value: unknown) {
 }
 
 function getHazardLabel(hazard: string) {
-  if (hazard === "flood") return "Flood";
-  if (hazard === "drought") return "Drought";
+  const h = hazard.toLowerCase().replace(/[-\s]/g, "");
+  if (h === "flood") return "Flood";
+  if (h === "drought") return "Drought";
   return "Multi-hazard";
 }
 

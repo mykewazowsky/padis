@@ -23,7 +23,7 @@ def generate_reset_token(user: Dict[str, Any]) -> str:
 
     payload = {
         "type": "reset_password",
-        "sub": user["id"],
+        "sub": str(user["id"]),
         "email": user["email"],
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=30)).timestamp()),
@@ -32,13 +32,14 @@ def generate_reset_token(user: Dict[str, Any]) -> str:
     return jwt.encode(payload, secret, algorithm="HS256")
 
 
-def generate_access_token(user: Dict[str, Any], expires_hours: int = 12) -> str:
+def generate_access_token(user: Dict[str, Any], expires_hours: int = 8) -> str:
     secret = current_app.config["JWT_SECRET_KEY"]
     now = datetime.now(timezone.utc)
 
     payload = {
         "type": "access",
-        "sub": user["id"],
+        "sub": str(user["id"]),
+        "name": user.get("name", ""),
         "email": user["email"],
         "role": user.get("role", "user"),
         "status": user.get("status", "active"),

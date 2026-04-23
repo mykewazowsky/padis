@@ -20,6 +20,7 @@ from .auth_utils import (
     verify_password,
 )
 
+# ❗ TANPA url_prefix di sini
 auth_bp = Blueprint("auth_bp", __name__)
 
 
@@ -39,7 +40,10 @@ def _serialize_user(user):
     }
 
 
-@auth_bp.route("/api/register", methods=["POST"])
+# =========================
+# REGISTER
+# =========================
+@auth_bp.route("/register", methods=["POST"])
 def register():
     data = _get_json()
 
@@ -74,15 +78,16 @@ def register():
         status="active",
     )
 
-    return jsonify(
-        {
-            "message": "Registrasi berhasil",
-            "user": _serialize_user(user),
-        }
-    ), 201
+    return jsonify({
+        "message": "Registrasi berhasil",
+        "user": _serialize_user(user),
+    }), 201
 
 
-@auth_bp.route("/api/login", methods=["POST"])
+# =========================
+# LOGIN
+# =========================
+@auth_bp.route("/login", methods=["POST"])
 def login():
     data = _get_json()
 
@@ -99,45 +104,50 @@ def login():
     if not user:
         return jsonify({"error": "Email atau password salah"}), 401
 
-    if user.get("status") != "active":
-        return jsonify({"error": "Akun tidak aktif"}), 403
-
     if not verify_password(password, user.get("password_hash", "")):
         return jsonify({"error": "Email atau password salah"}), 401
+
+    if user.get("status") != "active" or not user.get("is_active", True):
+        return jsonify({"error": "Akun tidak aktif"}), 403
 
     user["last_login_at"] = datetime.now(timezone.utc).isoformat()
     update_user(user)
 
     token = generate_access_token(user)
 
-    return jsonify(
-        {
-            "message": "Login berhasil",
-            "token": token,
-            "user": _serialize_user(user),
-        }
-    ), 200
+    return jsonify({
+        "message": "Login berhasil",
+        "token": token,
+        "user": _serialize_user(user),
+    }), 200
 
 
-@auth_bp.route("/api/me", methods=["GET"])
+# =========================
+# GET CURRENT USER
+# =========================
+@auth_bp.route("/me", methods=["GET"])
 @login_required
 def me():
     user = g.current_user
 
-    return jsonify(
-        {
-            "user": _serialize_user(user)
-        }
-    ), 200
+    return jsonify({
+        "user": _serialize_user(user)
+    }), 200
 
 
-@auth_bp.route("/api/logout", methods=["POST"])
+# =========================
+# LOGOUT
+# =========================
+@auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     return jsonify({"message": "Logout berhasil"}), 200
 
 
-@auth_bp.route("/api/forgot-password", methods=["POST"])
+# =========================
+# FORGOT PASSWORD
+# =========================
+@auth_bp.route("/forgot-password", methods=["POST"])
 def forgot_password():
     data = _get_json()
     email = str(data.get("email", "")).strip().lower()
@@ -154,22 +164,21 @@ def forgot_password():
         frontend_base_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
         reset_link = f"{frontend_base_url}/reset-password?token={token}"
 
-        return jsonify(
-            {
-                "message": "Jika email terdaftar, tautan reset password telah dibuat.",
-                "reset_token": token,
-                "reset_link": reset_link,
-            }
-        ), 200
+        return jsonify({
+            "message": "Jika email terdaftar, tautan reset password telah dibuat.",
+            "reset_token": token,
+            "reset_link": reset_link,
+        }), 200
 
-    return jsonify(
-        {
-            "message": "Jika email terdaftar, tautan reset password telah dibuat."
-        }
-    ), 200
+    return jsonify({
+        "message": "Jika email terdaftar, tautan reset password telah dibuat."
+    }), 200
 
 
-@auth_bp.route("/api/reset-password", methods=["POST"])
+# =========================
+# RESET PASSWORD
+# =========================
+@auth_bp.route("/reset-password", methods=["POST"])
 def reset_password():
     data = _get_json()
 
@@ -177,7 +186,7 @@ def reset_password():
     password = str(data.get("password", ""))
 
     if not token:
-        return jsonify({"error": "Token reset password wajib diisi"}), 400
+        return jsonify({"error": "Token wajib diisi"}), 400
 
     if not password:
         return jsonify({"error": "Password baru wajib diisi"}), 400
@@ -187,12 +196,13 @@ def reset_password():
 
     token_record = find_valid_reset_token(token)
     if not token_record:
-        return jsonify(
-            {"error": "Token reset password tidak valid atau sudah kedaluwarsa"}
-        ), 400
+        return jsonify({
+            "error": "Token tidak valid atau kedaluwarsa"
+        }), 400
 
     user_id = token_record.get("user_id")
     user = find_user_by_id(user_id)
+
     if not user:
         return jsonify({"error": "User tidak ditemukan"}), 404
 
@@ -202,4 +212,6 @@ def reset_password():
 
     mark_reset_token_used(token)
 
-    return jsonify({"message": "Password berhasil diperbarui"}), 200
+    return jsonify({
+        "message": "Password berhasil diperbarui"
+    }), 200

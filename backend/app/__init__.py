@@ -3,142 +3,101 @@ import os
 
 load_dotenv()
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 
-# Public routes
-from app.routes import analytics_bp, auth_bp, layer_bp
-
-# Admin routes
-from app.routes.admin.data_routes import admin_data_bp
-from app.routes.admin.output_routes import admin_output_bp
-from app.routes.admin.process_routes import admin_process_bp
-from app.routes.admin.user_routes import admin_user_bp
-from app.routes.admin.geoserver_routes import admin_geoserver_bp
-
-
-def ensure_default_admin():
-    """
-    Bootstrap default admin jika belum ada.
-    Tetap pakai auth_store Anda sekarang.
-    (Nanti bisa di-refactor ke Supabase full kalau perlu)
-    """
-    from app.routes.auth.auth_store import find_user_by_email, create_user
-    from app.routes.auth.auth_utils import hash_password
-
-    admin_email = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@padis.local")
-    admin_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
-
-    if not admin_password:
-        print("[PADIS] DEFAULT_ADMIN_PASSWORD not set. Skip admin bootstrap.")
-        return
-
-    existing = find_user_by_email(admin_email)
-    if existing:
-        return
-
-    create_user(
-        name="Admin PADIS",
-        email=admin_email,
-        password_hash=hash_password(admin_password),
-        role="admin",
-        status="active",
-    )
-
-    print("=" * 60)
-    print("[PADIS] Default admin created")
-    print(f"  email   : {admin_email}")
-    print(f"  password: {admin_password}")
-    print("=" * 60)
-
-
-def ensure_default_user():
-    """
-    Bootstrap default user (optional, untuk demo/testing)
-    """
-    from app.routes.auth.auth_store import find_user_by_email, create_user
-    from app.routes.auth.auth_utils import hash_password
-
-    user_email = os.getenv("DEFAULT_USER_EMAIL", "user@padis.local")
-    user_password = os.getenv("DEFAULT_USER_PASSWORD")
-
-    if not user_password:
-        print("[PADIS] DEFAULT_USER_PASSWORD not set. Skip user bootstrap.")
-        return
-
-    existing = find_user_by_email(user_email)
-    if existing:
-        return
-
-    create_user(
-        name="User PADIS",
-        email=user_email,
-        password_hash=hash_password(user_password),
-        role="user",
-        status="active",
-    )
-
-    print("=" * 60)
-    print("[PADIS] Default user created")
-    print(f"  email   : {user_email}")
-    print(f"  password: {user_password}")
-    print("=" * 60)
+# =========================
+# IMPORT ROUTES (UPDATED 🔥)
+# =========================
+from app.routes import analytics_bp, auth_bp, admin_bp
+from app.routes.layers import layers_bp
+from app.routes.tiles import tiles_bp
+from app.routes.report_routes import report_bp
+from app.routes.auth.auth_store import seed_default_users
 
 
 def create_app():
     app = Flask(__name__)
 
     # =========================
-    # Config dasar
+    # CONFIG
     # =========================
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "padis-secret-key")
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "padis-jwt-secret")
 
     # =========================
-    # CORS (Frontend Vercel)
+    # CORS CONFIG
     # =========================
+    origins_env = os.getenv("FRONTEND_ORIGINS") or os.getenv("FRONTEND_ORIGIN", "")
+
     allowed_origins = [
         origin.strip()
-        for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
+        for origin in origins_env.split(",")
         if origin.strip()
     ]
 
+    if not allowed_origins:
+        allowed_origins = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ]
+
+    print("[CORS] Allowed origins:", allowed_origins)
+
     CORS(
         app,
-        resources={r"/api/*": {"origins": allowed_origins or "*"}},
+        resources={r"/api/*": {"origins": allowed_origins}},
         supports_credentials=True,
     )
 
     # =========================
-    # Register Blueprints
+    # HANDLE PREFLIGHT
     # =========================
+    @app.after_request
+    def after_request(response):
+        origin = request.headers.get("Origin")
 
-    # Public
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(layer_bp)
-    app.register_blueprint(analytics_bp)
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
 
-    # Admin
-    app.register_blueprint(admin_data_bp)
-    app.register_blueprint(admin_output_bp)
-    app.register_blueprint(admin_process_bp)
-    app.register_blueprint(admin_user_bp)
-    app.register_blueprint(admin_geoserver_bp)  # ← NEW (GeoServer)
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
 
-    # =========================
-    # Bootstrap default user/admin
-    # =========================
-    if os.getenv("BOOTSTRAP_DEFAULT_ADMIN", "false").lower() == "true":
-        ensure_default_admin()
-
-    if os.getenv("BOOTSTRAP_DEFAULT_USER", "false").lower() == "true":
-        ensure_default_user()
+        return response
 
     # =========================
-    # Health check (Railway penting)
+    # REGISTER BLUEPRINT
+    # =========================
+    app.register_blueprint(auth_bp, url_prefix="/api")
+    app.register_blueprint(analytics_bp, url_prefix="/api")
+    app.register_blueprint(admin_bp)
+
+    # Layer data (GeoJSON + values)
+    app.register_blueprint(layers_bp)   # /api/layers/*
+
+    # Vector tile endpoint
+    app.register_blueprint(tiles_bp)    # /api/tiles/<layer>/<z>/<x>/<y>
+
+    app.register_blueprint(report_bp)
+
+    # =========================
+    # HEALTH CHECK
     # =========================
     @app.route("/health")
     def health():
         return {"status": "ok"}
+
+    # =========================
+    # DEBUG ROUTES
+    # =========================
+    print("========== ROUTES ==========")
+    print(app.url_map)
+    print("============================")
+
+    # =========================
+    # SEED DEFAULT USERS
+    # =========================
+    seed_default_users()
 
     return app

@@ -1,95 +1,161 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import text
-from app.db.session import engine
+from app.db.session import SessionLocal
+import json
 
 layer_bp = Blueprint("layer_bp", __name__)
 
-ALLOWED_HAZARDS = {"flood", "drought", "multi"}
-ALLOWED_SCENARIOS = {"rp25", "rp50", "rp100", "rp250"}
-ALLOWED_CLIMATE = {"nonclimate", "climate"}
+print("🔥 layer_routes FINAL FIXED loaded")
 
-@layer_bp.route("/api/layer")
+
+# =========================
+# HELPERS
+# =========================
+def get_scenario_id(climate):
+    return 1 if climate == "nonclimate" else 2
+
+
+def get_rp_value(scenario):
+    return int(scenario.replace("rp", ""))
+
+
+def get_hazard_id(db, hazard):
+    if hazard == "multi":
+        return None
+
+    result = db.execute(
+        text("SELECT id FROM hazards WHERE name = :hazard"),
+        {"hazard": hazard}
+    ).fetchone()
+
+    return result[0] if result else None
+
+
+# =========================
+# LAYER FINAL
+# =========================
+@layer_bp.route("/layer", methods=["GET"])
 def get_layer():
-    hazard = request.args.get("hazard", "multi").lower()
-    scenario = request.args.get("scenario", "rp25").lower()
-    climate = request.args.get("climate", "nonclimate").lower()
+    db = SessionLocal()
 
-    if hazard not in ALLOWED_HAZARDS:
-        return jsonify({"error": "hazard tidak valid"}), 400
-    if scenario not in ALLOWED_SCENARIOS:
-        return jsonify({"error": "scenario tidak valid"}), 400
-    if climate not in ALLOWED_CLIMATE:
-        return jsonify({"error": "climate condition tidak valid"}), 400
+    try:
+        hazard = request.args.get("hazard", "multi")
+        scenario = request.args.get("scenario", "rp25")
+        climate = request.args.get("climate", "nonclimate")
 
-    # Query SQL dengan JOIN ke tabel aal_summary
-    sql = text("""
-        select jsonb_build_object(
-            'type', 'FeatureCollection',
-            'features', coalesce(jsonb_agg(feature), '[]'::jsonb)
-        ) as geojson
-        from (
-            select jsonb_build_object(
-                'type', 'Feature',
-                'geometry', ST_AsGeoJSON(hf.geom)::jsonb,
-                'properties', jsonb_build_object(
-                    'kab_kota', hf.region_name,
-                    'prov', hf.province,
-                    'hazard', hf.hazard,
-                    'climate', hf.climate,
-                    'scenario', hf.scenario,
-                    'loss', hf.loss,
-                    -- Mengambil data AAL dari tabel aal_summary berdasarkan region dan hazard
-                    'aal_nonclimate', coalesce(aal.aal_nonclimate, 0),
-                    'aal_climate', coalesce(aal.aal_climate, 0)
-                )
-            ) as feature
-            from hazard_features hf
-            left join aal_summary aal ON 
-                lower(hf.region_name) = lower(aal.region_name) AND 
-                lower(hf.hazard) = lower(aal.hazard)
-            where lower(hf.hazard) = :hazard
-              and lower(hf.climate) = :climate
-              and lower(hf.scenario) = :scenario
-        ) t
-    """)
+        scenario_id = get_scenario_id(climate)
+        rp_value = get_rp_value(scenario)
+        hazard_id = get_hazard_id(db, hazard)
 
-    with engine.connect() as conn:
-        row = conn.execute(
-            sql,
-            {
-                "hazard": hazard,
-                "climate": climate,
-                "scenario": scenario,
-            },
-        ).mappings().first()
+        print("🔥 PARAMS:", hazard, scenario_id, rp_value, hazard_id)
 
-    geojson = row["geojson"] if row and row["geojson"] else {
-        "type": "FeatureCollection",
-        "features": [],
-    }
+        query = """
+            SELECT 
+                r.id_kabkota,
+                r.kab_kota,
+                r.prov,
+                COALESCE(SUM(l.loss), 0) as loss,
+                ST_AsGeoJSON(ST_SimplifyPreserveTopology(r.geom, 0.0001)) as geometry
+            FROM regions_adm r
 
-    return jsonify(geojson)
+            LEFT JOIN losses l 
+                ON r.id_kabkota = l.id_kabkota
+                AND l.scenario_id = :scenario_id
 
-# Fungsi get_regions tetap sama, atau bisa disesuaikan lower() untuk keamanan
-@layer_bp.route("/api/regions")
+            LEFT JOIN return_periods rp
+                ON l.rp_id = rp.id
+                AND rp.rp = :rp_value
+        """
+
+        params = {
+            "scenario_id": scenario_id,
+            "rp_value": rp_value
+        }
+
+        # 🔥 FILTER HAZARD (lebih cepat & aman)
+        if hazard_id:
+            query += " AND l.hazard_id = :hazard_id"
+            params["hazard_id"] = hazard_id
+
+        query += """
+            GROUP BY r.id_kabkota, r.kab_kota, r.prov, r.geom
+        """
+
+        result = db.execute(text(query), params).fetchall()
+
+        print("🔥 ROW COUNT:", len(result))
+
+        features = []
+
+        for row in result:
+            if not row.geometry:
+                continue
+
+            features.append({
+                "type": "Feature",
+                "geometry": json.loads(row.geometry),
+                "properties": {
+                    "id_kabkota": row.id_kabkota,
+                    "kab_kota": row.kab_kota,
+                    "prov": row.prov,
+                    "loss": float(row.loss or 0)
+                }
+            })
+
+        return jsonify({
+            "type": "FeatureCollection",
+            "features": features
+        })
+
+    except Exception as e:
+        print("[LAYER ERROR]", str(e))
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        db.close()
+
+
+# =========================
+# REGIONS (FAST)
+# =========================
+@layer_bp.route("/regions", methods=["GET"])
 def get_regions():
-    hazard = request.args.get("hazard", "multi").lower()
-    scenario = request.args.get("scenario", "rp25").lower()
-    climate = request.args.get("climate", "nonclimate").lower()
+    db = SessionLocal()
 
-    sql = text("""
-        select distinct
-            region_name as kab_kota,
-            province as prov
-        from hazard_features
-        where lower(hazard) = :hazard
-          and lower(climate) = :climate
-          and lower(scenario) = :scenario
-          and region_name is not null
-        order by region_name
-    """)
+    try:
+        result = db.execute(text("""
+            SELECT 
+                id_kabkota,
+                kab_kota,
+                prov,
+                ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.0001)) AS geometry
+            FROM regions_adm
+        """)).fetchall()
 
-    with engine.connect() as conn:
-        rows = conn.execute(sql, {"hazard": hazard, "climate": climate, "scenario": scenario}).mappings().all()
+        features = []
 
-    return jsonify([{"kab_kota": row["kab_kota"], "prov": row["prov"]} for row in rows])
+        for row in result:
+            if not row.geometry:
+                continue
+
+            features.append({
+                "type": "Feature",
+                "geometry": json.loads(row.geometry),
+                "properties": {
+                    "id_kabkota": row.id_kabkota,
+                    "kab_kota": row.kab_kota,
+                    "prov": row.prov
+                }
+            })
+
+        return jsonify({
+            "type": "FeatureCollection",
+            "features": features
+        })
+
+    except Exception as e:
+        print("[REGIONS ERROR]", str(e))
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        db.close()

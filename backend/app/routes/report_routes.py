@@ -18,12 +18,20 @@ from app.utils.report.chart_renderer import create_chart_image
 report_bp = Blueprint("report_bp", __name__)
 
 
-# ================= PATH =================
+# ================= PATH (FIXED) =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-APP_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
-BACKEND_DIR = os.path.abspath(os.path.join(APP_DIR, ".."))
-PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "output")
+
+# ⬇️ langsung ke folder backend
+BACKEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
+
+# ⬇️ folder data/output yang benar
+OUTPUT_DIR = os.path.join(BACKEND_DIR, "data", "output")
+
+print("=== PATH DEBUG ===")
+print("BASE_DIR:", BASE_DIR)
+print("BACKEND_DIR:", BACKEND_DIR)
+print("OUTPUT_DIR:", OUTPUT_DIR)
+print("==================")
 
 
 # ================= CONFIG =================
@@ -57,7 +65,14 @@ def validate_request_params(hazard, scenario, climate):
 
 def resolve_geojson_path(hazard, scenario, climate):
     filename = FILE_MAP[(hazard, climate)].format(scenario=scenario)
-    return os.path.join(OUTPUT_DIR, filename)
+    full_path = os.path.join(OUTPUT_DIR, filename)
+
+    # 🔥 DEBUG
+    print("DEBUG FILE:", filename)
+    print("DEBUG PATH:", full_path)
+    print("FILE EXISTS:", os.path.exists(full_path))
+
+    return full_path
 
 
 def load_report_gdf(file_path):
@@ -89,7 +104,10 @@ def download_csv():
     file_path = resolve_geojson_path(hazard, scenario, climate)
 
     if not os.path.exists(file_path):
-        return jsonify({"error": "file tidak ditemukan"}), 404
+        return jsonify({
+            "error": "file tidak ditemukan",
+            "path": file_path  # DEBUG penting
+        }), 404
 
     gdf = gpd.read_file(file_path)
 
@@ -137,6 +155,13 @@ def generate_report_v2():
         return validation_error
 
     file_path = resolve_geojson_path(hazard, scenario, climate)
+
+    if not os.path.exists(file_path):
+        return jsonify({
+            "error": "file tidak ditemukan",
+            "path": file_path
+        }), 404
+
     gdf = load_report_gdf(file_path)
 
     context = build_report_context(
@@ -182,7 +207,7 @@ def generate_report_v2():
         else "report/report_padis_nasional.html"
     )
 
-    css_path = os.path.join(APP_DIR, "static", "report", "report.css")
+    css_path = os.path.join(BASE_DIR, "..", "static", "report", "report.css")
 
     html = render_template(
         template_name,
@@ -193,7 +218,7 @@ def generate_report_v2():
         **context,
     )
 
-    # ================= PDF RENDER =================
+    # ================= PDF =================
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".html",

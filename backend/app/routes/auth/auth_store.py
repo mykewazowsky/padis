@@ -9,7 +9,7 @@ from app.db.session import engine
 
 def _row_to_user_dict(row) -> Dict[str, Any]:
     return {
-        "id": row.id,
+        "id": str(row.id),  # UUID → str (safe for JWT + JSON)
         "name": row.name,
         "email": row.email,
         "password_hash": row.password_hash,
@@ -26,7 +26,7 @@ def _row_to_reset_token_dict(row) -> Dict[str, Any]:
     return {
         "id": row.id,
         "user_id": row.user_id,
-        "token": row.token,
+        "token": row.token_hash,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "expires_at": row.expires_at.isoformat() if row.expires_at else None,
         "used_at": row.used_at.isoformat() if row.used_at else None,
@@ -83,6 +83,12 @@ def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 
 
 def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    # Cast string → uuid.UUID so psycopg2 sends the correct PostgreSQL type
+    try:
+        user_uuid = uuid.UUID(str(user_id))
+    except (ValueError, AttributeError):
+        return None
+
     sql = text("""
         select
             id,
@@ -101,7 +107,7 @@ def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
     """)
 
     with engine.connect() as conn:
-        row = conn.execute(sql, {"user_id": user_id}).mappings().first()
+        row = conn.execute(sql, {"user_id": user_uuid}).mappings().first()
 
     return _row_to_user_dict(row) if row else None
 
@@ -249,7 +255,7 @@ def list_reset_tokens() -> list[Dict[str, Any]]:
         select
             id,
             user_id,
-            token,
+            token_hash,
             created_at,
             expires_at,
             used_at
@@ -272,7 +278,7 @@ def create_reset_token(user_id: str, token: str, expires_minutes: int = 30) -> D
         insert into password_reset_tokens (
             id,
             user_id,
-            token,
+            token_hash,
             created_at,
             expires_at,
             used_at
@@ -305,7 +311,7 @@ def create_reset_token(user_id: str, token: str, expires_minutes: int = 30) -> D
                 select
                     id,
                     user_id,
-                    token,
+                    token_hash,
                     created_at,
                     expires_at,
                     used_at
@@ -329,12 +335,12 @@ def find_valid_reset_token(token: str) -> Optional[Dict[str, Any]]:
         select
             id,
             user_id,
-            token,
+            token_hash,
             created_at,
             expires_at,
             used_at
         from password_reset_tokens
-        where token = :token
+        where token_hash = :token
           and used_at is null
           and expires_at >= :now
         order by created_at desc
@@ -359,7 +365,7 @@ def mark_reset_token_used(token: str) -> None:
     sql = text("""
         update password_reset_tokens
         set used_at = :used_at
-        where token = :token
+        where token_hash = :token
           and used_at is null
     """)
 
@@ -371,3 +377,88 @@ def mark_reset_token_used(token: str) -> None:
                 "used_at": now,
             },
         )
+
+
+# =========================
+# SEED DEFAULT USERS
+# =========================
+
+# Passwords: adminPADIS123 / userPADIS123
+# Generated via: werkzeug.security.generate_password_hash(...)
+_DEFAULT_USERS = [
+    {
+        "name": "Admin",
+        "email": "admin@padis.local",
+        "password_hash": "scrypt:32768:8:1$GRJsksfU07bExXGi$8381324f51474276878610678030791438d960a587280f94ace33425d598fb7bf54f6f150534f3a6f451e4406fa98104597552470559f63bafbae89a8f3eb752",
+        "role": "admin",
+        "status": "active",
+        "is_active": True,
+    },
+    {
+        "name": "User",
+        "email": "user@padis.local",
+        "password_hash": "scrypt:32768:8:1$XGaoaGhqBoTALo60$e8796b30b4820690cfcf68e16a380f82b4c8c39bb765e88efbc134adb37d2a8cd852fa7671db353e2c7e68a7fdbde4427a83eb846dd4dba51c51af50c45efe03",
+        "role": "user",
+        "status": "active",
+        "is_active": True,
+    },
+]
+
+
+def seed_default_users() -> None:
+    """
+    Enforce default admin + user accounts.
+    - Inserts if email does not exist.
+    - Updates password_hash, role, status if email already exists.
+    - Idempotent: safe to run multiple times.
+    """
+    sql = text("""
+        INSERT INTO app_users (
+            id,
+            name,
+            email,
+            password_hash,
+            role,
+            status,
+            is_active,
+            created_at,
+            updated_at
+        ) VALUES (
+            :id,
+            :name,
+            :email,
+            :password_hash,
+            :role,
+            :status,
+            :is_active,
+            :now,
+            :now
+        )
+        ON CONFLICT (email) DO UPDATE SET
+            password_hash = EXCLUDED.password_hash,
+            role          = EXCLUDED.role,
+            status        = EXCLUDED.status,
+            is_active     = EXCLUDED.is_active,
+            updated_at    = EXCLUDED.updated_at
+    """)
+
+    now = datetime.now(timezone.utc)
+
+    try:
+        with engine.begin() as conn:
+            for user in _DEFAULT_USERS:
+                conn.execute(sql, {
+                    "id": str(uuid.uuid4()),
+                    "name": user["name"],
+                    "email": user["email"],
+                    "password_hash": user["password_hash"],
+                    "role": user["role"],
+                    "status": user["status"],
+                    "is_active": user["is_active"],
+                    "now": now,
+                })
+
+        print("[seed] Default users enforced (inserted or updated)")
+
+    except Exception as e:
+        print(f"[seed] WARNING: Could not seed default users: {e}")

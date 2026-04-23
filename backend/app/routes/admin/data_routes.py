@@ -1,13 +1,13 @@
 import os
 import csv
 import json
-import shutil
 
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask import jsonify, request
 
 from app.routes.auth.auth_utils import admin_required, login_required
+from . import admin_bp
 from .admin_utils import (
     RAW_DIR,
     PROCESSED_DIR,
@@ -17,9 +17,6 @@ from .admin_utils import (
     is_allowed_flood_raster,
     is_allowed_drought_raster,
 )
-from flask import Blueprint
-
-admin_data_bp = Blueprint("admin_data_bp", __name__)
 
 DATA_STATE_DIR = os.path.join(PROJECT_ROOT, "data", "_admin")
 DATA_STATE_FILE = os.path.join(DATA_STATE_DIR, "active_sources.json")
@@ -405,7 +402,7 @@ def get_registry_datasets():
     return registry
 
 
-@admin_data_bp.route("/api/admin/data", methods=["GET"])
+@admin_bp.route("/api/admin/data", methods=["GET"])
 @login_required
 @admin_required
 def admin_data_registry():
@@ -434,7 +431,7 @@ def admin_data_registry():
     })
 
 
-@admin_data_bp.route("/api/admin/data/preview", methods=["GET"])
+@admin_bp.route("/api/admin/data/preview", methods=["GET"])
 @login_required
 @admin_required
 def admin_data_preview():
@@ -561,7 +558,7 @@ def admin_data_preview():
         return jsonify({"error": f"Gagal membaca preview data: {str(e)}"}), 500
 
 
-@admin_data_bp.route("/api/admin/upload-data", methods=["POST"])
+@admin_bp.route("/api/admin/upload-data", methods=["POST"])
 @login_required
 @admin_required
 def admin_upload_data():
@@ -653,7 +650,6 @@ def admin_upload_data():
 
     stat = os.stat(save_path)
 
-    # update active source sederhana untuk raw source utama
     state = load_data_state()
 
     if data_type == "admin_boundary":
@@ -679,7 +675,7 @@ def admin_upload_data():
     })
 
 
-@admin_data_bp.route("/api/admin/data/delete", methods=["POST"])
+@admin_bp.route("/api/admin/data/delete", methods=["POST"])
 @login_required
 @admin_required
 def admin_delete_data():
@@ -719,7 +715,7 @@ def admin_delete_data():
     })
 
 
-@admin_data_bp.route("/api/admin/data/set-active", methods=["POST"])
+@admin_bp.route("/api/admin/data/set-active", methods=["POST"])
 @login_required
 @admin_required
 def admin_set_active_data():

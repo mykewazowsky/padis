@@ -551,40 +551,22 @@ export default function DashboardPage() {
   }
 
   function handleDownloadCsv() {
-    const params = new URLSearchParams({
-      hazard,
-      scenario,
-      climate,
-    });
+    const params = new URLSearchParams({ hazard, scenario, climate });
+    if (selectedRegion.trim()) params.set("region", selectedRegion.trim());
 
-    if (selectedRegion.trim()) {
-      params.set("region", selectedRegion.trim());
-    }
-
-    const regionSlug = selectedRegion.trim()
-      ? toSlug(selectedRegion)
-      : "indonesia";
+    const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
 
     openProtectedDownload(
       `/api/download-csv?${params.toString()}`,
-      `padis_loss_${hazard}_${climate}_${scenario}_${regionSlug}.csv`
+      `padis_${hazard}_${climate}_${scenario}_${regionSlug}.csv`
     );
   }
 
   function handleGenerateReport() {
-    const params = new URLSearchParams({
-      hazard,
-      scenario,
-      climate,
-    });
+    const params = new URLSearchParams({ hazard, scenario, climate });
+    if (selectedRegion.trim()) params.set("region", selectedRegion.trim());
 
-    if (selectedRegion.trim()) {
-      params.set("region", selectedRegion.trim());
-    }
-
-    const regionSlug = selectedRegion.trim()
-      ? toSlug(selectedRegion)
-      : "indonesia";
+    const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
 
     openProtectedDownload(
       `/api/generate-report-v2?${params.toString()}`,

@@ -1,137 +1,322 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Laporan Nasional PADIS</title>
-  <link rel="stylesheet" href="file:///{{ css_path.replace('\\', '/') }}">
+<meta charset="UTF-8"/>
+<title>Laporan Nasional PADIS — {{ hazard_label }} {{ scenario_label }}</title>
+<style>
+@page { size: A4; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #fff; }
+body { font-family: "Segoe UI", Arial, sans-serif; color: #111827; line-height: 1.45; font-size: 11px; }
+
+/* ── PAGE ── */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  position: relative;
+  padding: 12mm 13mm 16mm;
+  page-break-after: always;
+}
+.page:last-child { page-break-after: auto; }
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 7mm;
+  border-bottom: 2px solid #1e63b5;
+  margin-bottom: 7mm;
+}
+.brand-kicker {
+  font-size: 8px; font-weight: 700; letter-spacing: .16em;
+  text-transform: uppercase; color: #1e63b5; margin-bottom: 3px;
+}
+.report-title { margin: 0 0 3px; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -.02em; }
+.report-sub   { margin: 0; font-size: 10px; color: #6b7280; }
+
+.pills { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; max-width: 70mm; }
+.pill  {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 8.5px; font-weight: 600; white-space: nowrap;
+  background: #eaf2ff; color: #1e4f9a; border: 1px solid #bfdbfe;
+}
+.pill-warn { background: #fff7d6; color: #92400e; border-color: #fcd34d; }
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 7mm; }
+.kpi {
+  border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 10px 11px; background: #fff;
+  box-shadow: 0 2px 8px rgba(15,23,42,.05);
+}
+.kpi-primary { background: linear-gradient(160deg,#eaf2ff 0%,#fff 100%); border-color: #bfdbfe; }
+.kpi-label { font-size: 8px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #6b7280; margin-bottom: 5px; }
+.kpi-value { font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.15; word-break: break-word; }
+.kpi-value-sm { font-size: 11.5px; font-weight: 700; line-height: 1.3; }
+.kpi-sub   { margin-top: 4px; font-size: 8.5px; color: #6b7280; }
+.up   { color: #dc2626; }
+.down { color: #16a34a; }
+
+/* ── SECTION HEADING ── */
+.sec-head { margin: 0 0 5px; font-size: 11px; font-weight: 700; color: #1e63b5; letter-spacing: .04em; text-transform: uppercase; }
+
+/* ── TABLE ── */
+.tbl-wrap { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 7mm; }
+table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+thead th {
+  background: #1e63b5; color: #fff;
+  padding: 7px 8px; text-align: left; font-weight: 700; font-size: 8.5px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+thead th:first-child { border-radius: 0; }
+tbody tr:nth-child(even) { background: #f8fafc; }
+tbody tr:hover { background: #eaf2ff; }
+td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #111827; }
+tbody tr:last-child td { border-bottom: none; }
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 9px; font-weight: 700; background: #eaf2ff; color: #1e63b5;
+}
+.rank-badge.gold   { background: #fef3c7; color: #92400e; }
+.rank-badge.silver { background: #f1f5f9; color: #374151; }
+.rank-badge.bronze { background: #fef9ee; color: #92400e; }
+.share-bar { display: inline-block; height: 6px; border-radius: 3px; background: #1e63b5; vertical-align: middle; margin-left: 4px; }
+
+/* ── TWO-COL SECTION ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 7mm; }
+.info-box {
+  border: 1px solid #e5e7eb; border-radius: 12px; padding: 11px 12px;
+  background: #fff; box-shadow: 0 2px 8px rgba(15,23,42,.04);
+}
+.info-box-yellow { background: linear-gradient(160deg,#fffbeb 0%,#fff 100%); border-color: #fcd34d; }
+.info-box-green  { background: linear-gradient(160deg,#f0fdf4 0%,#fff 100%); border-color: #86efac; }
+.info-box-red    { background: linear-gradient(160deg,#fef2f2 0%,#fff 100%); border-color: #fca5a5; }
+.info-title { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #6b7280; margin-bottom: 6px; }
+.info-value { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1.15; margin-bottom: 4px; }
+.info-sub   { font-size: 9px; color: #6b7280; line-height: 1.5; }
+
+/* ── AAL COMPARISON ── */
+.aal-row { display: flex; gap: 8px; margin-bottom: 7mm; }
+.aal-card {
+  flex: 1; border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 10px 12px; background: #fff;
+}
+.aal-card.nc { border-color: #bfdbfe; background: #f0f7ff; }
+.aal-card.cc { border-color: #86efac; background: #f0fdf4; }
+.aal-card.delta { border-color: #fcd34d; background: #fffbeb; }
+
+/* ── NARRATIVE ── */
+.narrative {
+  border: 1px solid #e5e7eb; border-radius: 12px; padding: 11px 13px;
+  background: #f8fafc; margin-bottom: 7mm; font-size: 10px; color: #374151; line-height: 1.75;
+}
+.narrative-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #1e63b5; margin-bottom: 6px; }
+
+/* ── FOOTER ── */
+.footer {
+  position: absolute; left: 13mm; right: 13mm; bottom: 6mm;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 8px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 5px;
+}
+</style>
 </head>
 <body>
-  <div class="page onepage-report">
 
-    <!-- ================= HEADER ================= -->
-    <header class="report-topbar">
-      <div class="brand-block">
-        <div class="brand-kicker">PADIS REPORT</div>
-        <h1 class="report-title">Ringkasan Risiko Nasional</h1>
-        <p class="report-subtitle">
-          Paddy Loss and Damage Information System
-        </p>
-      </div>
+<!-- ═══════════════════ PAGE 1 — EXECUTIVE SUMMARY ═══════════════════ -->
+<div class="page">
 
-      <div class="report-meta-pills">
-        <span class="meta-pill">{{ hazard_label }}</span>
-        <span class="meta-pill">{{ climate_label }}</span>
-        <span class="meta-pill">{{ scenario_label }}</span>
-        <span class="meta-pill">{{ generated_at }}</span>
-      </div>
-    </header>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div>
+      <div class="brand-kicker">PADIS — Ringkasan Risiko Nasional</div>
+      <h1 class="report-title">Laporan Analisis Risiko Padi</h1>
+      <p class="report-sub">Paddy Loss and Damage Information System · Tingkat Nasional</p>
+    </div>
+    <div class="pills">
+      <span class="pill">{{ hazard_label }}</span>
+      <span class="pill">{{ climate_label }}</span>
+      <span class="pill">{{ scenario_label }}</span>
+      <span class="pill">{{ generated_at }}</span>
+    </div>
+  </header>
 
-    <!-- ================= MAIN GRID ================= -->
-    <section class="onepage-grid">
-
-      <!-- ========== LEFT: MAP HERO ========== -->
-      <div class="map-panel">
-        <div class="panel-header">
-          <div>
-            <div class="section-kicker">Peta Utama</div>
-            <h2 class="section-title-sm">Pola Risiko Nasional</h2>
-          </div>
-        </div>
-
-        <div class="map-frame-onepage">
-          {% if map_path %}
-          <img src="file:///{{ map_path.replace('\\', '/') }}" alt="Peta Risiko Nasional">
-          {% else %}
-          <div class="empty-block">
-            Peta tidak tersedia untuk konfigurasi ini.
-          </div>
-          {% endif %}
-        </div>
-
-        <div class="legend-inline-wrap">
-          {% for item in legend_items %}
-          <div class="legend-chip">
-            <span class="legend-swatch" style="background: {{ item.color }}"></span>
-            <span class="legend-text">{{ item.label }}</span>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- ========== RIGHT: SUMMARY ========== -->
-      <aside class="summary-panel">
-
-        <!-- KPI -->
-        <div class="summary-card summary-card-primary">
-          <div class="summary-label">Total Kerugian</div>
-          <div class="summary-value">{{ total_loss }}</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-label">Wilayah Tertinggi</div>
-          <div class="summary-value summary-value-md">{{ top_region }}</div>
-          <div class="summary-sub">{{ top_loss }}</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-label">Perubahan AAL</div>
-          <div class="summary-value summary-value-md">{{ climate_change_pct }}</div>
-          <div class="summary-sub">{{ aal_delta }}</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-label">Cakupan Data</div>
-          <div class="summary-value summary-value-md">{{ data_count }}</div>
-          <div class="summary-sub">wilayah</div>
-        </div>
-
-        <!-- Executive summary -->
-        <div class="narrative-card">
-          <div class="section-kicker">Ringkasan</div>
-          <p class="narrative-text">{{ summary_text }}</p>
-        </div>
-
-        <!-- Insight -->
-        <div class="narrative-card narrative-highlight">
-          <div class="section-kicker">Insight Utama</div>
-          <ul class="insight-list">
-            <li>Wilayah <strong>{{ top_region }}</strong> menjadi hotspot utama dalam skenario aktif.</li>
-            <li>Tiga wilayah teratas menyumbang <strong>{{ top3_share_pct }}%</strong> dari total kerugian nasional.</li>
-            <li>{{ interpretation }}</li>
-          </ul>
-        </div>
-
-        <!-- Metadata -->
-        <div class="meta-card">
-          <div class="section-kicker">Metadata</div>
-          <div class="meta-list">
-            <div class="meta-item">
-              <span class="meta-key">Hazard</span>
-              <span class="meta-val">{{ hazard_label }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-key">Climate</span>
-              <span class="meta-val">{{ climate_label }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-key">Return Period</span>
-              <span class="meta-val">{{ scenario_label }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-key">Tanggal</span>
-              <span class="meta-val">{{ generated_at }}</span>
-            </div>
-          </div>
-        </div>
-
-      </aside>
-    </section>
-
-    <!-- ================= FOOTER ================= -->
-    <footer class="report-footer onepage-footer">
-      <span>PADIS • National Executive Summary</span>
-      <span>Halaman 1</span>
-    </footer>
+  {% if empty_state %}
+  <div style="padding: 20mm 0; text-align: center; color: #94a3b8; font-size: 13px;">
+    Tidak ada data valid untuk kombinasi filter ini.
   </div>
+  {% else %}
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">Total Kerugian (Loss)</div>
+      <div class="kpi-value">{{ total_loss }}</div>
+      <div class="kpi-sub">{{ scenario_label }} · {{ climate_label }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Wilayah Tertinggi</div>
+      <div class="kpi-value kpi-value-sm">{{ top_region }}</div>
+      <div class="kpi-sub">{{ top_loss }} · {{ top_loss_share }}% dari total</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Perubahan AAL (Climate)</div>
+      <div class="kpi-value kpi-value-sm {% if aal_pct_up %}up{% else %}down{% endif %}">
+        {{ aal_pct }}
+      </div>
+      <div class="kpi-sub">vs Non-Climate Baseline · selisih {{ aal_delta }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Cakupan Data</div>
+      <div class="kpi-value">{{ data_count }}</div>
+      <div class="kpi-sub">kabupaten / kota</div>
+    </div>
+  </div>
+
+  <!-- AAL COMPARISON -->
+  <p class="sec-head">Perbandingan AAL — Non-Climate vs Climate</p>
+  <div class="aal-row">
+    <div class="aal-card nc">
+      <div class="info-title">AAL Non-Climate (Baseline)</div>
+      <div class="info-value" style="font-size:16px">{{ aal_nonclimate }}</div>
+      <div class="info-sub">Risiko tahunan rata-rata tanpa dampak perubahan iklim</div>
+    </div>
+    <div class="aal-card cc">
+      <div class="info-title">AAL Climate</div>
+      <div class="info-value" style="font-size:16px">{{ aal_climate }}</div>
+      <div class="info-sub">Risiko tahunan rata-rata dengan skenario perubahan iklim</div>
+    </div>
+    <div class="aal-card delta">
+      <div class="info-title">Perubahan (Δ AAL)</div>
+      <div class="info-value {% if aal_pct_up %}up{% else %}down{% endif %}" style="font-size:16px">{{ aal_pct }}</div>
+      <div class="info-sub">Selisih absolut: {{ aal_delta }}</div>
+    </div>
+  </div>
+
+  <!-- TOP REGIONS TABLE -->
+  <p class="sec-head">Top {{ top_regions|length }} Kabupaten/Kota — Loss Tertinggi</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32px">#</th>
+          <th>Kabupaten / Kota</th>
+          <th>Provinsi</th>
+          <th>Loss (Rp)</th>
+          <th>AAL (Rp)</th>
+          <th>Hazard Index</th>
+          <th style="width:60px">Share (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in top_regions %}
+        <tr>
+          <td>
+            <span class="rank-badge {% if r.rank == 1 %}gold{% elif r.rank == 2 %}silver{% elif r.rank == 3 %}bronze{% endif %}">
+              {{ r.rank }}
+            </span>
+          </td>
+          <td style="font-weight:600">{{ r.kab_kota }}</td>
+          <td style="color:#6b7280">{{ r.prov }}</td>
+          <td style="font-weight:600">{{ r.loss_fmt }}</td>
+          <td>{{ r.aal_fmt }}</td>
+          <td>{{ r.hidx }}</td>
+          <td>
+            {{ r.share_pct }}%
+            <span class="share-bar" style="width:{{ [r.share_pct * 1.8, 40]|min }}px"></span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- INSIGHT -->
+  <div class="narrative">
+    <div class="narrative-title">Insight Analisis</div>
+    <strong>{{ top_region }}</strong> menjadi wilayah dengan kerugian tertinggi, menyumbang
+    <strong>{{ top_loss_share }}%</strong> dari total kerugian nasional. Tiga wilayah teratas berkontribusi
+    <strong>{{ top3_share }}%</strong> dari total loss.
+    {% if aal_pct_up %}
+    Perubahan iklim meningkatkan risiko tahunan rata-rata (AAL) sebesar <strong class="up">{{ aal_pct }}</strong>
+    dibanding baseline Non-Climate, dengan selisih absolut {{ aal_delta }}.
+    {% else %}
+    Risiko tahunan rata-rata (AAL) pada skenario Climate lebih rendah <strong class="down">{{ aal_pct }}</strong>
+    dibanding baseline Non-Climate. Selisih absolut: {{ aal_delta }}.
+    {% endif %}
+  </div>
+
+  {% endif %}
+
+  <footer class="footer">
+    <span>PADIS · {{ hazard_label }} · {{ scenario_label }} · {{ climate_label }}</span>
+    <span>Dicetak: {{ generated_at }} · Halaman 1</span>
+  </footer>
+</div>
+
+<!-- ═══════════════════ PAGE 2 — METADATA & CATATAN ═══════════════════ -->
+<div class="page">
+  <header class="topbar" style="margin-bottom:8mm">
+    <div>
+      <div class="brand-kicker">PADIS — Halaman 2</div>
+      <h1 class="report-title" style="font-size:17px">Metadata &amp; Catatan Analisis</h1>
+    </div>
+    <div class="pills">
+      <span class="pill">{{ hazard_label }}</span>
+      <span class="pill">{{ climate_label }}</span>
+      <span class="pill">{{ scenario_label }}</span>
+    </div>
+  </header>
+
+  <div class="two-col">
+    <div class="info-box">
+      <div class="info-title">Parameter Analisis</div>
+      <table style="font-size:10px; margin-top:4px; width:100%; border:none">
+        <tr><td style="color:#6b7280; padding:3px 0; border:none; width:40%">Hazard</td><td style="font-weight:600; border:none">{{ hazard_label }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Climate</td><td style="font-weight:600; border:none">{{ climate_label }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Return Period</td><td style="font-weight:600; border:none">{{ scenario_label }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Cakupan</td><td style="font-weight:600; border:none">Nasional ({{ data_count }} Kab/Kota)</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Tanggal Cetak</td><td style="font-weight:600; border:none">{{ generated_at }}</td></tr>
+      </table>
+    </div>
+    <div class="info-box info-box-yellow">
+      <div class="info-title">Ringkasan Risiko</div>
+      <table style="font-size:10px; margin-top:4px; width:100%; border:none">
+        <tr><td style="color:#6b7280; padding:3px 0; border:none; width:50%">Total Loss</td><td style="font-weight:600; border:none">{{ total_loss }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Wilayah Tertinggi</td><td style="font-weight:600; border:none; font-size:9px">{{ top_region }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">AAL Baseline</td><td style="font-weight:600; border:none">{{ aal_nonclimate }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">AAL Climate</td><td style="font-weight:600; border:none">{{ aal_climate }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Perubahan AAL</td>
+          <td style="font-weight:700; border:none" class="{% if aal_pct_up %}up{% else %}down{% endif %}">{{ aal_pct }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="narrative" style="margin-bottom:7mm">
+    <div class="narrative-title">Definisi Variabel</div>
+    <strong>Loss</strong> — Estimasi kerugian ekonomi akibat kejadian bencana untuk satu return period tertentu (Rp).<br>
+    <strong>AAL</strong> (Average Annual Loss) — Rata-rata kerugian tahunan yang diharapkan dengan memperhitungkan distribusi probabilistik return period (Rp/tahun).<br>
+    <strong>Hazard Index</strong> — Indeks bahaya ternormalisasi (0–1), semakin mendekati 1 semakin tinggi tingkat bahaya.<br>
+    <strong>Return Period</strong> — Periode ulang kejadian bencana. Contoh: RP25 = kejadian dengan probabilitas terlampaui 4% per tahun.
+  </div>
+
+  <div class="narrative">
+    <div class="narrative-title">Catatan Penggunaan Laporan</div>
+    Laporan ini dihasilkan secara otomatis oleh sistem PADIS berdasarkan data model terbaru.
+    Nilai Loss dan AAL merupakan estimasi berdasarkan model risiko probabilistik pertanian padi di Indonesia.
+    Laporan ini ditujukan sebagai alat bantu analisis, bukan sebagai dokumen resmi kebijakan.
+    Untuk pertanyaan metodologi, hubungi tim teknis PADIS.
+  </div>
+
+  <footer class="footer">
+    <span>PADIS · {{ hazard_label }} · {{ scenario_label }} · {{ climate_label }}</span>
+    <span>Dicetak: {{ generated_at }} · Halaman 2</span>
+  </footer>
+</div>
+
 </body>
 </html>

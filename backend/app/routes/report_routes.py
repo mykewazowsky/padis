@@ -1,229 +1,297 @@
+import csv
 import os
-from io import BytesIO
+from io import BytesIO, StringIO
 from datetime import datetime
 
 from flask import Blueprint, request, send_file, jsonify, render_template
+from sqlalchemy import text
 from playwright.sync_api import sync_playwright
 
 from .auth.auth_utils import login_required
-
-from ..utils.report.report_context import (
-    build_report_context,
-    make_region_slug,
-)
-from ..utils.report.map_renderer import create_map_image
-from ..utils.report.chart_renderer import create_chart_image
-
+from ..db.session import SessionLocal
+from ..utils.report.report_context import make_region_slug
 
 report_bp = Blueprint("report_bp", __name__)
 
+# ── ID mappings — must match DB ────────────────────────────────────────────────
+_HAZARD_ALIAS  = {"multi": "multihazard"}
+_HAZARD_ID     = {"flood": 1, "drought": 2, "multihazard": 3}
+_SCENARIO_ID   = {"nonclimate": 1, "climate": 2}
+_RP_STR_TO_INT = {"rp25": 25, "rp50": 50, "rp100": 100, "rp250": 250}
+_RP_ID         = {25: 1, 50: 2, 100: 3, 250: 4}
+_HAZARD_LABEL  = {"flood": "Flood", "drought": "Drought", "multihazard": "Multi-hazard"}
 
-# ================= PATH (FIXED) =================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# ⬇️ langsung ke folder backend
-BACKEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
-
-# ⬇️ folder data/output yang benar
-OUTPUT_DIR = os.path.join(BACKEND_DIR, "data", "output")
-
-print("=== PATH DEBUG ===")
-print("BASE_DIR:", BASE_DIR)
-print("BACKEND_DIR:", BACKEND_DIR)
-print("OUTPUT_DIR:", OUTPUT_DIR)
-print("==================")
-
-
-# ================= CONFIG =================
-ALLOWED_HAZARDS = {"flood", "drought", "multi"}
+ALLOWED_HAZARDS   = {"flood", "drought", "multi"}
 ALLOWED_SCENARIOS = {"rp25", "rp50", "rp100", "rp250"}
-ALLOWED_CLIMATE = {"nonclimate", "climate"}
-
-FILE_MAP = {
-    ("multi", "nonclimate"): "web_multi_nonclimate_{scenario}_v2.geojson",
-    ("multi", "climate"): "web_multi_climate_{scenario}_v2.geojson",
-    ("flood", "nonclimate"): "web_flood_nonclimate_{scenario}_v2.geojson",
-    ("flood", "climate"): "web_flood_climate_{scenario}_v2.geojson",
-    ("drought", "nonclimate"): "web_drought_nonclimate_{scenario}_v2.geojson",
-    ("drought", "climate"): "web_drought_climate_{scenario}_v2.geojson",
-}
+ALLOWED_CLIMATE   = {"nonclimate", "climate"}
 
 
-# ================= HELPERS =================
-def validate_request_params(hazard, scenario, climate):
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _validate(hazard, scenario, climate):
     if hazard not in ALLOWED_HAZARDS:
-        return jsonify({"error": "hazard tidak valid"}), 400
-
+        return jsonify({"error": f"Hazard tidak valid: {hazard}"}), 400
     if scenario not in ALLOWED_SCENARIOS:
-        return jsonify({"error": "scenario tidak valid"}), 400
-
+        return jsonify({"error": f"Scenario tidak valid: {scenario}"}), 400
     if climate not in ALLOWED_CLIMATE:
-        return jsonify({"error": "climate condition tidak valid"}), 400
-
+        return jsonify({"error": f"Climate tidak valid: {climate}"}), 400
     return None
 
 
-def resolve_geojson_path(hazard, scenario, climate):
-    filename = FILE_MAP[(hazard, climate)].format(scenario=scenario)
-    full_path = os.path.join(OUTPUT_DIR, filename)
-
-    # 🔥 DEBUG
-    print("DEBUG FILE:", filename)
-    print("DEBUG PATH:", full_path)
-    print("FILE EXISTS:", os.path.exists(full_path))
-
-    return full_path
+def _get_ids(hazard, scenario, climate):
+    db_hazard   = _HAZARD_ALIAS.get(hazard, hazard)
+    hazard_id   = _HAZARD_ID[db_hazard]
+    scenario_id = _SCENARIO_ID[climate]
+    rp          = _RP_STR_TO_INT[scenario]
+    rp_id       = _RP_ID[rp]
+    return db_hazard, hazard_id, scenario_id, rp_id
 
 
-def load_report_gdf(file_path):
-    import geopandas as gpd
-
-    if not os.path.exists(file_path):
-        return None
-
-    return gpd.read_file(file_path)
+def _latest_run_id(db):
+    row = db.execute(text(
+        "SELECT id FROM runs ORDER BY id DESC LIMIT 1"
+    )).fetchone()
+    return row.id if row else None
 
 
-# ================= CSV DOWNLOAD =================
+def _query_data(db, hazard_id, scenario_id, rp_id, run_id):
+    """All regions with loss, aal, hazard_index, production for the given filters."""
+    return db.execute(text("""
+        SELECT
+            r.id_kabkota,
+            r.kab_kota,
+            r.prov,
+            COALESCE(l.loss,       0)::float AS loss,
+            COALESCE(a.aal,        0)::float AS aal,
+            COALESCE(z.mean_value, 0)::float AS hazard_index,
+            COALESCE(p.total_prod, 0)::float AS total_prod
+        FROM regions_adm r
+        LEFT JOIN losses l
+            ON  r.id_kabkota  = l.id_kabkota
+            AND l.hazard_id   = :hazard_id
+            AND l.scenario_id = :scenario_id
+            AND l.rp_id       = :rp_id
+            AND l.run_id      = :run_id
+        LEFT JOIN aal a
+            ON  r.id_kabkota  = a.id_kabkota
+            AND a.hazard_id   = :hazard_id
+            AND a.scenario_id = :scenario_id
+        LEFT JOIN zonal_kabupaten z
+            ON  r.id_kabkota  = z.id_kabkota
+            AND z.hazard_id   = :hazard_id
+            AND z.scenario_id = :scenario_id
+            AND z.rp_id       = :rp_id
+            AND z.run_id      = :run_id
+        LEFT JOIN (
+            SELECT id_kabkota, SUM(total_prod)::float AS total_prod
+            FROM production GROUP BY id_kabkota
+        ) p ON r.id_kabkota = p.id_kabkota
+        ORDER BY loss DESC NULLS LAST, r.kab_kota ASC
+    """), {
+        "hazard_id":   hazard_id,
+        "scenario_id": scenario_id,
+        "rp_id":       rp_id,
+        "run_id":      run_id,
+    }).fetchall()
+
+
+def _aal_total(db, hazard_id, scenario_id):
+    row = db.execute(text("""
+        SELECT COALESCE(SUM(aal), 0)::float AS total
+        FROM aal
+        WHERE hazard_id = :hid AND scenario_id = :sid
+    """), {"hid": hazard_id, "sid": scenario_id}).fetchone()
+    return float(row.total) if row else 0.0
+
+
+def _fmt(v):
+    """Compact Rupiah formatter."""
+    try:
+        v = float(v)
+    except Exception:
+        return "Rp 0"
+    if abs(v) >= 1e12:
+        return f"Rp {v / 1e12:.1f} T"
+    if abs(v) >= 1e9:
+        return f"Rp {v / 1e9:.1f} M"
+    if abs(v) >= 1e6:
+        return f"Rp {v / 1e6:.1f} Jt"
+    return "Rp {:,.0f}".format(v).replace(",", ".")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CSV DOWNLOAD
+# ══════════════════════════════════════════════════════════════════════════════
+
 @report_bp.route("/api/download-csv")
 @login_required
 def download_csv():
-    import geopandas as gpd
-
-    hazard = request.args.get("hazard", "multi")
+    hazard   = request.args.get("hazard",   "multi")
     scenario = request.args.get("scenario", "rp25")
-    climate = request.args.get("climate", "nonclimate")
-    region = request.args.get("region", "").strip()
+    climate  = request.args.get("climate",  "nonclimate")
+    region   = request.args.get("region",   "").strip()
 
-    region_slug = make_region_slug(region)
+    err = _validate(hazard, scenario, climate)
+    if err:
+        return err
 
-    validation_error = validate_request_params(hazard, scenario, climate)
-    if validation_error:
-        return validation_error
+    _db_hazard, hazard_id, scenario_id, rp_id = _get_ids(hazard, scenario, climate)
 
-    file_path = resolve_geojson_path(hazard, scenario, climate)
+    db = SessionLocal()
+    try:
+        run_id = _latest_run_id(db)
+        if not run_id:
+            return jsonify({"error": "No runs found"}), 404
 
-    if not os.path.exists(file_path):
-        return jsonify({
-            "error": "file tidak ditemukan",
-            "path": file_path  # DEBUG penting
-        }), 404
+        rows = _query_data(db, hazard_id, scenario_id, rp_id, run_id)
 
-    gdf = gpd.read_file(file_path)
+        if region:
+            rows = [r for r in rows
+                    if r.kab_kota.strip().lower() == region.lower()]
 
-    required_columns = ["id_kabkota", "kab_kota", "prov", "loss"]
-    available_columns = [col for col in required_columns if col in gdf.columns]
+        if not rows:
+            return jsonify({"error": "Tidak ada data untuk filter yang dipilih."}), 404
 
-    if not available_columns:
-        return jsonify({"error": "kolom data tidak sesuai"}), 500
+        out = StringIO()
+        writer = csv.writer(out)
+        writer.writerow([
+            "ID Kabkota",
+            "Kabupaten / Kota",
+            "Provinsi",
+            f"Loss (Rp) — {hazard.upper()} {scenario.upper()} {climate}",
+            f"AAL (Rp) — {hazard.upper()} {climate}",
+            "Hazard Index (0–1)",
+            "Total Produksi (ton)",
+        ])
+        for r in rows:
+            writer.writerow([
+                r.id_kabkota,
+                r.kab_kota,
+                r.prov,
+                round(r.loss, 2),
+                round(r.aal, 2),
+                round(r.hazard_index, 6),
+                round(r.total_prod, 2),
+            ])
 
-    df = gdf[available_columns].copy()
-
-    if region and "kab_kota" in df.columns:
-        df = df[
-            df["kab_kota"].astype(str).str.lower().str.strip() == region.lower()
-        ]
-
-    buffer = BytesIO()
-    df.to_csv(buffer, index=False)
-    buffer.seek(0)
-
-    return send_file(
-        buffer,
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name=f"padis_loss_{hazard}_{climate}_{scenario}_{region_slug}.csv",
-    )
+        buf = BytesIO(out.getvalue().encode("utf-8-sig"))  # BOM for Excel
+        region_slug = make_region_slug(region)
+        return send_file(
+            buf,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"padis_{hazard}_{climate}_{scenario}_{region_slug}.csv",
+        )
+    finally:
+        db.close()
 
 
-# ================= REPORT GENERATOR =================
+# ══════════════════════════════════════════════════════════════════════════════
+# REPORT GENERATOR
+# ══════════════════════════════════════════════════════════════════════════════
+
 @report_bp.route("/api/generate-report-v2")
 @login_required
 def generate_report_v2():
     import tempfile
 
-    hazard = request.args.get("hazard", "multi")
+    hazard   = request.args.get("hazard",   "multi")
     scenario = request.args.get("scenario", "rp25")
-    climate = request.args.get("climate", "nonclimate")
-    region = request.args.get("region", "").strip()
+    climate  = request.args.get("climate",  "nonclimate")
+    region   = request.args.get("region",   "").strip()
 
-    region_slug = make_region_slug(region)
-    generated_at = datetime.now().strftime("%d %B %Y")
+    err = _validate(hazard, scenario, climate)
+    if err:
+        return err
 
-    validation_error = validate_request_params(hazard, scenario, climate)
-    if validation_error:
-        return validation_error
+    db_hazard, hazard_id, scenario_id, rp_id = _get_ids(hazard, scenario, climate)
 
-    file_path = resolve_geojson_path(hazard, scenario, climate)
+    db = SessionLocal()
+    try:
+        run_id = _latest_run_id(db)
+        if not run_id:
+            return jsonify({"error": "No runs found"}), 404
 
-    if not os.path.exists(file_path):
-        return jsonify({
-            "error": "file tidak ditemukan",
-            "path": file_path
-        }), 404
+        rows = _query_data(db, hazard_id, scenario_id, rp_id, run_id)
 
-    gdf = load_report_gdf(file_path)
+        if region:
+            rows = [r for r in rows
+                    if r.kab_kota.strip().lower() == region.lower()]
 
-    context = build_report_context(
-        gdf=gdf,
-        hazard=hazard,
-        scenario=scenario,
-        climate=climate,
-        region=region,
-    )
+        # ── Compute statistics ──────────────────────────────────────────────
+        valid      = [r for r in rows if r.loss > 0]
+        data_count = len(valid)
+        total_loss = sum(r.loss for r in valid)
+        top_rows   = valid[:10]
 
-    temp_id = os.urandom(4).hex()
+        # AAL both scenarios for comparison
+        aal_nc = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"])
+        aal_cc = _aal_total(db, hazard_id, _SCENARIO_ID["climate"])
 
-    # ================= MAP =================
-    map_path = create_map_image(
-        gdf=context["gdf"],
-        output_dir=OUTPUT_DIR,
-        hazard=hazard,
-        scenario=scenario,
-        climate=climate,
-        temp_id=temp_id,
-        hazard_label=context["hazard_label"],
-        climate_label=context["climate_label"],
-        scenario_label=context["scenario_label"],
-        region_name=region if context["is_regional_report"] else None,
-    )
+        aal_delta = aal_cc - aal_nc
+        aal_pct   = ((aal_delta / aal_nc) * 100.0) if aal_nc else 0.0
 
-    # ================= CHART =================
-    chart_path = None
-    if context.get("show_chart", False):
-        chart_path = create_chart_image(
-            rows=context["top_regions"],
-            hazard=hazard,
-            scenario=scenario,
-            climate=climate,
-            output_dir=OUTPUT_DIR,
-            temp_id=temp_id,
-        )
+        top_row       = valid[0] if valid else None
+        top_name      = f"{top_row.kab_kota}, {top_row.prov}" if top_row else "-"
+        top_loss_v    = top_row.loss if top_row else 0.0
+        top_loss_share = (top_loss_v / total_loss * 100.0) if total_loss else 0.0
 
-    # ================= TEMPLATE =================
-    template_name = (
+        top3_loss   = sum(r.loss for r in valid[:3])
+        top3_share  = (top3_loss / total_loss * 100.0) if total_loss else 0.0
+
+        formatted_top = [
+            {
+                "rank":      i + 1,
+                "kab_kota":  r.kab_kota,
+                "prov":      r.prov,
+                "loss_fmt":  _fmt(r.loss),
+                "aal_fmt":   _fmt(r.aal),
+                "hidx":      f"{r.hazard_index:.4f}",
+                "prod_fmt":  f"{r.total_prod:,.0f}".replace(",", "."),
+                "share_pct": round((r.loss / total_loss * 100) if total_loss else 0, 1),
+            }
+            for i, r in enumerate(top_rows)
+        ]
+
+        # ── Context ─────────────────────────────────────────────────────────
+        ctx = {
+            "hazard_label":   _HAZARD_LABEL.get(db_hazard, db_hazard),
+            "climate_label":  "Climate" if climate == "climate" else "Non-Climate",
+            "scenario_label": scenario.upper(),
+            "generated_at":   datetime.now().strftime("%d %B %Y, %H:%M WIB"),
+            "region":         region,
+            "is_regional":    bool(region),
+            "data_count":     data_count,
+
+            "total_loss":     _fmt(total_loss),
+            "top_region":     top_name,
+            "top_loss":       _fmt(top_loss_v),
+            "top_loss_share": round(top_loss_share, 1),
+            "top3_share":     round(top3_share, 1),
+
+            "aal_nonclimate": _fmt(aal_nc),
+            "aal_climate":    _fmt(aal_cc),
+            "aal_delta":      _fmt(abs(aal_delta)),
+            "aal_pct":        f"{aal_pct:+.1f}%",
+            "aal_pct_up":     aal_delta >= 0,
+
+            "top_regions":    formatted_top,
+            "empty_state":    data_count == 0,
+        }
+    finally:
+        db.close()
+
+    # ── Render HTML ────────────────────────────────────────────────────────────
+    template = (
         "report/report_padis_regional.html"
-        if context["is_regional_report"]
+        if ctx["is_regional"]
         else "report/report_padis_nasional.html"
     )
+    html = render_template(template, **ctx)
 
-    css_path = os.path.join(BASE_DIR, "..", "static", "report", "report.css")
-
-    html = render_template(
-        template_name,
-        css_path=css_path,
-        map_path=map_path,
-        chart_path=chart_path,
-        generated_at=generated_at,
-        **context,
-    )
-
-    # ================= PDF =================
+    # ── PDF via Playwright ─────────────────────────────────────────────────────
     with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".html",
-        delete=False,
-        encoding="utf-8",
+        mode="w", suffix=".html", delete=False, encoding="utf-8"
     ) as tmp:
         tmp.write(html)
         tmp_path = tmp.name
@@ -231,36 +299,23 @@ def generate_report_v2():
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
-            page = browser.new_page()
-
+            page    = browser.new_page()
             page.goto(
                 f"file:///{tmp_path.replace(os.sep, '/')}",
-                wait_until="load",
+                wait_until="networkidle",
             )
-
             pdf_bytes = page.pdf(
                 format="A4",
                 print_background=True,
-                margin={
-                    "top": "0mm",
-                    "right": "0mm",
-                    "bottom": "0mm",
-                    "left": "0mm",
-                },
+                margin={"top": "0mm", "right": "0mm",
+                        "bottom": "0mm", "left": "0mm"},
             )
-
             browser.close()
-
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
-        if map_path and os.path.exists(map_path):
-            os.remove(map_path)
-
-        if chart_path and os.path.exists(chart_path):
-            os.remove(chart_path)
-
+    region_slug = make_region_slug(region)
     return send_file(
         BytesIO(pdf_bytes),
         mimetype="application/pdf",

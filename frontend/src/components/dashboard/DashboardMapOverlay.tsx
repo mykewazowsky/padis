@@ -28,13 +28,13 @@ type Props = {
   onGenerateReport?: () => void;
 };
 
-function formatCurrency(value: number | null | undefined) {
+function formatCurrency(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "Rp 0";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toFixed(1)} T`;
+  if (abs >= 1_000_000_000)     return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
+  if (abs >= 1_000_000)         return `Rp ${(value / 1_000_000).toFixed(1)} jt`;
+  return `Rp ${Number(value).toLocaleString("id-ID")}`;
 }
 
 function formatPercent(value: number | null | undefined) {

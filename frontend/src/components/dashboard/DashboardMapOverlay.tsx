@@ -78,7 +78,7 @@ export default function DashboardMapOverlay({
             }
           >
             <LocateFixed className="h-4 w-4" />
-            {hasActiveRegion ? "Reset View" : "Fit to Data"}
+            <span className="hidden sm:inline">{hasActiveRegion ? "Reset View" : "Fit to Data"}</span>
           </button>
 
           <button
@@ -87,7 +87,7 @@ export default function DashboardMapOverlay({
             className="btn-outline text-xs font-medium shadow-sm backdrop-blur"
           >
             <Download className="h-4 w-4" />
-            Unduh CSV
+            <span className="hidden sm:inline">Unduh CSV</span>
           </button>
 
           <button
@@ -96,14 +96,14 @@ export default function DashboardMapOverlay({
             className="btn-primary text-xs font-medium shadow-sm"
           >
             <FileText className="h-4 w-4" />
-            Generate Report
+            <span className="hidden sm:inline">Generate Report</span>
           </button>
         </div>
       </div>
 
       {/* ── Selected region card ─────────────────────────────────────────── */}
       {selectedFeature && props ? (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-[500] w-80">
+        <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-[500] sm:right-auto sm:w-80">
           <div className="pointer-events-auto card card-accent-primary bg-white/95 p-4 backdrop-blur">
 
             {/* Header */}

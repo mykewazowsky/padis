@@ -87,19 +87,28 @@ def _write_array(output_path: str, profile: dict, data: np.ndarray, nodata_val) 
 
 def _normalize_reverse(data: np.ndarray) -> np.ndarray:
     """
-    Reverse min-max normalization:
-    norm = (max - data) / (max - min)
+    Reverse min-max normalization (P1-based threshold)
+
+    min = -6.5 (P1 global)
+    max = -2 (SPI threshold)
     """
+
     if np.all(np.isnan(data)):
         raise ValueError("Semua nilai adalah nodata")
 
-    min_val = np.nanmin(data)
-    max_val = np.nanmax(data)
+    # 🔥 FIXED THRESHOLD
+    min_val = -6.5
+    max_val = -2.0
 
     if max_val - min_val == 0:
-        raise ValueError("Raster konstan")
+        raise ValueError("Range threshold tidak valid")
 
-    norm = (max_val - data) / (max_val - min_val)
+    # 🔥 CLIP KE RANGE
+    data_clipped = np.clip(data, min_val, max_val)
+
+    # 🔥 NORMALISASI (REVERSE)
+    norm = (max_val - data_clipped) / (max_val - min_val)
+
     norm = np.clip(norm, 0, 1)
 
     return norm.astype("float32")

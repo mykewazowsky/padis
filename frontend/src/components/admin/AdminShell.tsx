@@ -338,7 +338,7 @@ export default function AdminShell({
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6">
+          <main className="flex-1 px-4 py-6 sm:px-6 xl:px-8">
             {children}
           </main>
         </div>

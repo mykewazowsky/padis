@@ -871,7 +871,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-gray-800">
                     Jenis Bencana
@@ -963,7 +963,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="relative h-[60vh] w-full md:h-[70vh] xl:h-[75vh]">
+              <div className="relative h-[60vh] w-full sm:h-[65vh] md:h-[70vh] xl:h-[75vh]">
                 {runId !== null && (
                   <MapView
                     scenario={scenario}
@@ -1043,7 +1043,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>

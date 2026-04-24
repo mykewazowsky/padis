@@ -70,7 +70,7 @@ export default function LayerItem({
       </div>
 
       {visible && (
-        <div className="mt-1.5 flex items-center gap-2 pl-6 pr-0.5">
+        <div className="mt-1.5 flex items-center gap-2 pl-6 pr-1">
           <span className="text-[10px] text-gray-400 flex-shrink-0">
             Opacity
           </span>
@@ -81,9 +81,9 @@ export default function LayerItem({
             step={5}
             value={Math.round(opacity * 100)}
             onChange={(e) => onOpacityChange(Number(e.target.value) / 100)}
-            className="flex-1 h-1 accent-[var(--color-primary)] cursor-pointer"
+            className="min-w-0 flex-1 h-1 accent-[var(--color-primary)] cursor-pointer"
           />
-          <span className="text-[10px] text-gray-500 w-7 text-right flex-shrink-0">
+          <span className="w-8 flex-shrink-0 text-right text-[10px] tabular-nums text-gray-500">
             {Math.round(opacity * 100)}%
           </span>
         </div>

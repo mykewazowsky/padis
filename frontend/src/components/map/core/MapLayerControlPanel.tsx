@@ -143,32 +143,35 @@ export default function MapLayerControlPanel({
   }
 
   return (
-    <div className="absolute left-4 top-4 z-[1060] w-64 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-md backdrop-blur">
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex gap-2">
-          <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
-            <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
+    <div className="absolute left-4 top-4 z-[1060] flex max-h-[calc(100svh-440px)] w-72 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur">
+      {/* Header — fixed */}
+      <div className="flex-shrink-0 px-3 pt-3">
+        <div className="mb-3 flex items-start justify-between">
+          <div className="flex gap-2">
+            <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
+              <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">
+                Pengaturan Layer
+              </h3>
+              <p className="text-[11px] text-gray-500">Tampilkan &amp; atur layer</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-800">
-              Pengaturan Layer
-            </h3>
-            <p className="text-[11px] text-gray-500">Tampilkan &amp; atur layer</p>
-          </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setIsOpen(false)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
-          aria-label="Tutup pengaturan layer"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
+            aria-label="Tutup pengaturan layer"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Basemap selector */}
-      <div className="mb-3">
+      {/* Basemap selector — fixed */}
+      <div className="flex-shrink-0 px-3 pb-3">
         <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
           Basemap
         </p>
@@ -190,42 +193,46 @@ export default function MapLayerControlPanel({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          {groups.map((group, idx) => (
-            <div key={group.id} className={idx > 0 ? "mt-3" : ""}>
-              <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                {group.groupName}
-              </div>
-
-              <SortableContext
-                items={group.layers.map((l) => l.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-0.5">
-                  {group.layers.map((layer) => (
-                    <LayerItem
-                      key={layer.id}
-                      id={layer.id}
-                      label={layer.label}
-                      visible={!!activeLayers[layer.id]}
-                      opacity={layerOpacity[layer.id] ?? 0.7}
-                      onToggle={() => handleToggle(layer.id)}
-                      onOpacityChange={(op) => onOpacityChange(layer.id, op)}
-                    />
-                  ))}
+      {/* Layer groups — scrollable */}
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            {groups.map((group, idx) => (
+              <div key={group.id} className={idx > 0 ? "mt-3" : ""}>
+                <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                  {group.groupName}
                 </div>
-              </SortableContext>
-            </div>
-          ))}
-        </DndContext>
+
+                <SortableContext
+                  items={group.layers.map((l) => l.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-0.5">
+                    {group.layers.map((layer) => (
+                      <LayerItem
+                        key={layer.id}
+                        id={layer.id}
+                        label={layer.label}
+                        visible={!!activeLayers[layer.id]}
+                        opacity={layerOpacity[layer.id] ?? 0.7}
+                        onToggle={() => handleToggle(layer.id)}
+                        onOpacityChange={(op) => onOpacityChange(layer.id, op)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </div>
+            ))}
+          </DndContext>
+        </div>
       </div>
 
-      <p className="mt-2 px-1 text-[10px] text-gray-400">
+      {/* Hint — fixed */}
+      <p className="flex-shrink-0 px-4 pb-2.5 pt-1.5 text-[10px] text-gray-400">
         Seret ≡ untuk mengubah urutan layer
       </p>
     </div>

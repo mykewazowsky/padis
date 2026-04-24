@@ -398,9 +398,12 @@ function createTooltipHtml(params: {
 
 function FitBounds({ selectedRegion }: { selectedRegion: string }) {
   const map = useMap();
+  const hasFittedRef = useRef(false);
 
   useEffect(() => {
+    if (hasFittedRef.current) return; // initial fit only — ResetViewController handles subsequent resets
     if (selectedRegion) return;
+    hasFittedRef.current = true;
     const timer = window.setTimeout(() => {
       map.invalidateSize();
       map.fitBounds(INDONESIA_BOUNDS, { padding: FIT_BOUNDS_PADDING });
@@ -413,24 +416,24 @@ function FitBounds({ selectedRegion }: { selectedRegion: string }) {
 
 function ResetViewController({
   resetViewSignal,
-  selectedRegion,
+  dataBounds,
 }: {
   resetViewSignal?: number;
-  selectedRegion: string;
+  dataBounds?: DataBounds | null;
 }) {
   const map = useMap();
 
   useEffect(() => {
     if (!resetViewSignal) return;
-    if (!selectedRegion) {
-      map.flyToBounds(INDONESIA_BOUNDS, {
-        padding: FIT_BOUNDS_PADDING,
-        duration: RESET_DURATION,
-      });
-      return;
+    if (dataBounds) {
+      map.flyToBounds(
+        [[dataBounds.min_lat, dataBounds.min_lng], [dataBounds.max_lat, dataBounds.max_lng]],
+        { padding: FIT_BOUNDS_PADDING, duration: RESET_DURATION }
+      );
+    } else {
+      map.flyToBounds(INDONESIA_BOUNDS, { padding: FIT_BOUNDS_PADDING, duration: RESET_DURATION });
     }
-    map.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, { duration: RESET_DURATION });
-  }, [resetViewSignal, map, selectedRegion]);
+  }, [resetViewSignal, map, dataBounds]);
 
   return null;
 }
@@ -504,6 +507,7 @@ export default function MapCanvas({
   resetViewSignal = 0,
   activeLayers,
   onToggleLayer,
+  dataBounds,
 }: MapCanvasProps) {
   const vtLayersRef = useRef<Partial<Record<LayerKey | "thematic", L.Layer>>>({});
   const popupRef = useRef<L.Popup | null>(null);
@@ -637,12 +641,17 @@ export default function MapCanvas({
             const hasSel = Boolean(selectedRegion);
             const isSel = hasSel && rk === normalizeRegionKey(selectedRegion);
             const isDim = hasSel && !isSel;
+            const prodVal = props.total_prod as number | null | undefined;
+            // Use classified coloring when production is the sole active thematic layer
+            const fillColor = jenksBreaks.length && !analysisKey
+              ? getColorFromBreaks(prodVal, jenksBreaks, "production")
+              : "#ffa200";
 
             return {
               fill: true,
-              fillColor: "#ffa200",
+              fillColor,
               fillOpacity: isDim ? Math.max(0.05, prodOpacity * 0.12) : prodOpacity,
-              color: isSel ? getSelectedBorderColor(hazard) : isDim ? "#d1d5db" : "#ffb700",
+              color: isSel ? getSelectedBorderColor(hazard) : isDim ? "#d1d5db" : "#d97706",
               weight: isSel ? 2.5 : isDim ? 0.3 : 1.2,
               opacity: isDim ? 0.3 : 1,
             };
@@ -652,7 +661,7 @@ export default function MapCanvas({
         maxNativeZoom: 12,
       });
 
-      const productionOnlyLayers = { regions: false, hazard: false, loss: false, aal: false, production: true } as Record<LayerKey, boolean>;
+      const productionOnlyLayers: Record<LayerKey, boolean> = { regions: false, hazard: false, loss: false, aal: false, production: true };
 
       prodLayer.on("mouseover", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
@@ -719,15 +728,33 @@ export default function MapCanvas({
   // ── Legend items ──────────────────────────────────────────────────────────
   const legendItems = useMemo(() => {
     if (!jenksBreaks.length) return [];
+    // Use "production" as the palette key when production is the sole active thematic layer
+    const colorKey =
+      activeLayers.production && !activeLayers.hazard && !activeLayers.loss && !activeLayers.aal
+        ? "production"
+        : hazard;
     return jenksBreaks.map((upper, index) => {
       const lower = index === 0 ? 0 : (jenksBreaks[index - 1] ?? 0);
       const sampleValue = upper ?? lower;
       return {
-        color: getColorFromBreaks(sampleValue, jenksBreaks, hazard),
+        color: getColorFromBreaks(sampleValue, jenksBreaks, colorKey),
         label: `${formatLayerValue(lower, activeLayers, formatCompactRupiah)} – ${formatLayerValue(upper, activeLayers, formatCompactRupiah)}`,
       };
     });
   }, [jenksBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah]);
+
+  const legendTitle = activeLayers.hazard
+    ? "Indeks Bahaya"
+    : activeLayers.loss
+      ? "Kerugian (Loss)"
+      : activeLayers.aal
+        ? "Risiko Tahunan (AAL)"
+        : activeLayers.production
+          ? "Produksi Padi"
+          : "Legenda";
+
+  const hasAnalysisLayer =
+    activeLayers.hazard || activeLayers.loss || activeLayers.aal || activeLayers.production;
 
   // ── Region labels (from geometry-free data with centroid prop) ────────────
   const showLabels = currentZoom >= LABEL_MIN_ZOOM && hasActiveTileLayer;
@@ -779,7 +806,7 @@ export default function MapCanvas({
         <FitBounds selectedRegion={selectedRegion} />
         <ResetViewController
           resetViewSignal={resetViewSignal}
-          selectedRegion={selectedRegion}
+          dataBounds={dataBounds}
         />
 
         {showLabels &&
@@ -829,12 +856,15 @@ export default function MapCanvas({
         onBasemapChange={setBasemapKey}
       />
 
-      <MapLegendPanel
-        title="Legenda"
-        items={legendItems}
-        collapsed={legendCollapsed}
-        onToggle={() => setLegendCollapsed((prev) => !prev)}
-      />
+      {hasAnalysisLayer && legendItems.length > 0 && (
+        <MapLegendPanel
+          title={legendTitle}
+          items={legendItems}
+          collapsed={legendCollapsed}
+          onToggle={() => setLegendCollapsed((prev) => !prev)}
+          showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+        />
+      )}
     </div>
   );
 }

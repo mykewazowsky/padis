@@ -9,9 +9,10 @@ APP_DIR = os.path.abspath(os.path.join(ROUTES_DIR, ".."))
 BACKEND_DIR = os.path.abspath(os.path.join(APP_DIR, ".."))
 PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
 
-RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
-PROCESSED_DIR = os.path.join(PROJECT_ROOT, "data", "processed")
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "output")
+# Data lives inside backend/, not at project root
+RAW_DIR = os.path.join(BACKEND_DIR, "data", "raw")
+PROCESSED_DIR = os.path.join(BACKEND_DIR, "data", "processed")
+OUTPUT_DIR = os.path.join(BACKEND_DIR, "data", "output", "analysis")
 
 SCRIPTS_DIR = os.path.join(BACKEND_DIR, "scripts")
 
@@ -37,77 +38,55 @@ MAX_PROCESS_LOG_ITEMS = 100
 PIPELINE_REGISTRY = {
     "flood": {
         "full": [
-            "preprocess/preprocess_flood_rasters.py",
-            "zonal/zonal_stats_flood.py",
-            "analysis/aggregate_flood_kabkota.py",
-            "analysis/calculate_lop_flood.py",
-            "analysis/calculate_loss_flood.py",
-            "analysis/standardize_naming.py",
-            "analysis/calculate_aal_flood_v2.py",
-            "prepare/prepare_web_flood_split_v2.py",
-            "prepare/add_aal_to_web_layers_v2.py",
+            "run_preprocess.py",
+            "run_zonal.py",
+            "run_analysis_flood.py",
+            "run_etl.py",
         ],
         "preprocess": [
-            "preprocess/preprocess_flood_rasters.py",
+            "run_preprocess.py",
         ],
         "analysis": [
-            "zonal/zonal_stats_flood.py",
-            "analysis/aggregate_flood_kabkota.py",
-            "analysis/calculate_lop_flood.py",
-            "analysis/calculate_loss_flood.py",
-            "analysis/standardize_naming.py",
-            "analysis/calculate_aal_flood_v2.py",
+            "run_zonal.py",
+            "run_analysis_flood.py",
         ],
         "web": [
-            "prepare/prepare_web_flood_split_v2.py",
-            "prepare/add_aal_to_web_layers_v2.py",
+            "run_etl.py",
         ],
     },
     "drought": {
         "full": [
-            "preprocess/preprocess_drought_rasters.py",
-            "zonal/zonal_stats_drought.py",
-            "analysis/aggregate_drought_kabkota.py",
-            "analysis/calculate_di_drought.py",
-            "analysis/calculate_lop_drought.py",
-            "analysis/calculate_loss_drought.py",
-            "analysis/standardize_naming.py",
-            "analysis/calculate_aal_drought_v2.py",
-            "prepare/prepare_web_drought_split_v2.py",
-            "prepare/add_aal_to_web_layers_v2.py",
+            "run_preprocess.py",
+            "run_zonal.py",
+            "run_analysis_drought.py",
+            "run_etl.py",
         ],
         "preprocess": [
-            "preprocess/preprocess_drought_rasters.py",
+            "run_preprocess.py",
         ],
         "analysis": [
-            "zonal/zonal_stats_drought.py",
-            "analysis/aggregate_drought_kabkota.py",
-            "analysis/calculate_di_drought.py",
-            "analysis/calculate_lop_drought.py",
-            "analysis/calculate_loss_drought.py",
-            "analysis/standardize_naming.py",
-            "analysis/calculate_aal_drought_v2.py",
+            "run_zonal.py",
+            "run_analysis_drought.py",
         ],
         "web": [
-            "prepare/prepare_web_drought_split_v2.py",
-            "prepare/add_aal_to_web_layers_v2.py",
+            "run_etl.py",
         ],
     },
     "multi": {
         "full": [
-            "analysis/calculate_multihazard_clean.py",
-            "analysis/calculate_aal_multihazard_v2.py",
-            "prepare/prepare_web_multi_split_v2.py",
-            "prepare/add_aal_to_web_layers_v2.py",
+            "run_analysis_flood.py",
+            "run_analysis_drought.py",
+            "run_analysis_multi.py",
+            "run_etl.py",
         ],
         "preprocess": [],
         "analysis": [
-            "analysis/calculate_multihazard_clean.py",
-            "analysis/calculate_aal_multihazard_v2.py",
+            "run_analysis_flood.py",
+            "run_analysis_drought.py",
+            "run_analysis_multi.py",
         ],
         "web": [
-            "prepare/prepare_web_multi_split_v2.py",
-            "prepare/add_aal_to_web_layers_v2.py",
+            "run_etl.py",
         ],
     },
 }

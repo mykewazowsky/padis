@@ -1,16 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ResponsiveContainer } from "recharts";
 import {
   ArrowRightLeft,
   BarChart3,
@@ -89,43 +80,253 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
 const NONCLIMATE_COLOR = "var(--color-primary)";
 const CLIMATE_COLOR = "var(--color-secondary)";
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-  labelPrefix,
+// ─── Dumbbell Chart ───────────────────────────────────────────────────────────
+
+type DumbbellRow = { [key: string]: string | number };
+
+function DumbbellChart({
+  data,
+  categoryKey,
+  tooltipLabelPrefix,
+  width = 400,
+  height = 300,
 }: {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-  labelPrefix: string;
+  data: DumbbellRow[];
+  categoryKey: string;
+  tooltipLabelPrefix: string;
+  width?: number;
+  height?: number;
 }) {
-  if (!active || !payload || !payload.length) return null;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hovered, setHovered] = useState<{
+    row: DumbbellRow;
+    px: number;
+    py: number;
+  } | null>(null);
+
+  const W_NUM = Math.max(Number(width), 100);
+  const H_NUM = Math.max(Number(height), 60);
+
+  const MARGIN = { top: 32, right: 32, bottom: 36, left: 110 };
+  const CW = Math.max(W_NUM - MARGIN.left - MARGIN.right, 10);
+  const CH = Math.max(H_NUM - MARGIN.top - MARGIN.bottom, 10);
+
+  const n = data.length;
+  const rowH = n > 0 ? CH / n : 40;
+  const DOT_R = 7;
+
+  const allVals = data.flatMap((d) => [
+    Number(d.nonclimate ?? 0),
+    Number(d.climate ?? 0),
+  ]);
+  const maxVal = Math.max(...allVals, 1);
+  const xScale = (v: number) => (v / maxVal) * CW;
+
+  const TICK_COUNT = 4;
+  const ticks = Array.from(
+    { length: TICK_COUNT + 1 },
+    (_, i) => (maxVal * i) / TICK_COUNT
+  );
+
+  const TOOLTIP_W = 220;
+  const tooltipLeft = hovered
+    ? hovered.px + 14 + TOOLTIP_W > W_NUM
+      ? hovered.px - TOOLTIP_W - 14
+      : hovered.px + 14
+    : 0;
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
-      <p className="text-xs font-semibold tracking-wide text-gray-500">
-        {labelPrefix}: {label}
-      </p>
-      <div className="mt-2 space-y-1">
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
-            <span
-              className="inline-block h-3 w-3 rounded-sm"
-              style={{ backgroundColor: entry.color }}
+    <div style={{ position: "relative", width: W_NUM, height: H_NUM }}>
+      <svg
+        ref={svgRef}
+        width={W_NUM}
+        height={H_NUM}
+        onMouseLeave={() => setHovered(null)}
+      >
+        {/* Legend */}
+        <g transform={`translate(${MARGIN.left}, 10)`}>
+          <circle cx={0} cy={6} r={5} fill={NONCLIMATE_COLOR} />
+          <text
+            x={10}
+            y={6}
+            dominantBaseline="middle"
+            fontSize={11}
+            fill="#374151"
+            fontFamily="inherit"
+          >
+            Non-Climate
+          </text>
+          <circle cx={102} cy={6} r={5} fill={CLIMATE_COLOR} />
+          <text
+            x={112}
+            y={6}
+            dominantBaseline="middle"
+            fontSize={11}
+            fill="#374151"
+            fontFamily="inherit"
+          >
+            Climate
+          </text>
+        </g>
+
+        <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
+          {/* Vertical grid lines */}
+          {ticks.map((t, i) => (
+            <line
+              key={i}
+              x1={xScale(t)}
+              x2={xScale(t)}
+              y1={0}
+              y2={CH}
+              stroke="#e5e7eb"
+              strokeDasharray="3 3"
             />
-            <span className="text-gray-700">
-              {entry.name}:{" "}
-              <span className="font-semibold text-gray-900">
-                {formatRupiah(safeNumber(entry.value))}
+          ))}
+
+          {/* Data rows */}
+          {data.map((row, i) => {
+            const cy = rowH * i + rowH / 2;
+            const xNC = xScale(Number(row.nonclimate ?? 0));
+            const xCC = xScale(Number(row.climate ?? 0));
+            const label = String(row[categoryKey] ?? "");
+            const lineX1 = Math.min(xNC, xCC);
+            const lineX2 = Math.max(xNC, xCC);
+
+            return (
+              <g
+                key={i}
+                onMouseMove={(e) => {
+                  const rect = svgRef.current?.getBoundingClientRect();
+                  if (!rect) return;
+                  setHovered({
+                    row,
+                    px: e.clientX - rect.left,
+                    py: e.clientY - rect.top,
+                  });
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {/* Category label */}
+                <text
+                  x={-10}
+                  y={cy}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                  fill="#374151"
+                  fontSize={12}
+                  fontFamily="inherit"
+                >
+                  {label}
+                </text>
+
+                {/* Connecting line */}
+                <line
+                  x1={lineX1}
+                  x2={lineX2}
+                  y1={cy}
+                  y2={cy}
+                  stroke="#d1d5db"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                />
+
+                {/* Nonclimate dot */}
+                <circle
+                  cx={xNC}
+                  cy={cy}
+                  r={DOT_R}
+                  fill={NONCLIMATE_COLOR}
+                  stroke="white"
+                  strokeWidth={2}
+                />
+
+                {/* Climate dot */}
+                <circle
+                  cx={xCC}
+                  cy={cy}
+                  r={DOT_R}
+                  fill={CLIMATE_COLOR}
+                  stroke="white"
+                  strokeWidth={2}
+                />
+              </g>
+            );
+          })}
+
+          {/* X axis line */}
+          <line x1={0} x2={CW} y1={CH} y2={CH} stroke="#d1d5db" />
+
+          {/* X axis ticks + labels */}
+          {ticks.map((t, i) => (
+            <g key={i}>
+              <line
+                x1={xScale(t)}
+                x2={xScale(t)}
+                y1={CH}
+                y2={CH + 5}
+                stroke="#d1d5db"
+              />
+              <text
+                x={xScale(t)}
+                y={CH + 18}
+                textAnchor="middle"
+                fill="#6b7280"
+                fontSize={11}
+                fontFamily="inherit"
+              >
+                {formatCompact(t)}
+              </text>
+            </g>
+          ))}
+        </g>
+      </svg>
+
+      {/* Hover tooltip */}
+      {hovered && (
+        <div
+          className="pointer-events-none absolute z-10 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg"
+          style={{
+            left: tooltipLeft,
+            top: Math.max(4, hovered.py - 44),
+            width: TOOLTIP_W,
+          }}
+        >
+          <p className="text-xs font-semibold tracking-wide text-gray-500">
+            {tooltipLabelPrefix}: {String(hovered.row[categoryKey] ?? "")}
+          </p>
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                style={{ backgroundColor: NONCLIMATE_COLOR }}
+              />
+              <span className="text-gray-700">
+                Non-Climate:{" "}
+                <span className="font-semibold text-gray-900">
+                  {formatRupiah(Number(hovered.row.nonclimate ?? 0))}
+                </span>
               </span>
-            </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                style={{ backgroundColor: CLIMATE_COLOR }}
+              />
+              <span className="text-gray-700">
+                Climate:{" "}
+                <span className="font-semibold text-gray-900">
+                  {formatRupiah(Number(hovered.row.climate ?? 0))}
+                </span>
+              </span>
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ComparisonCharts({ hazard, runId }: Props) {
   const [aalAllHazards, setAalAllHazards] = useState<AalAllHazardsItem[]>([]);
@@ -284,6 +485,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* ── AAL Antar Hazard ── */}
       <div className="card card-accent-primary p-5 md:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
@@ -335,7 +537,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
             {loadingAAL ? (
-              <div className="space-y-2 animate-pulse">
+              <div className="animate-pulse space-y-2">
                 <div className="h-4 w-40 rounded bg-gray-200" />
                 <div className="h-4 w-52 rounded bg-gray-200" />
               </div>
@@ -386,40 +588,18 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <DumbbellChart
                   data={aalChartData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="hazard"
-                    tick={{ fill: "#374151", fontSize: 12 }}
-                  />
-                  <YAxis
-                    tickFormatter={(value) => formatCompact(safeNumber(value))}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                  />
-                  <Tooltip content={<CustomTooltip labelPrefix="Hazard" />} />
-                  <Legend />
-                  <Bar
-                    dataKey="nonclimate"
-                    name="Non-Climate"
-                    fill={NONCLIMATE_COLOR}
-                    radius={[10, 10, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="climate"
-                    name="Climate"
-                    fill={CLIMATE_COLOR}
-                    radius={[10, 10, 0, 0]}
-                  />
-                </BarChart>
+                  categoryKey="hazard"
+                  tooltipLabelPrefix="Hazard"
+                />
               </ResponsiveContainer>
             )}
           </div>
         </div>
       </div>
 
+      {/* ── Total Loss per Scenario ── */}
       <div className="card card-accent-secondary p-5 md:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
@@ -465,7 +645,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
             {loadingLoss ? (
-              <div className="space-y-2 animate-pulse">
+              <div className="animate-pulse space-y-2">
                 <div className="h-4 w-36 rounded bg-gray-200" />
                 <div className="h-4 w-52 rounded bg-gray-200" />
               </div>
@@ -512,34 +692,11 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <DumbbellChart
                   data={lossCompareClimate}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="scenario"
-                    tick={{ fill: "#374151", fontSize: 12 }}
-                  />
-                  <YAxis
-                    tickFormatter={(value) => formatCompact(safeNumber(value))}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                  />
-                  <Tooltip content={<CustomTooltip labelPrefix="Scenario" />} />
-                  <Legend />
-                  <Bar
-                    dataKey="nonclimate"
-                    name="Non-Climate"
-                    fill={NONCLIMATE_COLOR}
-                    radius={[10, 10, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="climate"
-                    name="Climate"
-                    fill={CLIMATE_COLOR}
-                    radius={[10, 10, 0, 0]}
-                  />
-                </BarChart>
+                  categoryKey="scenario"
+                  tooltipLabelPrefix="Scenario"
+                />
               </ResponsiveContainer>
             )}
           </div>

@@ -111,21 +111,37 @@ function DumbbellChart({
   const CW = Math.max(W_NUM - MARGIN.left - MARGIN.right, 10);
   const CH = Math.max(H_NUM - MARGIN.top - MARGIN.bottom, 10);
 
-  const n = data.length;
-  const rowH = n > 0 ? CH / n : 40;
-  const DOT_R = 7;
+  const sortedData = [...data].sort((a, b) => {
+    const gapA = Math.abs(Number(a.climate) - Number(a.nonclimate));
+    const gapB = Math.abs(Number(b.climate) - Number(b.nonclimate));
+    return gapB - gapA;
+  });
 
-  const allVals = data.flatMap((d) => [
+  const n = sortedData.length;
+  const rowH = n > 0 ? CH / n : 40;
+  const DOT_R = Math.min(8, Math.max(5, rowH * 0.25));
+
+  const allVals = sortedData.flatMap((d) => [
     Number(d.nonclimate ?? 0),
     Number(d.climate ?? 0),
   ]);
-  const maxVal = Math.max(...allVals, 1);
-  const xScale = (v: number) => (v / maxVal) * CW;
+  const minVal = Math.min(...allVals);
+  const maxVal = Math.max(...allVals);
+
+  const padding = (maxVal - minVal) * 0.1;
+
+  const domainMin = Math.max(0, minVal - padding);
+  const domainMax = maxVal + padding;
+
+  const range = domainMax - domainMin || 1;
+
+  const xScale = (v: number) =>
+    ((v - domainMin) / range) * CW;
 
   const TICK_COUNT = 4;
   const ticks = Array.from(
     { length: TICK_COUNT + 1 },
-    (_, i) => (maxVal * i) / TICK_COUNT
+    (_, i) => domainMin + ((domainMax - domainMin) * i) / TICK_COUNT
   );
 
   const TOOLTIP_W = 220;
@@ -184,13 +200,16 @@ function DumbbellChart({
           ))}
 
           {/* Data rows */}
-          {data.map((row, i) => {
+          {sortedData.map((row, i) => {
             const cy = rowH * i + rowH / 2;
             const xNC = xScale(Number(row.nonclimate ?? 0));
             const xCC = xScale(Number(row.climate ?? 0));
             const label = String(row[categoryKey] ?? "");
             const lineX1 = Math.min(xNC, xCC);
             const lineX2 = Math.max(xNC, xCC);
+
+            const isIncrease = xCC > xNC;
+            const lineColor = isIncrease ? "#22c55e" : "#ef4444";
 
             return (
               <g
@@ -225,7 +244,7 @@ function DumbbellChart({
                   x2={lineX2}
                   y1={cy}
                   y2={cy}
-                  stroke="#d1d5db"
+                  stroke={lineColor}
                   strokeWidth={2.5}
                   strokeLinecap="round"
                 />

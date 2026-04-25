@@ -82,7 +82,7 @@ function shortenRegionName(name: string) {
     .replace(/^kota\s+/i, "Kota ")
     .trim();
 
-  return cleaned.length > 12 ? `${cleaned.slice(0, 12)}…` : cleaned;
+  return cleaned.length > 20 ? `${cleaned.slice(0, 20)}…` : cleaned;
 }
 
 function formatPercent(value: number) {
@@ -102,10 +102,12 @@ function CustomTooltip({
 }) {
   if (!active || !payload || !payload.length) return null;
 
+  const fullName = (payload[0]?.payload?.name as string | undefined) ?? label;
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
       <p className="text-xs font-semibold tracking-wide text-gray-500">
-        {labelPrefix}: {label}
+        {labelPrefix}: {fullName}
       </p>
       <div className="mt-2 space-y-1">
         {payload.map((entry, index) => (
@@ -373,25 +375,29 @@ export default function AdvancedCharts({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartTopRegions}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
+                  layout="vertical"
+                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e5e7eb"
+                    horizontal={false}
+                  />
                   <XAxis
-                    dataKey="shortName"
-                    angle={-18}
-                    textAnchor="end"
-                    interval={0}
-                    height={70}
-                    tick={{ fill: "#374151", fontSize: 11 }}
+                    type="number"
+                    tickFormatter={(value) => formatCompact(safeNumber(value))}
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
                   />
                   <YAxis
-                    tickFormatter={(value) => formatCompact(safeNumber(value))}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
+                    type="category"
+                    dataKey="shortName"
+                    width={148}
+                    tick={{ fill: "#374151", fontSize: 11 }}
                   />
                   <Tooltip content={<CustomTooltip labelPrefix="Wilayah" />} />
                   <Bar
                     dataKey="loss"
-                    radius={[10, 10, 0, 0]}
+                    radius={[0, 10, 10, 0]}
                     name="Loss"
                     onClick={(data: any) => {
                       const regionName = data?.name ?? "";

@@ -699,7 +699,7 @@ export default function DashboardPage() {
 
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
           <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="max-w-2xl">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
                   Analisis Spasial
@@ -713,8 +713,9 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="shrink-0 sm:max-w-[44%] sm:pt-1">
-                <div className="mb-1.5 flex items-center gap-2">
+              <div className="xl:shrink-0 xl:max-w-[42%] xl:pt-1">
+                {/* Label + status badge */}
+                <div className="mb-2.5 flex items-center gap-2">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
                     Ringkasan Cepat
                   </span>
@@ -725,55 +726,67 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm leading-snug text-gray-700">
-                  <span className="font-semibold text-gray-900">
-                    {loadingLayer ? (
-                      <span className="animate-pulse text-gray-400">—</span>
-                    ) : (
-                      `Rp ${formatCompact(layerSummary.totalLoss)}`
-                    )}
-                  </span>
+                {/* Row 1 — primary metrics with micro-labels */}
+                <div className="flex items-start divide-x divide-gray-200">
+                  <div className="min-w-0 flex-1 pr-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                      Total Loss
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold text-gray-900">
+                      {loadingLayer ? (
+                        <span className="animate-pulse text-gray-300">—</span>
+                      ) : (
+                        `Rp ${formatCompact(layerSummary.totalLoss)}`
+                      )}
+                    </p>
+                  </div>
 
-                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
+                  <div className="min-w-0 flex-1 px-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                      Δ AAL
+                    </p>
+                    <p
+                      className={`mt-1 truncate text-sm font-bold ${
+                        loadingAAL ? "text-gray-300" : climateChangeInfo.colorClass
+                      }`}
+                    >
+                      {loadingAAL ? (
+                        <span className="animate-pulse">—</span>
+                      ) : climateChangeInfo.label === "N/A" ? (
+                        "N/A"
+                      ) : (
+                        `${climateChangeInfo.label} ${climateChangeInfo.isUp ? "↑" : "↓"}`
+                      )}
+                    </p>
+                  </div>
 
-                  <span
-                    className={`font-semibold ${loadingAAL ? "text-gray-400" : climateChangeInfo.colorClass}`}
-                  >
-                    {loadingAAL ? (
-                      <span className="animate-pulse">—</span>
-                    ) : climateChangeInfo.label === "N/A" ? (
-                      "N/A"
-                    ) : (
-                      `${climateChangeInfo.label} ${climateChangeInfo.isUp ? "↑" : "↓"}`
-                    )}
-                  </span>
+                  <div className="min-w-0 flex-1 pl-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                      Prioritas
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold text-gray-900">
+                      {loadingLayer ? (
+                        <span className="animate-pulse text-gray-300">—</span>
+                      ) : layerSummary.topRegion !== "-" ? (
+                        layerSummary.topRegion.split(",")[0].trim()
+                      ) : (
+                        "—"
+                      )}
+                    </p>
+                  </div>
+                </div>
 
-                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
-
-                  <span className="max-w-[120px] truncate">
-                    {loadingLayer ? (
-                      <span className="animate-pulse text-gray-400">—</span>
-                    ) : layerSummary.topRegion !== "-" ? (
-                      layerSummary.topRegion.split(",")[0].trim()
-                    ) : (
-                      "—"
-                    )}
-                  </span>
-
-                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
-
+                {/* Row 2 — secondary metrics */}
+                <div className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-gray-500">
                   <span>
-                    {loadingLayer ? (
-                      <span className="animate-pulse text-gray-400">—</span>
-                    ) : (
-                      `${layerSummary.dataCount} wilayah`
-                    )}
+                    <span className="font-semibold text-gray-700">
+                      {loadingLayer ? "—" : layerSummary.dataCount}
+                    </span>{" "}
+                    wilayah
                   </span>
-
-                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
-
+                  <span className="select-none text-gray-300" aria-hidden="true">·</span>
                   <span
-                    className={`font-medium ${
+                    className={
                       !selectedRegion
                         ? "text-gray-400"
                         : loadingRegionAAL
@@ -781,16 +794,16 @@ export default function DashboardPage() {
                           : errorRegionAAL
                             ? "text-red-500"
                             : (selectedRegionClimateChangeInfo?.colorClass ?? "text-gray-500")
-                    }`}
+                    }
                   >
                     {!selectedRegion ? (
-                      "Belum dipilih"
+                      "Wilayah belum dipilih"
                     ) : loadingRegionAAL ? (
                       <span className="animate-pulse">—</span>
                     ) : errorRegionAAL ? (
                       "Error"
                     ) : selectedRegionClimateChangeInfo ? (
-                      `${selectedRegionClimateChangeInfo.label} ${selectedRegionClimateChangeInfo.isUp ? "↑" : "↓"} (${selectedRegion})`
+                      `${selectedRegionClimateChangeInfo.label} ${selectedRegionClimateChangeInfo.isUp ? "↑" : "↓"} · ${selectedRegion}`
                     ) : (
                       "N/A"
                     )}

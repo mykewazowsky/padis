@@ -1,553 +1,118 @@
-# PADIS Pipeline Documentation
+# Geospatial Analysis Pipeline
 
-Dokumen ini menjelaskan alur pipeline analisis untuk:
-- Flood
-- Drought
-- Multi-hazard
+The pipeline processes raw raster/vector data into risk metrics stored in the database. It is triggered from the Admin dashboard via `POST /api/admin/run-pipeline`.
 
-Pipeline dibagi menjadi beberapa tahap utama:
-1. Preprocess
-2. Zonal Statistics
-3. Analysis
-4. Prepare (web output)
+## Pipeline Modes
 
----
+| Mode | Steps Executed | Use Case |
+|---|---|---|
+| `full` | preprocess → zonal → analysis → etl | Full rerun from raw data |
+| `preprocess` | preprocess only | Normalize new raster inputs |
+| `analysis` | analysis → etl | Recompute risk from existing zonal stats |
+| `web` | etl only | Re-push existing results to DB |
 
-# 1. Konsep Umum Pipeline
+## Hazard Types
 
-## Alur umum
+| Type | Description |
+|---|---|
+| `flood` | Fluvial flood hazard |
+| `drought` | Agricultural drought hazard |
+| `multi` | Combined multi-hazard index |
 
-```text
-RAW DATA
-   ↓
-PREPROCESS
-   ↓
-ZONAL STATS
-   ↓
-ANALYSIS (DI / LOP / LOSS / AAL)
-   ↓
-PREPARE (WEB LAYER)
-   ↓
-OUTPUT
+## Entry Point
 
-Struktur folder pipeline
+```
+backend/scripts/main.py --mode <mode> --hazard <type>
+```
 
-scripts/
-  preprocess/
-  zonal/
-  analysis/
-  prepare/
-  legacy/
+Flask spawns this as a subprocess. Progress is tracked in a shared status object polled by `GET /api/admin/status`.
 
+## Script Chain
 
----
+### 1. Preprocessing — `run_preprocess.py`
 
-2. Flood Pipeline
+Calls `scripts/core/raster_engine.py` and `scripts/core/vector_engine.py`.
 
-Deskripsi
+**Raster preprocessing (`raster_engine.py`):**
+- Reads raw hazard raster (GeoTIFF) via Rasterio
+- Reprojects to EPSG:4326 if needed
+- Normalizes values to 0–1 range
+  - Flood: dynamic min/max normalization
+  - Drought: fixed threshold normalization (`-6.5` to `-2.0`, P1-based)
+- Clips to study area extent
+- Writes preprocessed raster to `data/processed/`
 
-Pipeline flood menghitung:
+**Vector preprocessing (`vector_engine.py`):**
+- Reads administrative boundary shapefile via Fiona/GeoPandas
+- Validates and repairs geometries with Shapely
+- Standardizes `id_kabkota` codes
+- Writes to `data/processed/`
 
-zonal flood exposure
+### 2. Zonal Statistics — `run_zonal.py`
 
-LOP flood
+Calls `scripts/core/zonal_engine.py`.
 
-loss ekonomi
+For each kabupaten polygon, computes statistics from the preprocessed hazard raster:
+- `mean_value` — mean pixel value within polygon
+- `max_value` — max pixel value
+- `min_value` — min pixel value
 
-AAL
+Uses Rasterio's `mask` module for pixel extraction. Results written to `data/zonal/`.
 
-web layers
+### 3. Risk Analysis
 
+Three separate scripts, each calling hazard-specific analysis modules:
 
+#### Flood — `run_analysis_flood.py` → `scripts/analysis/flood/`
+- Loads zonal hazard statistics
+- Joins with production data to get exposed asset value
+- Applies flood damage function (depth-damage curve)
+- Computes loss per return period per kabupaten
+- Integrates across return periods for AAL (trapezoidal integration)
 
----
+#### Drought — `run_analysis_drought.py` → `scripts/analysis/drought/`
+- Loads normalized SPEI/SPI raster zonal statistics
+- Applies drought exposure index to production value
+- Computes production loss per scenario
+- Integrates for AAL
 
-Step-by-step
+#### Multi-hazard — `run_analysis_multi.py` → `scripts/analysis/multihazard/`
+- Combines flood and drought risk indices
+- Weighted aggregation by hazard weight parameters
+- Produces composite risk index per kabupaten
 
-1. Preprocess raster flood
+### 4. ETL — `run_etl.py` → `scripts/etl/`
 
-scripts/preprocess/preprocess_flood_rasters.py
+Loads analysis output files and writes to Supabase:
+- Creates a new record in `runs` table → gets `run_id`
+- Upserts rows into `losses` (hazard × scenario × rp × run_id)
+- Upserts rows into `aal`
+- Upserts rows into `zonal_kabupaten`
+- Upserts rows into `production` (if new production data was processed)
 
-Fungsi:
+Uses SQLAlchemy bulk insert with conflict resolution (`ON CONFLICT DO UPDATE`).
 
-reprojection raster flood ke EPSG:4326
+## Configuration
 
-
-Output:
-
-data/processed/reproj_R*.tif
-
-data/processed/reproj_RC*.tif
-
-
-
----
-
-2. Zonal statistics flood
-
-scripts/zonal/zonal_stats_flood.py
-
-Fungsi:
-
-hitung mean raster per polygon sawah-admin
-
-
-Output:
-
-sawah_hazard_stats.geojson
-
-
-
----
-
-3. Aggregation ke kabupaten/kota
-
-scripts/analysis/aggregate_flood_kabkota.py
-
-Fungsi:
-
-agregasi mean hazard ke level kabupaten
-
-
-Output:
-
-kabkota_flood_stats.geojson
-
-
-
----
-
-4. Hitung LOP flood
-
-scripts/analysis/calculate_lop_flood.py
-
-Fungsi:
-
-transform hazard → probabilitas loss
-
-
-Output:
-
-kabkota_flood_lop.gpkg
-
-
-
----
-
-5. Hitung loss flood
-
-scripts/analysis/calculate_loss_flood.py
-
-Fungsi:
-
-menggunakan:
-
-LOP
-
-total produksi padi
-
-
-
-Output:
-
-kabkota_flood_loss.gpkg
-
-
-
----
-
-6. Standardisasi naming
-
-scripts/analysis/standardize_naming.py
-
-Fungsi:
-
-rename kolom menjadi standar:
-
-loss_flood_nonclimate_rpXX
-
-loss_flood_climate_rpXX
-
-
-
-Output:
-
-kabkota_flood_loss_std.gpkg
-
-
-
----
-
-7. Hitung AAL flood (v2)
-
-scripts/analysis/calculate_aal_flood_v2.py
-
-Fungsi:
-
-menghitung area under curve dari loss vs probability
-
-
-Output:
-
-kabkota_flood_aal_v2.csv
-
-
-
----
-
-8. Prepare web layer (split)
-
-scripts/prepare/prepare_web_flood_split_v2.py
-
-Output:
-
-web_flood_nonclimate_rp25_v2.geojson
-
-web_flood_climate_rp25_v2.geojson
-
-dst.
-
-
-
----
-
-9. Tambahkan AAL ke web layer
-
-scripts/prepare/add_aal_to_web_layers_v2.py
-
-Fungsi:
-
-join CSV AAL ke GeoJSON
-
-
-
----
-
-Output akhir flood
-
-Loss (standardized) → GPKG
-
-AAL → CSV
-
-Web layer → GeoJSON
-
-
-
----
-
-3. Drought Pipeline
-
-Deskripsi
-
-Pipeline drought menghitung:
-
-DI (Drought Index)
-
-LOP drought
-
-loss
-
-AAL
-
-web layers
-
-
-
----
-
-Step-by-step
-
-1. Preprocess raster drought
-
-scripts/preprocess/preprocess_drought_rasters.py
-
-Output:
-
-reproj_mme_rp*.tif
-
-reproj_gpm_rp*.tif
-
-
-
----
-
-2. Zonal statistics drought
-
-scripts/zonal/zonal_stats_drought.py
-
-Output:
-
-sawah_drought_stats.gpkg
-
-
-
----
-
-3. Aggregation
-
-scripts/analysis/aggregate_drought_kabkota.py
-
-Output:
-
-kabkota_drought_stats.gpkg
-
-
-
----
-
-4. Hitung DI
-
-scripts/analysis/calculate_di_drought.py
-
-Output:
-
-kabkota_drought_di.gpkg
-
-
-
----
-
-5. Hitung LOP
-
-scripts/analysis/calculate_lop_drought.py
-
-Output:
-
-kabkota_drought_lop.gpkg
-
-
-
----
-
-6. Hitung loss
-
-scripts/analysis/calculate_loss_drought.py
-
-Output:
-
-kabkota_drought_loss.gpkg
-
-
-
----
-
-7. Standardisasi naming
-
-scripts/analysis/standardize_naming.py
-
-Output:
-
-kabkota_drought_loss_std.gpkg
-
-
-
----
-
-8. Hitung AAL drought (v2)
-
-scripts/analysis/calculate_aal_drought_v2.py
-
-Output:
-
-kabkota_drought_aal_v2.csv
-
-
-
----
-
-9. Prepare web layer
-
-scripts/prepare/prepare_web_drought_split_v2.py
-
-
----
-
-10. Tambahkan AAL
-
-scripts/prepare/add_aal_to_web_layers_v2.py
-
-
----
-
-Output akhir drought
-
-DI → GPKG
-
-LOP → GPKG
-
-Loss → GPKG
-
-AAL → CSV
-
-Web → GeoJSON
-
-
-
----
-
-4. Multi-hazard Pipeline
-
-Deskripsi
-
-Menggabungkan:
-
-flood loss
-
-drought loss
-
-
-
----
-
-Step-by-step
-
-1. Hitung multihazard clean
-
-scripts/analysis/calculate_multihazard_clean.py
-
-Fungsi:
-
-gabungkan flood + drought
-
-weighted loss
-
-
-Output:
-
-kabkota_multihazard_clean.gpkg
-
-
-
----
-
-2. Hitung AAL multihazard (v2)
-
-scripts/analysis/calculate_aal_multihazard_v2.py
-
-Output:
-
-kabkota_multihazard_aal_v2.csv
-
-
-
----
-
-3. Prepare web layer
-
-scripts/prepare/prepare_web_multi_split_v2.py
-
-
----
-
-4. Tambahkan AAL
-
-scripts/prepare/add_aal_to_web_layers_v2.py
-
-
----
-
-Output akhir multi
-
-Clean → GPKG
-
-AAL → CSV
-
-Web → GeoJSON
-
-
-
----
-
-5. Dependensi Antar Pipeline
-
-Flood & Drought → Multi
-
-Multi hanya dapat dijalankan jika:
-
-kabkota_flood_loss_std.gpkg tersedia
-
-kabkota_drought_loss_std.gpkg tersedia
-
-
-
----
-
-6. Mode Eksekusi Pipeline
-
-Pipeline dapat dijalankan dengan mode:
-
-full
-
-Menjalankan seluruh pipeline dari awal hingga akhir
-
-preprocess
-
-Hanya menjalankan tahap preprocess
-
-analysis
-
-Menjalankan zonal + analysis
-
-web
-
-Menjalankan prepare web + AAL join
-
-
----
-
-7. Prinsip Desain Pipeline
-
-Modular
-
-Setiap step adalah script terpisah
-
-Re-runnable
-
-Script dapat dijalankan ulang tanpa merusak pipeline
-
-Transparent output
-
-Setiap step menghasilkan output yang jelas
-
-Naming konsisten
-
-loss_*
-
-aal_*
-
-web_*
-
-suffix _v2 untuk versi aktif
-
-
-
----
-
-8. Catatan Penting
-
-Pipeline menggunakan GeoPandas + RasterStats
-
-CRS target: EPSG:4326
-
-Geometry selalu di-force ke 2D
-
-Geometry invalid dan NULL dibersihkan sebelum output
-
-Web layer disederhanakan untuk optimasi performa (prototype)
-
-
-
----
-
-9. Status Pipeline Saat Ini
-
-Flood: ✅ stabil
-
-Drought: ✅ stabil
-
-Multi-hazard: ✅ stabil (bergantung flood + drought)
-
-Admin pipeline control: ✅ aktif
-
-
----
+Pipeline parameters are in `scripts/config/`:
+- Hazard weight coefficients for multi-hazard index
+- Damage function parameters
+- Return period integration weights (25, 50, 100, 250 years)
+- Input/output data paths
+
+## Data Directories
+
+```
+backend/data/
+├── raw/           # Uploaded raster inputs (GeoTIFF)
+├── processed/     # Normalized rasters, reprojected vectors
+├── zonal/         # Zonal statistics outputs (CSV/JSON)
+└── analysis/      # Risk analysis outputs (CSV/JSON)
+```
+
+## Adding New Data
+
+1. Upload raster via Admin → Upload (`POST /api/admin/upload`)
+2. Trigger pipeline from Admin dashboard
+3. New `run_id` appears in `GET /api/runs/latest`
+4. Frontend auto-fetches new data when `run_id` changes

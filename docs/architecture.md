@@ -1,599 +1,170 @@
-# PADIS System Architecture
-
-Dokumen ini menjelaskan arsitektur sistem PADIS secara menyeluruh, mencakup:
-- Backend (API & Admin)
-- Pipeline geospasial
-- Manajemen data
-- Interaksi frontend
-
----
-
-# 1. Gambaran Arsitektur
-
-PADIS menggunakan arsitektur modular dengan pemisahan jelas antara:
-
-- API Layer (Flask backend)
-- Processing Layer (pipeline geospasial)
-- Data Layer (file-based storage)
-- Frontend (Next.js admin & viewer)
-
-## Diagram konseptual
-
-```text
-          ┌──────────────────────┐
-          │      Frontend        │
-          │  (Next.js Admin UI)  │
-          └─────────┬────────────┘
-                    │ HTTP API
-                    ▼
-          ┌──────────────────────┐
-          │       Backend        │
-          │   (Flask API)        │
-          └─────────┬────────────┘
-                    │ trigger pipeline
-                    ▼
-          ┌──────────────────────┐
-          │   Pipeline Scripts   │
-          │ (GeoPandas, Raster)  │
-          └─────────┬────────────┘
-                    │ read/write
-                    ▼
-          ┌──────────────────────┐
-          │       Data Layer     │
-          │ (raw/processed/output)
-          └──────────────────────┘
-
-
----
-
-2. Backend Architecture
-
-Entry Point
-
-backend/run.py
-
-Backend dijalankan dengan:
-
-python run.py
-
-
----
-
-Flask Application
-
-Lokasi:
-
-backend/app/__init__.py
-
-Fungsi:
-
-inisialisasi Flask app
-
-register blueprint
-
-konfigurasi CORS
-
-
-
----
-
-Struktur Routes
-
-app/routes/
-  auth_routes.py
-  admin/
-    admin_utils.py
-    process_routes.py
-    output_routes.py
-    data_routes.py
-
-
----
-
-Domain Routing
-
-1. Auth Routes
-
-auth_routes.py
-
-Fungsi:
-
-autentikasi user
-
-middleware auth (require_auth)
-
-
-
----
-
-2. Admin Routes (modular)
-
-a. Process Routes
-
-process_routes.py
-
-Fungsi:
-
-menjalankan pipeline
-
-monitoring progress
-
-logging
-
-dependencies check
-
-
-Endpoint utama:
-
-/api/admin/run-analysis
-
-/api/admin/process-status
-
-/api/admin/dependencies
-
-
-
----
-
-b. Output Routes
-
-output_routes.py
-
-Fungsi:
-
-list output files
-
-preview output
-
-download output
-
-
-
----
-
-c. Data Routes
-
-data_routes.py
-
-Fungsi:
-
-data registry
-
-upload data
-
-delete data
-
-set active dataset
-
-preview metadata
-
-
-
----
-
-d. Admin Utils
-
-admin_utils.py
-
-Berisi:
-
-PIPELINE_REGISTRY
-
-PROCESS_STATE
-
-helper function
-
-path constants
-
-
-
----
-
-3. Pipeline Architecture
-
-Pipeline PADIS bersifat:
-
-modular
-
-sequential
-
-file-based
-
-
-Struktur pipeline
-
-scripts/
-  preprocess/
-  zonal/
-  analysis/
-  prepare/
-  legacy/
-
-
----
-
-Layer Pipeline
-
-1. Preprocess Layer
-
-Fungsi:
-
-reprojection raster
-
-cleaning vector
-
-intersection
-
-
-Output:
-
-data/processed/*
-
-
-
----
-
-2. Zonal Statistics Layer
-
-Fungsi:
-
-ekstraksi nilai raster ke polygon
-
-
-Tools:
-
-rasterstats
-
-geopandas
-
-
-
----
-
-3. Analysis Layer
-
-Fungsi:
-
-agregasi wilayah
-
-DI / LOP
-
-loss calculation
-
-AAL calculation
-
-
-
----
-
-4. Prepare Layer
-
-Fungsi:
-
-generate web-ready GeoJSON
-
-simplify geometry
-
-split scenario (rp25, rp50, dst)
-
-inject AAL
-
-
-
----
-
-Execution Model
-
-Pipeline dijalankan oleh backend menggunakan:
-
-subprocess.run(...)
-
-Karakteristik:
-
-synchronous per script
-
-asynchronous via threading (API tidak blocking)
-
-logging per step
-
-
-
----
-
-4. Data Architecture
-
-PADIS menggunakan pendekatan file-based data management.
-
-Struktur folder data
-
-data/
-  raw/
-  processed/
-  output/
-  _admin/
-
-
----
-
-Penjelasan
-
-1. Raw Data
-
-data/raw/
-
-Isi:
-
-shapefile admin
-
-shapefile sawah
-
-raster flood
-
-raster drought
-
-CSV produksi
-
-
-
----
-
-2. Processed Data
-
-data/processed/
-
-Isi:
-
-cleaned vector
-
-intersection layer
-
-reprojected raster
-
-
-
----
-
-3. Output Data
-
-data/output/
-
-Isi:
-
-hasil analysis (GPKG)
-
-AAL (CSV)
-
-web layer (GeoJSON)
-
-
-
----
-
-4. Admin Metadata
-
-data/_admin/active_sources.json
-
-Fungsi:
-
-menentukan dataset aktif
-
-override default raw data
-
-
-
----
-
-5. Pipeline Registry
-
-Pipeline registry disimpan di backend:
-
-PIPELINE_REGISTRY = {
-  hazard → mode → list of scripts
-}
-
-
----
-
-Hazard
-
-flood
-
-drought
-
-multi
-
-
-
----
-
-Mode
-
-full
-
-preprocess
-
-analysis
-
-web
-
-
-
----
-
-6. Process State Management
-
-Backend menyimpan state pipeline:
-
-PROCESS_STATE = {
-  status,
-  progress,
-  logs,
-  current_script,
-  updated_outputs
-}
-
-
----
-
-Fungsi utama
-
-monitoring progress
-
-logging error
-
-tracking output terbaru
-
-
-
----
-
-7. Frontend Interaction
-
-Frontend (Next.js) berinteraksi dengan backend melalui:
-
-/api/admin/*
-
-
----
-
-Halaman utama admin
-
-1. /admin/process
-
-run pipeline
-
-monitor progress
-
-lihat logs
-
-
-
----
-
-2. /admin/data
-
-kelola raw & processed data
-
-upload dataset
-
-set active source
-
-dataset registry
-
-
-
----
-
-3. /admin/output
-
-lihat hasil pipeline
-
-preview output
-
-download file
-
-
-
----
-
-8. Data Flow End-to-End
-
-User upload data
-        ↓
-Raw Data (data/raw)
-        ↓
-Preprocess
-        ↓
-Processed Data (data/processed)
-        ↓
-Zonal + Analysis
-        ↓
-Output Data (data/output)
-        ↓
-Prepare Web Layer
-        ↓
-Frontend Visualization
-
-
----
-
-9. Design Principles
-
-1. Separation of Concerns
-
-API ≠ pipeline ≠ data
-
-
-2. Modular Pipeline
-
-setiap step = 1 script
-
-
-3. File-based System
-
-tanpa database (saat ini)
-
-
-4. Reproducibility
-
-pipeline bisa dijalankan ulang
-
-
-5. Transparency
-
-semua output terlihat di folder
-
-
-
----
-
-10. Current Limitations
-
-belum menggunakan database
-
-belum ada queue system (Celery/RQ)
-
-file management masih manual
-
-belum ada versioning dataset
-
-concurrency masih terbatas
-
-
-
----
-
-11. Future Improvements
-
-integrasi database (PostGIS)
-
-job queue (Celery / Redis)
-
-dataset versioning
-
-metadata catalog
-
-storage abstraction (S3 / cloud)
-
-pipeline orchestration (Airflow)
-
-
-
----
-
-12. Status Sistem
-
-Backend API: ✅ stabil
-
-Pipeline flood: ✅ stabil
-
-Pipeline drought: ✅ stabil
-
-Pipeline multi: ✅ stabil
-
-Admin panel: ✅ aktif
-
-Data management: 🚧 berkembang
-
-
----
+# Architecture
+
+## System Overview
+
+PADIS is split into two independently deployed services — a Flask REST API (backend) and a Next.js frontend — both backed by a single Supabase PostgreSQL+PostGIS database.
+
+```
+Browser
+  └── Next.js (Vercel / Railway)
+        ├── API requests  ──→  Flask API (Railway)
+        │                          └── SQLAlchemy ──→ Supabase PostgreSQL+PostGIS
+        └── MVT tiles     ──→  Flask /api/tiles/{layer}
+```
+
+## Data Flow
+
+### Map Rendering (read path)
+
+```
+1. User selects hazard / scenario / climate / return period filters
+2. dashboard/page.tsx calls fetchAllLayers() in parallel:
+     GET /api/layers/values/loss?...
+     GET /api/layers/values/aal?...
+     GET /api/layers/values/hazard?...
+     GET /api/layers/values/production
+3. Responses: FeatureCollections with geometry: null (attribute data only)
+4. MapViewClient builds Jenks/quantile classification breaks from these values
+5. MapCanvas mounts Leaflet.VectorGrid TileLayer for each active layer:
+     GET /api/tiles/{layer}/{z}/{x}/{y}?...
+6. Each tile request: Flask queries PostGIS ST_AsMVTGeom, returns binary MVT
+7. VectorGrid renders tiles; MapCanvas style function colors each feature using
+   breaks computed in step 4
+```
+
+### Region Selection Flow
+
+```
+1a. User clicks polygon on map:
+    VT click handler fires → zoomSourceRef.current = "click" → onRegionSelect(name)
+    map.flyTo(ev.latlng, 9)  (immediate zoom, no ZoomToRegion effect)
+
+1b. User picks from kabupaten dropdown:
+    handleRegionChange(name) → setSelectedRegion(name)
+    ZoomToRegion useEffect fires → zoomSourceRef.current is null →
+    reads regionCentroids[name] → map.flyTo(centroid, 9)
+
+2. selectedRegion propagates to MapView:
+   - selectedFeature computed from all layer FeatureCollections (merged properties)
+   - DashboardMapOverlay renders the selected region info card
+   - MapCanvas highlights the selected polygon via VT style function
+```
+
+### Admin Pipeline Flow
+
+```
+1. Admin uploads raster/shapefile via POST /api/admin/upload
+2. Admin triggers pipeline via POST /api/admin/run-pipeline
+3. Flask spawns subprocess: python scripts/main.py --mode <mode> --hazard <type>
+4. Pipeline stages:
+   preprocess → zonal → analysis → etl
+5. ETL writes results to: losses, aal, zonal_kabupaten, production tables
+6. Admin polls GET /api/admin/status for progress
+7. New run_id becomes available via GET /api/runs/latest
+8. Frontend refetches all layers with new run_id
+```
+
+## Backend Architecture
+
+### Flask App Factory
+
+```
+backend/
+├── run.py              # Entry point: from app import create_app; app = create_app()
+└── app/
+    ├── __init__.py     # create_app() — registers blueprints, CORS
+    ├── db/
+    │   └── session.py  # SQLAlchemy SessionLocal factory
+    └── routes/
+        ├── auth/       # Blueprint: /api/auth
+        ├── layers/     # Blueprint: /api/layers
+        ├── tiles/      # Blueprint: /api/tiles
+        ├── admin/      # Blueprint: /api/admin
+        ├── analytics_routes.py   # Blueprint: /api/analytics
+        └── report_routes.py      # Blueprint: /api/report
+```
+
+### Blueprint Registration
+
+Each blueprint is registered with a URL prefix. The `layers` blueprint contains multiple sub-modules (loss, aal, hazard, production, regions, values) imported via `__init__.py`.
+
+### MVT Tile Cache
+
+Tiles are cached in-process using a Python `dict` keyed by `(layer, z, x, y, hazard, scenario, climate, run_id)`. Cache entries expire after 3600 seconds. The cache resets on server restart.
+
+```python
+# tile_cache.py
+_cache: dict[tuple, tuple[bytes, float]] = {}
+CACHE_TTL = 3600
+```
+
+## Frontend Architecture
+
+### Next.js App Router Structure
+
+```
+src/app/
+├── layout.tsx           # Root layout (fonts, global CSS)
+├── (main)/              # Route group — no shared layout prefix
+│   ├── layout.tsx       # Main layout with Navbar
+│   ├── page.tsx         # Landing page
+│   ├── dashboard/       # Main GIS dashboard
+│   ├── about/           # About page
+│   ├── cara-kerja/      # How-it-works page
+│   └── metodologi/      # Methodology page
+├── (admin)/             # Route group — admin layout
+│   ├── layout.tsx       # Admin shell wrapper
+│   └── admin/           # Admin dashboard
+└── (auth)/              # Route group — auth layout
+    ├── login/
+    ├── register/
+    ├── forgot-password/
+    └── reset-password/
+```
+
+### State Management
+
+All dashboard state lives in `dashboard/page.tsx` as React `useState` hooks. There is no global state library.
+
+| State | Type | Purpose |
+|---|---|---|
+| `scenario` | `string` | Selected return period (rp25/rp50/rp100/rp250) |
+| `hazard` | `string` | Selected hazard type |
+| `climate` | `string` | Climate scenario (nonclimate/climate) |
+| `runId` | `number` | Latest pipeline run ID |
+| `selectedRegion` | `string` | Lowercase kabupaten name |
+| `layers` | `object` | GeoJSON-like FeatureCollections per layer |
+| `activeLayers` | `Record<LayerKey, boolean>` | Layer visibility toggles |
+| `regionCentroids` | `Record<string, [lat, lng]>` | Centroid lookup for dropdown zoom |
+
+### Map Component Hierarchy
+
+```
+MapView (server-safe wrapper)
+└── MapViewClient (dynamic import, SSR disabled)
+    ├── computes classification breaks (Jenks via simple-statistics)
+    └── MapCanvas (react-leaflet MapContainer)
+        ├── TileLayer (basemap — OpenStreetMap)
+        ├── VectorGrid (analysis layers: loss, aal, hazard)
+        ├── VectorGrid (regions/batas administrasi)
+        ├── VectorGrid (production/sawah)
+        ├── FitBounds (one-shot initial fitBounds)
+        ├── ResetViewController (handles reset + fit-to-data)
+        ├── ZoomToRegion (handles dropdown → centroid zoom)
+        ├── Marker[] (kabupaten labels at zoom ≥ 7)
+        └── MapLegendPanel (conditional: analysis layers only)
+```
+
+### Layer Priority Rules
+
+When multiple layers are active simultaneously, these rules apply:
+
+1. **Legend and formatting**: `hazard > loss > aal > production`
+   - Production is always flat-colored (no classification, no legend)
+2. **Tooltip values** (else-if chain in `createTooltipHtml`):
+   - hazard → `mean_value`
+   - loss → `loss`
+   - aal → `aal`
+   - production → `total_prod`
+3. **Map fitBounds priority**: `loss > aal > hazard`
+   - Uses `data_bounds` from API response (spatial extent of data-bearing regions)

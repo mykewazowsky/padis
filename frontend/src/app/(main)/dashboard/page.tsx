@@ -728,11 +728,11 @@ export default function DashboardPage() {
 
                 {/* Row 1 — primary metrics with micro-labels */}
                 <div className="flex items-start divide-x divide-gray-200">
-                  <div className="min-w-0 flex-1 pr-4">
+                  <div className="flex-[1.3] pr-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                       Total Loss
                     </p>
-                    <p className="mt-1 truncate text-sm font-bold text-gray-900">
+                    <p className="mt-1 whitespace-nowrap text-base font-semibold text-gray-900">
                       {loadingLayer ? (
                         <span className="animate-pulse text-gray-300">—</span>
                       ) : (

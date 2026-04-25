@@ -427,18 +427,23 @@ function ResetViewController({
   dataBounds?: DataBounds | null;
 }) {
   const map = useMap();
+  const lastHandledSignal = useRef(0);
+  const dataBoundsRef = useRef(dataBounds);
+  dataBoundsRef.current = dataBounds;
 
   useEffect(() => {
-    if (!resetViewSignal) return;
-    if (dataBounds) {
+    if (!resetViewSignal || resetViewSignal === lastHandledSignal.current) return;
+    lastHandledSignal.current = resetViewSignal;
+    const bounds = dataBoundsRef.current;
+    if (bounds) {
       map.flyToBounds(
-        [[dataBounds.min_lat, dataBounds.min_lng], [dataBounds.max_lat, dataBounds.max_lng]],
+        [[bounds.min_lat, bounds.min_lng], [bounds.max_lat, bounds.max_lng]],
         { padding: FIT_BOUNDS_PADDING, duration: RESET_DURATION }
       );
     } else {
       map.flyToBounds(INDONESIA_BOUNDS, { padding: FIT_BOUNDS_PADDING, duration: RESET_DURATION });
     }
-  }, [resetViewSignal, map, dataBounds]);
+  }, [resetViewSignal, map]);
 
   return null;
 }

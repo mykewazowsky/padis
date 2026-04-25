@@ -525,6 +525,7 @@ function ZoomToRegion({
 
 export default function MapCanvas({
   data,
+  layers,
   hazard,
   scenario,
   climate,
@@ -780,30 +781,30 @@ export default function MapCanvas({
 
   const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;
 
-  // ── Region labels (from geometry-free data with centroid prop) ────────────
-  const showLabels = currentZoom >= LABEL_MIN_ZOOM && hasActiveTileLayer;
+  // ── Region labels ─────────────────────────────────────────────────────────
+  // Name lookup from production features (always contains full region list)
+  const regionNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const f of (layers?.production?.features ?? [])) {
+      const name = f?.properties?.kab_kota;
+      if (name) map[name.toLowerCase().trim()] = name;
+    }
+    return map;
+  }, [layers?.production]);
+
+  // Show when analysis tile layer is active OR when the regions boundary layer is active
+  const showLabels =
+    (currentZoom >= LABEL_MIN_ZOOM && hasActiveTileLayer) ||
+    (currentZoom >= 8 && activeLayers.regions);
 
   const regionLabels = useMemo<RegionLabel[]>(() => {
-    if (!showLabels || !data?.features?.length) return [];
-
-    return data.features
-      .map((rawFeature, index) => {
-        const feature = rawFeature as unknown as RegionFeature;
-        const props = feature.properties;
-        const name = props?.kab_kota?.trim();
-        if (!name) return null;
-
-        const position = getFeatureLabelPosition(feature);
-        if (!position) return null;
-
-        return {
-          id: `${normalizeRegionKey(name)}-${index}`,
-          name,
-          position,
-        };
-      })
-      .filter((item): item is RegionLabel => Boolean(item));
-  }, [data, showLabels]);
+    if (!showLabels || !regionCentroids || !Object.keys(regionCentroids).length) return [];
+    return Object.entries(regionCentroids).map(([key, coords], index) => ({
+      id: `label-${key}-${index}`,
+      name: regionNameMap[key] ?? key,
+      position: coords as L.LatLngExpression,
+    }));
+  }, [showLabels, regionCentroids, regionNameMap]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -835,20 +836,36 @@ export default function MapCanvas({
 
         {showLabels &&
           regionLabels.map((item) => {
+            const fontSize =
+              currentZoom >= 10 ? "10px" :
+              currentZoom >= 9  ? "9px"  :
+              currentZoom >= 8  ? "8px"  : "7px";
+            const opacity =
+              currentZoom >= 10 ? 1    :
+              currentZoom >= 9  ? 0.90 :
+              currentZoom >= 8  ? 0.75 : 0.60;
+
             const icon: DivIcon = L.divIcon({
               className: "kabkota-label-icon",
               html: `
                 <div style="
                   font-family: Figtree, sans-serif;
-                  font-size: 9px;
-                  font-weight: 600;
+                  font-size: ${fontSize};
+                  font-weight: 700;
                   color: #ffffff;
                   line-height: 1.1;
                   white-space: nowrap;
                   pointer-events: none;
                   transform: translate(-50%, -50%);
-                  padding: 2px 5px;
-                  border-radius: 4px;
+                  padding: 1px 4px;
+                  opacity: ${opacity};
+                  text-shadow:
+                    0 0 3px rgba(0,0,0,0.95),
+                    0 0 6px rgba(0,0,0,0.7),
+                    1px  1px 0 rgba(0,0,0,0.8),
+                   -1px -1px 0 rgba(0,0,0,0.8),
+                    1px -1px 0 rgba(0,0,0,0.8),
+                   -1px  1px 0 rgba(0,0,0,0.8);
                 ">
                   ${escapeHtml(item.name)}
                 </div>

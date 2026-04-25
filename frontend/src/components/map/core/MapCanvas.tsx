@@ -287,8 +287,9 @@ function formatLayerValue(
 ): string {
   if (value == null || Number.isNaN(value)) return "-";
   if (activeLayers.hazard) return value.toFixed(3);
+  if (activeLayers.loss || activeLayers.aal) return formatCompactRupiah(value);
   if (activeLayers.production) return `${value.toLocaleString("id-ID")} ton`;
-  return formatCompactRupiah(value); // loss / aal → Rupiah
+  return formatCompactRupiah(value);
 }
 
 // ---------------------------------------------------------------------------
@@ -317,10 +318,12 @@ function createTooltipHtml(params: {
   const isTop5 = normalizedTopRegionKeys.has(regionKey);
   const valueLabel = getValueLabel(activeLayers);
 
-  let value: number | null | undefined = props?.mean_value;
-  if (activeLayers.loss) value = props?.loss;
-  if (activeLayers.aal) value = props?.aal;
-  if (activeLayers.production) value = props?.total_prod;
+  let value: number | null | undefined;
+  if (activeLayers.hazard) value = props?.mean_value;
+  else if (activeLayers.loss) value = props?.loss;
+  else if (activeLayers.aal) value = props?.aal;
+  else if (activeLayers.production) value = props?.total_prod;
+  else value = props?.mean_value;
 
   const safeValue = escapeHtml(
     formatLayerValue(value, activeLayers, formatCompactRupiah)

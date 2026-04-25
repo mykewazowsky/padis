@@ -50,6 +50,12 @@ def get_hazard_display_name(hazard: str):
     }.get(hazard, hazard)
 
 
+def _latest_run_id(db) -> int | None:
+    """Return the most recent run_id, or None if no runs exist."""
+    row = db.execute(text("SELECT id FROM runs ORDER BY id DESC LIMIT 1")).fetchone()
+    return int(row.id) if row else None
+
+
 # ===============================
 # AAL SUMMARY
 # ===============================
@@ -147,13 +153,19 @@ def get_aal_summary_all_hazards():
 # ===============================
 @analytics_bp.route("/loss-summary")
 def get_loss_summary():
-    hazard = map_hazard(request.args.get("hazard", "multi"))
+    hazard  = map_hazard(request.args.get("hazard",  "multi"))
     climate = request.args.get("climate", "nonclimate")
+    run_id  = request.args.get("run_id",  type=int)
 
     db = SessionLocal()
     try:
+        if run_id is None:
+            run_id = _latest_run_id(db)
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
         sql = text(f"""
-            SELECT 
+            SELECT
                 rp.rp,
                 COALESCE(SUM(l.loss), 0) AS total_loss
             FROM losses l
@@ -162,13 +174,15 @@ def get_loss_summary():
             JOIN return_periods rp ON l.rp_id = rp.id
             WHERE {hazard_filter_sql()}
               AND s.name = :climate
+              AND l.run_id = :run_id
             GROUP BY rp.rp
             ORDER BY rp.rp
         """)
 
         rows = db.execute(sql, {
-            "hazard": hazard,
-            "climate": climate
+            "hazard":  hazard,
+            "climate": climate,
+            "run_id":  run_id,
         }).mappings().all()
 
         rp_map = {
@@ -191,11 +205,17 @@ def get_loss_summary():
 @analytics_bp.route("/loss-summary-compare-climate")
 def get_loss_summary_compare_climate():
     hazard = map_hazard(request.args.get("hazard", "multi"))
+    run_id = request.args.get("run_id", type=int)
 
     db = SessionLocal()
     try:
+        if run_id is None:
+            run_id = _latest_run_id(db)
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
         sql = text(f"""
-            SELECT 
+            SELECT
                 rp.rp,
                 s.name AS climate,
                 COALESCE(SUM(l.loss), 0) AS total_loss
@@ -204,23 +224,23 @@ def get_loss_summary_compare_climate():
             JOIN scenarios s ON l.scenario_id = s.id
             JOIN return_periods rp ON l.rp_id = rp.id
             WHERE {hazard_filter_sql()}
+              AND l.run_id = :run_id
             GROUP BY rp.rp, s.name
             ORDER BY rp.rp
         """)
 
-        rows = db.execute(sql, {"hazard": hazard}).mappings().all()
+        rows = db.execute(sql, {"hazard": hazard, "run_id": run_id}).mappings().all()
 
         merged = {
-            "rp25": {"scenario": "RP25", "nonclimate": 0, "climate": 0},
-            "rp50": {"scenario": "RP50", "nonclimate": 0, "climate": 0},
+            "rp25":  {"scenario": "RP25",  "nonclimate": 0, "climate": 0},
+            "rp50":  {"scenario": "RP50",  "nonclimate": 0, "climate": 0},
             "rp100": {"scenario": "RP100", "nonclimate": 0, "climate": 0},
             "rp250": {"scenario": "RP250", "nonclimate": 0, "climate": 0},
         }
 
         for row in rows:
-            key = f"rp{row['rp']}"
+            key     = f"rp{row['rp']}"
             climate = row["climate"]
-
             if key in merged:
                 merged[key][climate] = int(round(float(row["total_loss"] or 0)))
 
@@ -235,16 +255,22 @@ def get_loss_summary_compare_climate():
 # ===============================
 @analytics_bp.route("/top-regions")
 def get_top_regions():
-    hazard = map_hazard(request.args.get("hazard", "multi"))
+    hazard   = map_hazard(request.args.get("hazard",   "multi"))
     scenario = request.args.get("scenario", "rp25")
-    climate = request.args.get("climate", "nonclimate")
+    climate  = request.args.get("climate",  "nonclimate")
+    run_id   = request.args.get("run_id",   type=int)
 
     rp = int(scenario.replace("rp", ""))
 
     db = SessionLocal()
     try:
+        if run_id is None:
+            run_id = _latest_run_id(db)
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
         sql = text(f"""
-            SELECT 
+            SELECT
                 r.kab_kota AS region_name,
                 SUM(l.loss) AS loss
             FROM losses l
@@ -255,15 +281,17 @@ def get_top_regions():
             WHERE {hazard_filter_sql()}
               AND rp.rp = :rp
               AND s.name = :climate
+              AND l.run_id = :run_id
             GROUP BY r.kab_kota
             ORDER BY loss DESC
             LIMIT 10
         """)
 
         rows = db.execute(sql, {
-            "hazard": hazard,
-            "rp": rp,
-            "climate": climate
+            "hazard":  hazard,
+            "rp":      rp,
+            "climate": climate,
+            "run_id":  run_id,
         }).mappings().all()
 
         return jsonify([
@@ -284,14 +312,20 @@ def get_top_regions():
 @analytics_bp.route("/hazard-breakdown")
 def hazard_breakdown():
     scenario = request.args.get("scenario", "rp25")
-    climate = request.args.get("climate", "nonclimate")
+    climate  = request.args.get("climate",  "nonclimate")
+    run_id   = request.args.get("run_id",   type=int)
 
     rp = int(scenario.replace("rp", ""))
 
     db = SessionLocal()
     try:
+        if run_id is None:
+            run_id = _latest_run_id(db)
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
         sql = text("""
-            SELECT 
+            SELECT
                 h.name AS hazard,
                 SUM(l.loss) AS total
             FROM losses l
@@ -300,12 +334,14 @@ def hazard_breakdown():
             JOIN return_periods rp ON l.rp_id = rp.id
             WHERE rp.rp = :rp
               AND s.name = :climate
+              AND l.run_id = :run_id
             GROUP BY h.name
         """)
 
         rows = db.execute(sql, {
-            "rp": rp,
-            "climate": climate
+            "rp":     rp,
+            "climate": climate,
+            "run_id": run_id,
         }).mappings().all()
 
         totals = {

@@ -24,6 +24,7 @@ import DashboardEmptyState from "../dashboard/DashboardEmptyState";
 
 type Props = {
   hazard: string;
+  runId?: number;
 };
 
 type AalAllHazardsItem = {
@@ -126,7 +127,7 @@ function CustomTooltip({
   );
 }
 
-export default function ComparisonCharts({ hazard }: Props) {
+export default function ComparisonCharts({ hazard, runId }: Props) {
   const [aalAllHazards, setAalAllHazards] = useState<AalAllHazardsItem[]>([]);
   const [lossCompareClimate, setLossCompareClimate] = useState<
     LossCompareClimateItem[]
@@ -157,7 +158,7 @@ export default function ComparisonCharts({ hazard }: Props) {
     setErrorLoss(null);
 
     fetchJson<LossCompareClimateItem[]>(
-      `/api/loss-summary-compare-climate?hazard=${hazard}`
+      `/api/loss-summary-compare-climate?hazard=${hazard}${runId != null ? `&run_id=${runId}` : ""}`
     )
       .then((json) => setLossCompareClimate(json))
       .catch((err) => {
@@ -166,7 +167,7 @@ export default function ComparisonCharts({ hazard }: Props) {
         setLossCompareClimate([]);
       })
       .finally(() => setLoadingLoss(false));
-  }, [hazard]);
+  }, [hazard, runId]);
 
   const aalChartData = useMemo(() => {
     return aalAllHazards.map((item) => ({

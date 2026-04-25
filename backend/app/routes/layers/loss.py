@@ -16,8 +16,9 @@ _RP_ID        = {25: 1, 50: 2, 100: 3, 250: 4}
 def get_loss():
     raw_hazard     = request.args.get("hazard", "flood")
     hazard         = _HAZARD_ALIAS.get(raw_hazard.strip().lower(), raw_hazard.strip().lower())
-    climate        = request.args.get("climate", "nonclimate").strip().lower()
+    climate        = request.args.get("climate",  "nonclimate").strip().lower()
     scenario_param = request.args.get("scenario", "rp100").strip().lower()
+    run_id         = request.args.get("run_id",   type=int)
 
     try:
         rp = int(scenario_param.replace("rp", ""))
@@ -37,18 +38,25 @@ def get_loss():
     scenario_id = _SCENARIO_ID[climate]
     rp_id       = _RP_ID[rp]
 
-    print({
-        "endpoint":    "layers/loss",
-        "hazard":      hazard,
-        "hazard_id":   hazard_id,
-        "climate":     climate,
-        "scenario_id": scenario_id,
-        "rp":          rp,
-        "rp_id":       rp_id,
-    })
-
     db = SessionLocal()
     try:
+        if run_id is None:
+            row = db.execute(text("SELECT id FROM runs ORDER BY id DESC LIMIT 1")).fetchone()
+            run_id = int(row.id) if row else None
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
+        print({
+            "endpoint":    "layers/loss",
+            "hazard":      hazard,
+            "hazard_id":   hazard_id,
+            "climate":     climate,
+            "scenario_id": scenario_id,
+            "rp":          rp,
+            "rp_id":       rp_id,
+            "run_id":      run_id,
+        })
+
         result = db.execute(text("""
             SELECT
                 r.id_kabkota,
@@ -62,7 +70,8 @@ def get_loss():
                 AND l.hazard_id   = :hazard_id
                 AND l.scenario_id = :scenario_id
                 AND l.rp_id       = :rp_id
-        """), {"hazard_id": hazard_id, "scenario_id": scenario_id, "rp_id": rp_id}).fetchall()
+                AND l.run_id      = :run_id
+        """), {"hazard_id": hazard_id, "scenario_id": scenario_id, "rp_id": rp_id, "run_id": run_id}).fetchall()
 
         features = []
         for row in result:

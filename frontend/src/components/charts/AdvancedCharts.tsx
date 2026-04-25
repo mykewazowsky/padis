@@ -28,6 +28,7 @@ type Props = {
   scenario: string;
   hazard: string;
   climate: string;
+  runId?: number;
   selectedRegion?: string;
   onRegionSelect?: (region: string) => void;
 };
@@ -164,6 +165,7 @@ export default function AdvancedCharts({
   scenario,
   hazard,
   climate,
+  runId,
   selectedRegion,
   onRegionSelect,
 }: Props) {
@@ -181,7 +183,7 @@ export default function AdvancedCharts({
     setErrorTopRegions(null);
 
     fetchJson<TopRegionItem[]>(
-      `/api/top-regions?hazard=${hazard}&scenario=${scenario}&climate=${climate}`
+      `/api/top-regions?hazard=${hazard}&scenario=${scenario}&climate=${climate}${runId != null ? `&run_id=${runId}` : ""}`
     )
       .then(setTopRegions)
       .catch((err) => {
@@ -190,14 +192,14 @@ export default function AdvancedCharts({
         setTopRegions([]);
       })
       .finally(() => setLoadingTopRegions(false));
-  }, [hazard, scenario, climate]);
+  }, [hazard, scenario, climate, runId]);
 
   useEffect(() => {
     setLoadingBreakdown(true);
     setErrorBreakdown(null);
 
     fetchJson<BreakdownItem[]>(
-      `/api/hazard-breakdown?scenario=${scenario}&climate=${climate}`
+      `/api/hazard-breakdown?scenario=${scenario}&climate=${climate}${runId != null ? `&run_id=${runId}` : ""}`
     )
       .then(setBreakdown)
       .catch((err) => {
@@ -206,7 +208,7 @@ export default function AdvancedCharts({
         setBreakdown([]);
       })
       .finally(() => setLoadingBreakdown(false));
-  }, [scenario, climate]);
+  }, [scenario, climate, runId]);
 
   const chartTopRegions = useMemo(() => {
     return topRegions.map((item, index) => {

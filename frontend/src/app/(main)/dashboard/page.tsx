@@ -1250,12 +1250,13 @@ export default function DashboardPage() {
                 desc="Perbandingan AAL antar jenis bencana, total kerugian skenario iklim vs non-iklim, wilayah terdampak utama, dan breakdown hazard."
               />
 
-              <ComparisonCharts hazard={hazard} />
+              <ComparisonCharts hazard={hazard} runId={runId ?? undefined} />
 
               <AdvancedCharts
                 hazard={hazard}
                 scenario={scenario}
                 climate={climate}
+                runId={runId ?? undefined}
                 selectedRegion={selectedRegion}
                 onRegionSelect={handleRegionChange}
               />

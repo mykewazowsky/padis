@@ -44,6 +44,7 @@ type Props = {
   onGroupOrderChange?: (groupId: string, newOrder: LayerKey[]) => void;
   basemap?: BasemapKey;
   onBasemapChange?: (key: BasemapKey) => void;
+  hazard?: string;
 };
 
 const THEMATIC_KEYS: LayerKey[] = ["hazard", "loss", "aal"];
@@ -76,6 +77,7 @@ export default function MapLayerControlPanel({
   onGroupOrderChange,
   basemap = "imagery",
   onBasemapChange,
+  hazard,
 }: Props) {
   const [isOpen, setIsOpen] = useState(true);
   const [groups, setGroups] = useState<LayerGroup[]>(INITIAL_GROUPS);
@@ -85,6 +87,8 @@ export default function MapLayerControlPanel({
   );
 
   const handleToggle = (key: LayerKey) => {
+    if (key === "hazard" && hazard === "multi") return;
+
     const isThematic = THEMATIC_KEYS.includes(key);
 
     if (!isThematic) {
@@ -212,17 +216,29 @@ export default function MapLayerControlPanel({
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-0.5">
-                    {group.layers.map((layer) => (
-                      <LayerItem
-                        key={layer.id}
-                        id={layer.id}
-                        label={layer.label}
-                        visible={!!activeLayers[layer.id]}
-                        opacity={layerOpacity[layer.id] ?? 0.7}
-                        onToggle={() => handleToggle(layer.id)}
-                        onOpacityChange={(op) => onOpacityChange(layer.id, op)}
-                      />
-                    ))}
+                    {group.layers.map((layer) => {
+                      const isHazardDisabled =
+                        layer.id === "hazard" && hazard === "multi";
+                      return (
+                        <LayerItem
+                          key={layer.id}
+                          id={layer.id}
+                          label={layer.label}
+                          visible={!!activeLayers[layer.id]}
+                          opacity={layerOpacity[layer.id] ?? 0.7}
+                          onToggle={() => handleToggle(layer.id)}
+                          onOpacityChange={(op) =>
+                            onOpacityChange(layer.id, op)
+                          }
+                          disabled={isHazardDisabled}
+                          disabledReason={
+                            isHazardDisabled
+                              ? "Indeks Bahaya tidak tersedia untuk Multi-hazard karena dihitung dari kombinasi kekeringan dan banjir."
+                              : undefined
+                          }
+                        />
+                      );
+                    })}
                   </div>
                 </SortableContext>
               </div>

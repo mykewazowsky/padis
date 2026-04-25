@@ -12,6 +12,8 @@ type Props = {
   opacity: number;
   onToggle: () => void;
   onOpacityChange: (opacity: number) => void;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
 export default function LayerItem({
@@ -21,6 +23,8 @@ export default function LayerItem({
   opacity,
   onToggle,
   onOpacityChange,
+  disabled = false,
+  disabledReason,
 }: Props) {
   const {
     attributes,
@@ -40,19 +44,24 @@ export default function LayerItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-md bg-white border px-2 py-1.5 ${
+      title={disabled ? disabledReason : undefined}
+      className={`rounded-md bg-white border px-2 py-1.5 transition-opacity ${
         isDragging
           ? "border-[var(--color-primary)] shadow-md opacity-80"
           : "border-transparent hover:border-gray-200"
-      }`}
+      } ${disabled ? "opacity-50" : ""}`}
     >
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="cursor-grab text-gray-300 hover:text-gray-500 touch-none flex-shrink-0"
-          {...attributes}
-          {...listeners}
+          className={`touch-none flex-shrink-0 text-gray-300 ${
+            disabled
+              ? "cursor-not-allowed"
+              : "cursor-grab hover:text-gray-500"
+          }`}
+          {...(disabled ? {} : { ...attributes, ...listeners })}
           aria-label={`Seret untuk mengubah urutan ${label}`}
+          disabled={disabled}
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>
@@ -64,12 +73,15 @@ export default function LayerItem({
         <input
           type="checkbox"
           checked={visible}
-          onChange={onToggle}
-          className="h-4 w-4 accent-[var(--color-primary)] flex-shrink-0"
+          onChange={disabled ? undefined : onToggle}
+          disabled={disabled}
+          className={`h-4 w-4 flex-shrink-0 accent-[var(--color-primary)] ${
+            disabled ? "cursor-not-allowed" : ""
+          }`}
         />
       </div>
 
-      {visible && (
+      {visible && !disabled && (
         <div className="mt-1.5 flex items-center gap-2 pl-6 pr-1">
           <span className="text-[10px] text-gray-400 flex-shrink-0">
             Opacity

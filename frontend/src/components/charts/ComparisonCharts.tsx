@@ -1,7 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ResponsiveContainer } from "recharts";
+import { useEffect, useMemo, useState } from "react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import {
   ArrowRightLeft,
   BarChart3,
@@ -80,267 +92,86 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
 const NONCLIMATE_COLOR = "var(--color-primary)";
 const CLIMATE_COLOR = "var(--color-secondary)";
 
-// ─── Dumbbell Chart ───────────────────────────────────────────────────────────
+// ─── Custom Tooltips ──────────────────────────────────────────────────────────
 
-type DumbbellRow = { [key: string]: string | number };
+type ScatterPoint = { x: number; y: number; name: string };
 
-function DumbbellChart({
-  data,
-  categoryKey,
-  tooltipLabelPrefix,
-  width = 400,
-  height = 300,
+function ScatterTooltip({
+  active,
+  payload,
 }: {
-  data: DumbbellRow[];
-  categoryKey: string;
-  tooltipLabelPrefix: string;
-  width?: number;
-  height?: number;
+  active?: boolean;
+  payload?: Array<{ payload: ScatterPoint }>;
 }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [hovered, setHovered] = useState<{
-    row: DumbbellRow;
-    px: number;
-    py: number;
-  } | null>(null);
-
-  const W_NUM = Math.max(Number(width), 100);
-  const H_NUM = Math.max(Number(height), 60);
-
-  const MARGIN = { top: 32, right: 32, bottom: 36, left: 110 };
-  const CW = Math.max(W_NUM - MARGIN.left - MARGIN.right, 10);
-  const CH = Math.max(H_NUM - MARGIN.top - MARGIN.bottom, 10);
-
-  const sortedData = [...data].sort((a, b) => {
-    const gapA = Math.abs(Number(a.climate) - Number(a.nonclimate));
-    const gapB = Math.abs(Number(b.climate) - Number(b.nonclimate));
-    return gapB - gapA;
-  });
-
-  const n = sortedData.length;
-  const rowH = n > 0 ? CH / n : 40;
-  const DOT_R = Math.min(8, Math.max(5, rowH * 0.25));
-
-  const allVals = sortedData.flatMap((d) => [
-    Number(d.nonclimate ?? 0),
-    Number(d.climate ?? 0),
-  ]);
-  const minVal = Math.min(...allVals);
-  const maxVal = Math.max(...allVals);
-
-  const padding = (maxVal - minVal) * 0.1;
-
-  const domainMin = Math.max(0, minVal - padding);
-  const domainMax = maxVal + padding;
-
-  const range = domainMax - domainMin || 1;
-
-  const xScale = (v: number) =>
-    ((v - domainMin) / range) * CW;
-
-  const TICK_COUNT = 4;
-  const ticks = Array.from(
-    { length: TICK_COUNT + 1 },
-    (_, i) => domainMin + ((domainMax - domainMin) * i) / TICK_COUNT
-  );
-
-  const TOOLTIP_W = 220;
-  const tooltipLeft = hovered
-    ? hovered.px + 14 + TOOLTIP_W > W_NUM
-      ? hovered.px - TOOLTIP_W - 14
-      : hovered.px + 14
-    : 0;
-
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
   return (
-    <div style={{ position: "relative", width: W_NUM, height: H_NUM }}>
-      <svg
-        ref={svgRef}
-        width={W_NUM}
-        height={H_NUM}
-        onMouseLeave={() => setHovered(null)}
-      >
-        {/* Legend */}
-        <g transform={`translate(${MARGIN.left}, 10)`}>
-          <circle cx={0} cy={6} r={5} fill={NONCLIMATE_COLOR} />
-          <text
-            x={10}
-            y={6}
-            dominantBaseline="middle"
-            fontSize={11}
-            fill="#374151"
-            fontFamily="inherit"
-          >
-            Non-Climate
-          </text>
-          <circle cx={102} cy={6} r={5} fill={CLIMATE_COLOR} />
-          <text
-            x={112}
-            y={6}
-            dominantBaseline="middle"
-            fontSize={11}
-            fill="#374151"
-            fontFamily="inherit"
-          >
-            Climate
-          </text>
-        </g>
-
-        <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-          {/* Vertical grid lines */}
-          {ticks.map((t, i) => (
-            <line
-              key={i}
-              x1={xScale(t)}
-              x2={xScale(t)}
-              y1={0}
-              y2={CH}
-              stroke="#e5e7eb"
-              strokeDasharray="3 3"
-            />
-          ))}
-
-          {/* Data rows */}
-          {sortedData.map((row, i) => {
-            const cy = rowH * i + rowH / 2;
-            const xNC = xScale(Number(row.nonclimate ?? 0));
-            const xCC = xScale(Number(row.climate ?? 0));
-            const label = String(row[categoryKey] ?? "");
-            const lineX1 = Math.min(xNC, xCC);
-            const lineX2 = Math.max(xNC, xCC);
-
-            const isIncrease = xCC > xNC;
-            const lineColor = isIncrease ? "#22c55e" : "#ef4444";
-
-            return (
-              <g
-                key={i}
-                onMouseMove={(e) => {
-                  const rect = svgRef.current?.getBoundingClientRect();
-                  if (!rect) return;
-                  setHovered({
-                    row,
-                    px: e.clientX - rect.left,
-                    py: e.clientY - rect.top,
-                  });
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                {/* Category label */}
-                <text
-                  x={-10}
-                  y={cy}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fill="#374151"
-                  fontSize={12}
-                  fontFamily="inherit"
-                >
-                  {label}
-                </text>
-
-                {/* Connecting line */}
-                <line
-                  x1={lineX1}
-                  x2={lineX2}
-                  y1={cy}
-                  y2={cy}
-                  stroke={lineColor}
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                />
-
-                {/* Nonclimate dot */}
-                <circle
-                  cx={xNC}
-                  cy={cy}
-                  r={DOT_R}
-                  fill={NONCLIMATE_COLOR}
-                  stroke="white"
-                  strokeWidth={2}
-                />
-
-                {/* Climate dot */}
-                <circle
-                  cx={xCC}
-                  cy={cy}
-                  r={DOT_R}
-                  fill={CLIMATE_COLOR}
-                  stroke="white"
-                  strokeWidth={2}
-                />
-              </g>
-            );
-          })}
-
-          {/* X axis line */}
-          <line x1={0} x2={CW} y1={CH} y2={CH} stroke="#d1d5db" />
-
-          {/* X axis ticks + labels */}
-          {ticks.map((t, i) => (
-            <g key={i}>
-              <line
-                x1={xScale(t)}
-                x2={xScale(t)}
-                y1={CH}
-                y2={CH + 5}
-                stroke="#d1d5db"
-              />
-              <text
-                x={xScale(t)}
-                y={CH + 18}
-                textAnchor="middle"
-                fill="#6b7280"
-                fontSize={11}
-                fontFamily="inherit"
-              >
-                {formatCompact(t)}
-              </text>
-            </g>
-          ))}
-        </g>
-      </svg>
-
-      {/* Hover tooltip */}
-      {hovered && (
-        <div
-          className="pointer-events-none absolute z-10 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg"
-          style={{
-            left: tooltipLeft,
-            top: Math.max(4, hovered.py - 44),
-            width: TOOLTIP_W,
-          }}
-        >
-          <p className="text-xs font-semibold tracking-wide text-gray-500">
-            {tooltipLabelPrefix}: {String(hovered.row[categoryKey] ?? "")}
-          </p>
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center gap-2 text-sm">
-              <span
-                className="inline-block h-3 w-3 shrink-0 rounded-full"
-                style={{ backgroundColor: NONCLIMATE_COLOR }}
-              />
-              <span className="text-gray-700">
-                Non-Climate:{" "}
-                <span className="font-semibold text-gray-900">
-                  {formatRupiah(Number(hovered.row.nonclimate ?? 0))}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span
-                className="inline-block h-3 w-3 shrink-0 rounded-full"
-                style={{ backgroundColor: CLIMATE_COLOR }}
-              />
-              <span className="text-gray-700">
-                Climate:{" "}
-                <span className="font-semibold text-gray-900">
-                  {formatRupiah(Number(hovered.row.climate ?? 0))}
-                </span>
-              </span>
-            </div>
-          </div>
+    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
+      <p className="text-xs font-semibold tracking-wide text-gray-500">
+        {d.name}
+      </p>
+      <div className="mt-2 space-y-1">
+        <div className="flex items-center gap-2 text-sm">
+          <span
+            className="inline-block h-3 w-3 shrink-0 rounded-full"
+            style={{ backgroundColor: NONCLIMATE_COLOR }}
+          />
+          <span className="text-gray-700">
+            Non-Climate:{" "}
+            <span className="font-semibold text-gray-900">
+              {formatRupiah(d.x)}
+            </span>
+          </span>
         </div>
-      )}
+        <div className="flex items-center gap-2 text-sm">
+          <span
+            className="inline-block h-3 w-3 shrink-0 rounded-full"
+            style={{ backgroundColor: CLIMATE_COLOR }}
+          />
+          <span className="text-gray-700">
+            Climate:{" "}
+            <span className="font-semibold text-gray-900">
+              {formatRupiah(d.y)}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LineTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
+      <p className="text-xs font-semibold tracking-wide text-gray-500">
+        {String(label ?? "").toUpperCase()}
+      </p>
+      <div className="mt-2 space-y-1">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center gap-2 text-sm">
+            <span
+              className="inline-block h-3 w-3 shrink-0 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-700">
+              {entry.name === "nonclimate" ? "Non-Climate" : "Climate"}:{" "}
+              <span className="font-semibold text-gray-900">
+                {formatRupiah(Number(entry.value))}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -385,7 +216,9 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       .then((json) => setLossCompareClimate(json))
       .catch((err) => {
         console.error("Loss compare climate fetch error:", err);
-        setErrorLoss("Gagal memuat perbandingan total loss climate vs non-climate.");
+        setErrorLoss(
+          "Gagal memuat perbandingan total loss climate vs non-climate."
+        );
         setLossCompareClimate([]);
       })
       .finally(() => setLoadingLoss(false));
@@ -398,6 +231,27 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       climate: safeNumber(item.total_aal_climate),
     }));
   }, [aalAllHazards]);
+
+  const scatterData = useMemo<ScatterPoint[]>(() => {
+    return aalChartData.map((d) => ({
+      x: d.nonclimate,
+      y: d.climate,
+      name: d.hazard,
+    }));
+  }, [aalChartData]);
+
+  const scatterDomain = useMemo((): [number, number] => {
+    const vals = aalChartData.flatMap((d) => [d.nonclimate, d.climate]);
+    const max = vals.length > 0 ? Math.max(...vals) : 0;
+    return [0, max > 0 ? max * 1.15 : 1];
+  }, [aalChartData]);
+
+  const sortedLossData = useMemo(() => {
+    const rpNum = (s: string) => parseInt(s.replace(/\D/g, ""), 10) || 0;
+    return [...lossCompareClimate].sort(
+      (a, b) => rpNum(a.scenario) - rpNum(b.scenario)
+    );
+  }, [lossCompareClimate]);
 
   const hasAALData = useMemo(() => {
     return aalChartData.some(
@@ -504,7 +358,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-      {/* ── AAL Antar Hazard ── */}
+      {/* ── AAL Antar Hazard — Scatter Comparison ── */}
       <div className="card card-accent-primary p-5 md:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
@@ -607,18 +461,67 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <DumbbellChart
-                  data={aalChartData}
-                  categoryKey="hazard"
-                  tooltipLabelPrefix="Hazard"
-                />
+                <ScatterChart
+                  margin={{ top: 10, right: 30, bottom: 50, left: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    type="number"
+                    dataKey="x"
+                    name="Non-Climate"
+                    tickFormatter={formatCompact}
+                    domain={scatterDomain}
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    label={{
+                      value: "Non-Climate (Rp)",
+                      position: "insideBottom",
+                      offset: -25,
+                      fontSize: 11,
+                      fill: "#6b7280",
+                    }}
+                  />
+                  <YAxis
+                    type="number"
+                    dataKey="y"
+                    name="Climate"
+                    tickFormatter={formatCompact}
+                    domain={scatterDomain}
+                    width={72}
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    label={{
+                      value: "Climate (Rp)",
+                      angle: -90,
+                      position: "insideLeft",
+                      offset: 20,
+                      fontSize: 11,
+                      fill: "#6b7280",
+                    }}
+                  />
+                  <Tooltip content={<ScatterTooltip />} />
+                  <ReferenceLine
+                    segment={[
+                      { x: scatterDomain[0], y: scatterDomain[0] },
+                      { x: scatterDomain[1], y: scatterDomain[1] },
+                    ]}
+                    stroke="#9ca3af"
+                    strokeDasharray="5 5"
+                    strokeWidth={1.5}
+                    label={{
+                      value: "y = x",
+                      position: "insideTopRight",
+                      fontSize: 10,
+                      fill: "#9ca3af",
+                    }}
+                  />
+                  <Scatter data={scatterData} fill={NONCLIMATE_COLOR} />
+                </ScatterChart>
               </ResponsiveContainer>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Total Loss per Scenario ── */}
+      {/* ── Total Loss per Scenario — Line Chart ── */}
       <div className="card card-accent-secondary p-5 md:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
@@ -657,7 +560,9 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 Total Loss Tertinggi
               </p>
               <p className="mt-2 text-lg font-bold text-gray-900">
-                {loadingLoss ? "Loading..." : formatRupiah(lossInsight.topValue)}
+                {loadingLoss
+                  ? "Loading..."
+                  : formatRupiah(lossInsight.topValue)}
               </p>
             </div>
           </div>
@@ -683,7 +588,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <p
                     className={`text-sm font-semibold ${lossInsight.compareInfo.colorClass}`}
                   >
-                    Total climate vs non-climate: {lossInsight.compareInfo.label}
+                    Total climate vs non-climate:{" "}
+                    {lossInsight.compareInfo.label}
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     {lossInsight.compareInfo.description}
@@ -711,11 +617,47 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <DumbbellChart
-                  data={lossCompareClimate}
-                  categoryKey="scenario"
-                  tooltipLabelPrefix="Scenario"
-                />
+                <LineChart
+                  data={sortedLossData}
+                  margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="scenario"
+                    tickFormatter={(v: string) => v.toUpperCase()}
+                    tick={{ fontSize: 12, fill: "#6b7280" }}
+                  />
+                  <YAxis
+                    tickFormatter={formatCompact}
+                    width={72}
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                  />
+                  <Tooltip content={<LineTooltip />} />
+                  <Legend
+                    wrapperStyle={{ fontSize: 12 }}
+                    formatter={(value: string) =>
+                      value === "nonclimate" ? "Non-Climate" : "Climate"
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="nonclimate"
+                    name="nonclimate"
+                    stroke={NONCLIMATE_COLOR}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, fill: NONCLIMATE_COLOR, strokeWidth: 0 }}
+                    activeDot={{ r: 7 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="climate"
+                    name="climate"
+                    stroke={CLIMATE_COLOR}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, fill: CLIMATE_COLOR, strokeWidth: 0 }}
+                    activeDot={{ r: 7 }}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             )}
           </div>

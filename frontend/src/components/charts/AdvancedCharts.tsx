@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import { BarChart3, MapPinned, Target } from "lucide-react";
@@ -41,6 +42,7 @@ type HistogramBucket = {
   count: number;
   lo: number;
   hi: number;
+  isPeak: boolean;
 };
 
 type HistogramStats = {
@@ -227,12 +229,14 @@ export default function AdvancedCharts({
   const histogramData = useMemo((): {
     buckets: HistogramBucket[];
     stats: HistogramStats | null;
+    meanLabel: string | null;
+    medianLabel: string | null;
   } => {
     const values = lossDistribution
       .map((d) => safeNumber(d.loss))
       .filter((v) => v > 0);
 
-    if (!values.length) return { buckets: [], stats: null };
+    if (!values.length) return { buckets: [], stats: null, meanLabel: null, medianLabel: null };
 
     const sorted = [...values].sort((a, b) => a - b);
     const n = sorted.length;
@@ -246,27 +250,46 @@ export default function AdvancedCharts({
 
     const range = max - min;
 
+    const makeLabel = (lo: number, hi: number) =>
+      `${formatCompact(lo)}–${formatCompact(hi)}`;
+
     if (range === 0) {
+      const label = makeLabel(min, max);
       return {
-        buckets: [{ label: `Rp ${formatCompact(min)}`, count: n, lo: min, hi: max }],
+        buckets: [{ label, count: n, lo: min, hi: max, isPeak: true }],
         stats: { mean, median, min, max },
+        meanLabel: label,
+        medianLabel: label,
       };
     }
 
     const bucketSize = range / BUCKET_COUNT;
-    const buckets: HistogramBucket[] = Array.from(
-      { length: BUCKET_COUNT },
-      (_, i) => {
-        const lo = min + i * bucketSize;
-        const hi = i === BUCKET_COUNT - 1 ? max : lo + bucketSize;
-        const count = values.filter((v) =>
-          i === BUCKET_COUNT - 1 ? v >= lo && v <= hi : v >= lo && v < hi
-        ).length;
-        return { label: `Rp ${formatCompact(lo)}`, count, lo, hi };
-      }
-    );
+    const rawBuckets = Array.from({ length: BUCKET_COUNT }, (_, i) => {
+      const lo = min + i * bucketSize;
+      const hi = i === BUCKET_COUNT - 1 ? max : lo + bucketSize;
+      const count = values.filter((v) =>
+        i === BUCKET_COUNT - 1 ? v >= lo && v <= hi : v >= lo && v < hi
+      ).length;
+      return { label: makeLabel(lo, hi), count, lo, hi, isPeak: false };
+    });
 
-    return { buckets, stats: { mean, median, min, max } };
+    const peakCount = Math.max(...rawBuckets.map((b) => b.count));
+    const buckets: HistogramBucket[] = rawBuckets.map((b) => ({
+      ...b,
+      isPeak: b.count === peakCount,
+    }));
+
+    const findLabel = (val: number) =>
+      buckets.find((b, i) =>
+        i === buckets.length - 1 ? val >= b.lo && val <= b.hi : val >= b.lo && val < b.hi
+      )?.label ?? null;
+
+    return {
+      buckets,
+      stats: { mean, median, min, max },
+      meanLabel: findLabel(mean),
+      medianLabel: findLabel(median),
+    };
   }, [lossDistribution]);
 
   const hasTopRegionData = useMemo(
@@ -518,7 +541,7 @@ export default function AdvancedCharts({
             )}
           </div>
 
-          <div className="h-72 w-full">
+          <div className="w-full">
             {loadingLossDist ? (
               <DashboardLoadingBlock
                 heightClass="h-72"
@@ -535,41 +558,89 @@ export default function AdvancedCharts({
                 actionHint="Coba ubah hazard, scenario, atau climate condition."
               />
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={histogramData.buckets}
-                  margin={{ top: 8, right: 8, left: 0, bottom: 52 }}
-                  barCategoryGap="8%"
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#e5e7eb"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: "#6b7280", fontSize: 10 }}
-                    tickLine={false}
-                    angle={-40}
-                    textAnchor="end"
-                    interval={0}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: "#6b7280", fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={28}
-                  />
-                  <Tooltip content={<HistogramTooltip />} />
-                  <Bar
-                    dataKey="count"
-                    fill="var(--color-primary)"
-                    radius={[4, 4, 0, 0]}
-                    name="Jumlah Wilayah"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <>
+                <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={histogramData.buckets}
+                    margin={{ top: 20, right: 8, left: 0, bottom: 52 }}
+                    barCategoryGap="8%"
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "#6b7280", fontSize: 10 }}
+                      tickLine={false}
+                      angle={-40}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "#6b7280", fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={28}
+                    />
+                    <Tooltip content={<HistogramTooltip />} />
+                    {histogramData.meanLabel && (
+                      <ReferenceLine
+                        x={histogramData.meanLabel}
+                        stroke="#f97316"
+                        strokeDasharray="4 3"
+                        strokeWidth={1.5}
+                        label={{ value: "μ", position: "top", fill: "#f97316", fontSize: 11 }}
+                      />
+                    )}
+                    {histogramData.medianLabel &&
+                      histogramData.medianLabel !== histogramData.meanLabel && (
+                        <ReferenceLine
+                          x={histogramData.medianLabel}
+                          stroke="#8b5cf6"
+                          strokeDasharray="4 3"
+                          strokeWidth={1.5}
+                          label={{ value: "med", position: "top", fill: "#8b5cf6", fontSize: 11 }}
+                        />
+                      )}
+                    <Bar
+                      dataKey="count"
+                      radius={[4, 4, 0, 0]}
+                      name="Jumlah Wilayah"
+                    >
+                      {histogramData.buckets.map((bucket) => (
+                        <Cell
+                          key={bucket.label}
+                          fill="var(--color-primary)"
+                          fillOpacity={bucket.isPeak ? 1 : 0.45}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)]" />
+                    Frekuensi tertinggi
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)] opacity-45" />
+                    Bucket lainnya
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-orange-400" />
+                    Rata-rata (μ)
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-violet-500" />
+                    Median
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

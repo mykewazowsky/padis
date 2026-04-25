@@ -4,22 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
-  PieChart,
-  Pie,
   Cell,
   Tooltip,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
-import {
-  Layers3,
-  MapPinned,
-  PieChart as PieChartIcon,
-  Target,
-} from "lucide-react";
+import { BarChart3, MapPinned, Target } from "lucide-react";
 import { fetchJson } from "../../lib/fetcher";
 import DashboardLoadingBlock from "../dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../dashboard/DashboardEmptyState";
@@ -38,16 +30,25 @@ type TopRegionItem = {
   loss: number;
 };
 
-type BreakdownItem = {
-  hazard: string;
-  total: number;
+type LossDistItem = {
+  kab_kota: string;
+  prov: string;
+  loss: number | null;
 };
 
-const COLORS = [
-  "var(--color-primary)",
-  "var(--color-secondary)",
-  "var(--color-accent)",
-];
+type HistogramBucket = {
+  label: string;
+  count: number;
+  lo: number;
+  hi: number;
+};
+
+type HistogramStats = {
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+};
 
 function formatCompact(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -76,17 +77,11 @@ function getClimateLabel(climate: string) {
 
 function shortenRegionName(name: string) {
   if (!name) return "-";
-
   const cleaned = name
     .replace(/^kabupaten\s+/i, "Kab. ")
     .replace(/^kota\s+/i, "Kota ")
     .trim();
-
   return cleaned.length > 20 ? `${cleaned.slice(0, 20)}…` : cleaned;
-}
-
-function formatPercent(value: number) {
-  return `${value.toFixed(1)}%`;
 }
 
 function CustomTooltip({
@@ -101,9 +96,7 @@ function CustomTooltip({
   labelPrefix: string;
 }) {
   if (!active || !payload || !payload.length) return null;
-
   const fullName = (payload[0]?.payload?.name as string | undefined) ?? label;
-
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
       <p className="text-xs font-semibold tracking-wide text-gray-500">
@@ -129,39 +122,36 @@ function CustomTooltip({
   );
 }
 
-function CustomPieTooltip({
+function HistogramTooltip({
   active,
   payload,
 }: {
   active?: boolean;
   payload?: any[];
 }) {
-  if (!active || !payload || !payload.length) return null;
-
-  const item = payload[0]?.payload;
-
+  if (!active || !payload?.length) return null;
+  const bucket = payload[0]?.payload as HistogramBucket | undefined;
+  if (!bucket) return null;
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
       <p className="text-xs font-semibold tracking-wide text-gray-500">
-        Hazard: {item?.hazard ?? "-"}
+        Rp {formatCompact(bucket.lo)} – Rp {formatCompact(bucket.hi)}
       </p>
-      <div className="mt-2 text-sm text-gray-700">
-        <div>
-          Loss:{" "}
-          <span className="font-semibold text-gray-900">
-            {formatRupiah(safeNumber(item?.totalValue))}
-          </span>
-        </div>
-        <div>
-          Share:{" "}
-          <span className="font-semibold text-gray-900">
-            {formatPercent(safeNumber(item?.percent))}
-          </span>
-        </div>
-      </div>
+      <p className="mt-1.5 text-sm font-bold text-gray-900">
+        {bucket.count} wilayah
+      </p>
     </div>
   );
 }
+
+const STAT_ITEMS: { key: keyof HistogramStats; label: string }[] = [
+  { key: "mean",   label: "Rata-rata" },
+  { key: "median", label: "Median"    },
+  { key: "min",    label: "Minimum"   },
+  { key: "max",    label: "Maksimum"  },
+];
+
+const BUCKET_COUNT = 10;
 
 export default function AdvancedCharts({
   scenario,
@@ -172,18 +162,17 @@ export default function AdvancedCharts({
   onRegionSelect,
 }: Props) {
   const [topRegions, setTopRegions] = useState<TopRegionItem[]>([]);
-  const [breakdown, setBreakdown] = useState<BreakdownItem[]>([]);
+  const [lossDistribution, setLossDistribution] = useState<LossDistItem[]>([]);
 
   const [loadingTopRegions, setLoadingTopRegions] = useState(false);
-  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
+  const [loadingLossDist, setLoadingLossDist] = useState(false);
 
   const [errorTopRegions, setErrorTopRegions] = useState<string | null>(null);
-  const [errorBreakdown, setErrorBreakdown] = useState<string | null>(null);
+  const [errorLossDist, setErrorLossDist] = useState<string | null>(null);
 
   useEffect(() => {
     setLoadingTopRegions(true);
     setErrorTopRegions(null);
-
     fetchJson<TopRegionItem[]>(
       `/api/top-regions?hazard=${hazard}&scenario=${scenario}&climate=${climate}${runId != null ? `&run_id=${runId}` : ""}`
     )
@@ -197,27 +186,26 @@ export default function AdvancedCharts({
   }, [hazard, scenario, climate, runId]);
 
   useEffect(() => {
-    setLoadingBreakdown(true);
-    setErrorBreakdown(null);
-
-    fetchJson<BreakdownItem[]>(
-      `/api/hazard-breakdown?scenario=${scenario}&climate=${climate}${runId != null ? `&run_id=${runId}` : ""}`
+    if (runId === undefined) return;
+    setLoadingLossDist(true);
+    setErrorLossDist(null);
+    fetchJson<{ data: LossDistItem[] }>(
+      `/api/layers/values/loss?hazard=${hazard}&scenario=${scenario}&climate=${climate}&run_id=${runId}`
     )
-      .then(setBreakdown)
+      .then((res) => setLossDistribution(res.data ?? []))
       .catch((err) => {
-        console.error("Breakdown fetch error:", err);
-        setErrorBreakdown("Gagal memuat breakdown hazard.");
-        setBreakdown([]);
+        console.error("Loss distribution fetch error:", err);
+        setErrorLossDist("Gagal memuat distribusi loss.");
+        setLossDistribution([]);
       })
-      .finally(() => setLoadingBreakdown(false));
-  }, [scenario, climate, runId]);
+      .finally(() => setLoadingLossDist(false));
+  }, [hazard, scenario, climate, runId]);
 
   const chartTopRegions = useMemo(() => {
     return topRegions.map((item, index) => {
       const isSelected =
         !!selectedRegion &&
         item.name.toLowerCase().trim() === selectedRegion.toLowerCase().trim();
-
       return {
         ...item,
         shortName: shortenRegionName(item.name),
@@ -232,54 +220,68 @@ export default function AdvancedCharts({
   }, [topRegions, selectedRegion]);
 
   const topRegionSummary = useMemo(() => {
-    if (!topRegions.length) {
-      return {
-        name: "-",
-        value: 0,
-      };
-    }
-
-    return {
-      name: topRegions[0].name,
-      value: topRegions[0].loss,
-    };
+    if (!topRegions.length) return { name: "-", value: 0 };
+    return { name: topRegions[0].name, value: topRegions[0].loss };
   }, [topRegions]);
 
-  const breakdownWithPercent = useMemo(() => {
-    const total = breakdown.reduce((sum, item) => sum + safeNumber(item.total), 0);
+  const histogramData = useMemo((): {
+    buckets: HistogramBucket[];
+    stats: HistogramStats | null;
+  } => {
+    const values = lossDistribution
+      .map((d) => safeNumber(d.loss))
+      .filter((v) => v > 0);
 
-    return breakdown.map((item, index) => ({
-      ...item,
-      totalValue: safeNumber(item.total),
-      percent: total > 0 ? (safeNumber(item.total) / total) * 100 : 0,
-      fill: COLORS[index % COLORS.length],
-    }));
-  }, [breakdown]);
+    if (!values.length) return { buckets: [], stats: null };
 
-  const dominantHazard = useMemo(() => {
-    if (!breakdownWithPercent.length) {
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = sorted.length;
+    const min = sorted[0];
+    const max = sorted[n - 1];
+    const sum = values.reduce((s, v) => s + v, 0);
+    const mean = sum / n;
+    const mid = Math.floor(n / 2);
+    const median =
+      n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+
+    const range = max - min;
+
+    if (range === 0) {
       return {
-        hazard: "-",
-        totalValue: 0,
-        percent: 0,
+        buckets: [{ label: `Rp ${formatCompact(min)}`, count: n, lo: min, hi: max }],
+        stats: { mean, median, min, max },
       };
     }
 
-    return breakdownWithPercent.reduce((max, item) =>
-      item.totalValue > max.totalValue ? item : max
+    const bucketSize = range / BUCKET_COUNT;
+    const buckets: HistogramBucket[] = Array.from(
+      { length: BUCKET_COUNT },
+      (_, i) => {
+        const lo = min + i * bucketSize;
+        const hi = i === BUCKET_COUNT - 1 ? max : lo + bucketSize;
+        const count = values.filter((v) =>
+          i === BUCKET_COUNT - 1 ? v >= lo && v <= hi : v >= lo && v < hi
+        ).length;
+        return { label: `Rp ${formatCompact(lo)}`, count, lo, hi };
+      }
     );
-  }, [breakdownWithPercent]);
 
-  const hasTopRegionData = useMemo(() => {
-    return topRegions.some((item) => safeNumber(item.loss) > 0);
-  }, [topRegions]);
+    return { buckets, stats: { mean, median, min, max } };
+  }, [lossDistribution]);
 
-  const hasBreakdownData = useMemo(() => {
-    return breakdownWithPercent.some((item) => safeNumber(item.totalValue) > 0);
-  }, [breakdownWithPercent]);
+  const hasTopRegionData = useMemo(
+    () => topRegions.some((item) => safeNumber(item.loss) > 0),
+    [topRegions]
+  );
+
+  const hasLossDistData = useMemo(
+    () => histogramData.buckets.some((b) => b.count > 0),
+    [histogramData]
+  );
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* ── Left: Top 10 Kabupaten/Kota ─────────────────────────────────── */}
       <div className="card card-accent-primary p-5 md:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
@@ -297,7 +299,6 @@ export default function AdvancedCharts({
                 {scenario.toUpperCase()} · {getClimateLabel(climate)}
               </p>
             </div>
-
             <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
               Click to focus
             </div>
@@ -312,7 +313,6 @@ export default function AdvancedCharts({
                 {loadingTopRegions ? "Loading..." : topRegionSummary.name}
               </p>
             </div>
-
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Loss Tertinggi
@@ -327,7 +327,7 @@ export default function AdvancedCharts({
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
             {loadingTopRegions ? (
-              <div className="space-y-2 animate-pulse">
+              <div className="animate-pulse space-y-2">
                 <div className="h-4 w-36 rounded bg-gray-200" />
                 <div className="h-4 w-48 rounded bg-gray-200" />
               </div>
@@ -440,155 +440,137 @@ export default function AdvancedCharts({
         </div>
       </div>
 
+      {/* ── Right: Distribusi Loss (Histogram) ──────────────────────────── */}
       <div className="card card-accent-secondary p-5 md:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <div className="rounded-xl bg-[var(--color-secondary-soft)] p-2">
-                  <PieChartIcon className="h-4 w-4 text-[var(--color-secondary-dark)]" />
+                  <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
                 <h4 className="text-lg font-bold tracking-tight text-gray-900">
-                  Breakdown Hazard
+                  Distribusi Loss
                 </h4>
               </div>
               <p className="mt-2 text-sm text-gray-500">
-                Komposisi total loss antar hazard untuk {scenario.toUpperCase()} ·{" "}
+                Sebaran jumlah kabupaten/kota berdasarkan rentang kerugian untuk{" "}
+                {getHazardLabel(hazard)} · {scenario.toUpperCase()} ·{" "}
                 {getClimateLabel(climate)}
               </p>
             </div>
-
             <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
-              Scenario {scenario.toUpperCase()}
+              {scenario.toUpperCase()}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Hazard Dominan
-              </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
-                {loadingBreakdown ? "Loading..." : dominantHazard.hazard}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Share Dominan
-              </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
-                {loadingBreakdown
-                  ? "Loading..."
-                  : `${formatPercent(dominantHazard.percent)}`}
-              </p>
-            </div>
+          {/* Stats: mean · median · min · max */}
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {STAT_ITEMS.map(({ key, label }) => (
+              <div
+                key={key}
+                className="rounded-2xl border border-gray-200 bg-gray-50 p-3"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                  {label}
+                </p>
+                <p className="mt-1.5 truncate text-sm font-bold text-gray-900">
+                  {loadingLossDist ? (
+                    <span className="animate-pulse text-gray-300">—</span>
+                  ) : histogramData.stats != null ? (
+                    `Rp ${formatCompact(histogramData.stats[key])}`
+                  ) : (
+                    "—"
+                  )}
+                </p>
+              </div>
+            ))}
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-            {loadingBreakdown ? (
-              <div className="space-y-2 animate-pulse">
+            {loadingLossDist ? (
+              <div className="animate-pulse space-y-2">
                 <div className="h-4 w-32 rounded bg-gray-200" />
                 <div className="h-4 w-44 rounded bg-gray-200" />
               </div>
-            ) : errorBreakdown ? (
-              <p className="text-sm text-red-600">{errorBreakdown}</p>
-            ) : !hasBreakdownData ? (
+            ) : errorLossDist ? (
+              <p className="text-sm text-red-600">{errorLossDist}</p>
+            ) : !hasLossDistData ? (
               <p className="text-sm text-gray-500">
-                Belum ada breakdown hazard yang dapat divisualisasikan.
+                Belum ada data distribusi yang dapat divisualisasikan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
                 <div className="rounded-xl bg-white p-2 shadow-sm">
-                  <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
+                  <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
-                    Komposisi antar hazard
+                    Pola distribusi kerugian
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
-                    Chart ini menunjukkan proporsi kontribusi Flood, Drought,
-                    dan Multi-hazard pada total loss skenario aktif.
+                    Setiap batang menunjukkan jumlah kabupaten/kota dalam
+                    rentang loss tertentu. Distribusi condong ke kanan
+                    mengindikasikan konsentrasi risiko di sedikit wilayah.
                   </p>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="h-80 w-full">
-            {loadingBreakdown ? (
+          <div className="h-72 w-full">
+            {loadingLossDist ? (
               <DashboardLoadingBlock
-                heightClass="h-80"
-                title="Memuat komposisi hazard..."
-                description="Proporsi loss antar hazard sedang dihitung."
+                heightClass="h-72"
+                title="Memuat distribusi loss..."
+                description="Data kerugian per kabupaten sedang diproses."
               />
-            ) : errorBreakdown ? (
-              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
-                {errorBreakdown}
+            ) : errorLossDist ? (
+              <div className="flex h-72 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
+                {errorLossDist}
               </div>
-            ) : !hasBreakdownData ? (
+            ) : !hasLossDistData ? (
               <DashboardEmptyState
-                message="Belum ada komposisi hazard yang cukup untuk ditampilkan pada chart ini."
-                actionHint="Pastikan layer output tersedia untuk scenario dan climate aktif."
+                message="Belum ada data distribusi untuk kombinasi filter ini."
+                actionHint="Coba ubah hazard, scenario, atau climate condition."
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={breakdownWithPercent}
-                    dataKey="totalValue"
-                    nameKey="hazard"
-                    outerRadius={105}
-                    innerRadius={55}
-                    paddingAngle={3}
-                  >
-                    {breakdownWithPercent.map((entry) => (
-                      <Cell key={entry.hazard} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
-                  <Legend />
-                </PieChart>
+                <BarChart
+                  data={histogramData.buckets}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 52 }}
+                  barCategoryGap="8%"
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e5e7eb"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: "#6b7280", fontSize: 10 }}
+                    tickLine={false}
+                    angle={-40}
+                    textAnchor="end"
+                    interval={0}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={28}
+                  />
+                  <Tooltip content={<HistogramTooltip />} />
+                  <Bar
+                    dataKey="count"
+                    fill="var(--color-primary)"
+                    radius={[4, 4, 0, 0]}
+                    name="Jumlah Wilayah"
+                  />
+                </BarChart>
               </ResponsiveContainer>
             )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {loadingBreakdown
-              ? Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="animate-pulse rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                  >
-                    <div className="h-4 w-20 rounded bg-gray-200" />
-                    <div className="mt-3 h-4 w-28 rounded bg-gray-200" />
-                    <div className="mt-2 h-4 w-16 rounded bg-gray-200" />
-                  </div>
-                ))
-              : !hasBreakdownData
-                ? null
-                : breakdownWithPercent.map((item) => (
-                    <div
-                      key={item.hazard}
-                      className="rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block h-3 w-3 rounded-sm"
-                          style={{ backgroundColor: item.fill }}
-                        />
-                        <p className="text-sm font-medium text-gray-900">
-                          {item.hazard}
-                        </p>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-600">
-                        {formatRupiah(item.totalValue)}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {formatPercent(item.percent)} dari total
-                      </p>
-                    </div>
-                  ))}
           </div>
         </div>
       </div>

@@ -405,16 +405,6 @@ export default function DashboardPage() {
   const selectedRegionOption =
     regionOptions.find((opt) => opt.value === selectedRegion) ?? null;
 
-  const activeFilterPills = useMemo(() => {
-    const pills = [
-      { label: "Hazard", value: getHazardLabel(hazard) },
-      { label: "Climate", value: getClimateLabel(climate) },
-      { label: "Scenario", value: scenario.toUpperCase() },
-      { label: "Wilayah", value: selectedRegion || "Indonesia" },
-    ];
-
-    return pills;
-  }, [hazard, climate, scenario, selectedRegion]);
 
   const activePresetId = useMemo(() => {
     const match = quickPresets.find(
@@ -823,7 +813,7 @@ export default function DashboardPage() {
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
           <div className="space-y-4">
             <div className="space-y-3">
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="max-w-2xl">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
                     Analisis Spasial
@@ -837,33 +827,173 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <div className="xl:max-w-[46%] xl:pt-1">
-                  <div className="flex items-center gap-2 text-xs text-gray-700">
-                    <div className="rounded-xl bg-white/60 p-2 shadow-sm backdrop-blur">
-                      <Filter className="h-4 w-4 text-[var(--color-primary)]" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                        Filter Aktif
-                      </p>
-                      <p className="text-sm font-medium text-gray-900">
-                        Tampilan peta diperbarui otomatis
-                      </p>
-                    </div>
-                  </div>
+                <div className="flex shrink-0 items-center gap-2 sm:pt-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
+                    Ringkasan Cepat
+                  </p>
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${insightBadge.className}`}
+                  >
+                    {insightBadge.label}
+                  </span>
+                </div>
+              </div>
 
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {activeFilterPills.map((item) => (
-                      <span
-                        key={`${item.label}-${item.value}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-medium text-gray-700 shadow-sm backdrop-blur"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />
-                        <span className="text-gray-500">{item.label}</span>
-                        <span className="text-gray-900">{item.value}</span>
-                      </span>
-                    ))}
+              <p className="text-xs text-gray-500">
+                Ringkasan utama untuk kombinasi filter yang sedang aktif.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)] p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Total Kerugian</p>
+                      <h3 className="mt-0.5 text-xl font-bold leading-tight text-gray-900">
+                        {loadingLayer ? (
+                          <span className="animate-pulse text-gray-400">...</span>
+                        ) : (
+                          <>Rp {formatCompact(layerSummary.totalLoss)}</>
+                        )}
+                      </h3>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
+                      <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
+                    </div>
                   </div>
+                  <p className="mt-1.5 truncate text-xs text-gray-600">
+                    {getHazardLabel(hazard)} · {getClimateLabel(climate)} ·{" "}
+                    {scenario.toUpperCase()}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--color-secondary)]/40 bg-[var(--color-secondary-soft)] p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Wilayah Prioritas</p>
+                      <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+                        {loadingLayer ? (
+                          <span className="animate-pulse text-gray-400">...</span>
+                        ) : (
+                          layerSummary.topRegion
+                        )}
+                      </h3>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
+                      <MapPinned className="h-4 w-4 text-[var(--color-secondary-dark)]" />
+                    </div>
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-600">
+                    {loadingLayer ? (
+                      <span className="animate-pulse text-gray-400">Memuat...</span>
+                    ) : (
+                      <>
+                        Rp {formatCompact(layerSummary.topLoss)} ·{" "}
+                        {formatPercent(topRegionShare)} dari total
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Cakupan Data</p>
+                      <h3 className="mt-0.5 text-xl font-bold text-gray-900">
+                        {loadingLayer ? (
+                          <span className="animate-pulse text-gray-400">...</span>
+                        ) : (
+                          layerSummary.dataCount
+                        )}
+                      </h3>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
+                      <Layers3 className="h-4 w-4 text-green-700" />
+                    </div>
+                  </div>
+                  <p className="mt-1.5 truncate text-xs text-gray-600">
+                    {selectedRegion
+                      ? `Fokus aktif: ${selectedRegion}`
+                      : "Fokus aktif: Indonesia"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Indikasi Perubahan Iklim</p>
+                      <h3 className="mt-0.5 text-xl font-bold leading-snug text-gray-900">
+                        {loadingAAL ? (
+                          <span className="animate-pulse text-gray-400">...</span>
+                        ) : (
+                          climateChangeInfo.label
+                        )}
+                      </h3>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
+                      {climateChangeInfo.isUp ? (
+                        <TrendingUp className="h-4 w-4 text-red-600" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-green-600" />
+                      )}
+                    </div>
+                  </div>
+                  <p
+                    className={`mt-0.5 text-xs font-semibold ${
+                      loadingAAL ? "text-gray-400" : climateChangeInfo.colorClass
+                    }`}
+                  >
+                    {getHazardLabel(hazard)}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">
+                    {climateSignalText}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">Indikasi Iklim Wilayah</p>
+                      <h3 className="mt-0.5 text-xl font-bold leading-snug text-gray-900">
+                        {!selectedRegion ? (
+                          <span className="text-sm font-medium text-gray-400">
+                            Pilih wilayah
+                          </span>
+                        ) : loadingRegionAAL ? (
+                          <span className="animate-pulse text-gray-400">...</span>
+                        ) : errorRegionAAL ? (
+                          <span className="text-sm font-medium text-red-500">Error</span>
+                        ) : selectedRegionClimateChangeInfo ? (
+                          selectedRegionClimateChangeInfo.label
+                        ) : (
+                          <span className="text-sm font-medium text-gray-400">N/A</span>
+                        )}
+                      </h3>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
+                      {!selectedRegion ? (
+                        <MapPinned className="h-4 w-4 text-blue-600" />
+                      ) : selectedRegionClimateChangeInfo?.isUp ? (
+                        <TrendingUp className="h-4 w-4 text-red-600" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-green-600" />
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs font-semibold text-blue-700">
+                    {selectedRegion || "Belum ada wilayah dipilih"}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">
+                    {selectedRegionClimateSignalText}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="shrink-0 rounded-xl bg-white p-1.5 shadow-sm">
+                    <Activity className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+                  </div>
+                  <p className="text-xs leading-relaxed text-gray-700">{smartInsight}</p>
                 </div>
               </div>
             </div>
@@ -1028,211 +1158,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative w-full pt-10 pb-14">
-        <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
-          <div className="rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-[0_20px_56px_rgba(37,99,235,0.08)] backdrop-blur sm:p-6">
-            <div className="flex flex-col gap-5">
-              <div>
-                <p className="text-lg font-semibold tracking-[0.18em] text-[var(--color-primary)] sm:text-xl">
-                  RINGKASAN CEPAT
-                </p>
-
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${insightBadge.className}`}
-                  >
-                    {insightBadge.label}
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Ringkasan utama untuk kombinasi filter yang sedang aktif.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-500">Total Kerugian</p>
-                      <h3 className="mt-1 text-2xl font-bold text-gray-900">
-                        {loadingLayer ? (
-                          <span className="animate-pulse text-gray-400">Loading...</span>
-                        ) : (
-                          <>Rp {formatCompact(layerSummary.totalLoss)}</>
-                        )}
-                      </h3>
-                    </div>
-
-                    <div className="rounded-xl bg-white/80 p-2">
-                      <BarChart3 className="h-5 w-5 text-[var(--color-primary)]" />
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm text-gray-600">
-                    {getHazardLabel(hazard)} · {getClimateLabel(climate)} ·{" "}
-                    {scenario.toUpperCase()}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[var(--color-secondary)]/40 bg-[var(--color-secondary-soft)] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-500">Wilayah Prioritas</p>
-                      <h3 className="mt-1 text-lg font-semibold leading-snug text-gray-900">
-                        {loadingLayer ? (
-                          <span className="animate-pulse text-gray-400">Loading...</span>
-                        ) : (
-                          layerSummary.topRegion
-                        )}
-                      </h3>
-                    </div>
-
-                    <div className="rounded-xl bg-white/80 p-2">
-                      <MapPinned className="h-5 w-5 text-[var(--color-secondary-dark)]" />
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm text-gray-600">
-                    {loadingLayer ? (
-                      <span className="animate-pulse text-gray-400">
-                        Memuat ringkasan...
-                      </span>
-                    ) : (
-                      <>
-                        Rp {formatCompact(layerSummary.topLoss)} ·{" "}
-                        {formatPercent(topRegionShare)} dari total kerugian
-                      </>
-                    )}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-500">Cakupan Data</p>
-                      <h3 className="mt-1 text-2xl font-bold text-gray-900">
-                        {loadingLayer ? (
-                          <span className="animate-pulse text-gray-400">Loading...</span>
-                        ) : (
-                          layerSummary.dataCount
-                        )}
-                      </h3>
-                    </div>
-
-                    <div className="rounded-xl bg-white/80 p-2">
-                      <Layers3 className="h-5 w-5 text-green-700" />
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm text-gray-600">
-                    {selectedRegion
-                      ? `Fokus aktif: ${selectedRegion}`
-                      : "Fokus aktif: Indonesia"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Indikasi Perubahan Iklim
-                      </p>
-                      <h3 className="mt-1 text-lg font-bold leading-snug text-gray-900">
-                        {loadingAAL ? (
-                          <span className="animate-pulse text-gray-400">Loading...</span>
-                        ) : (
-                          climateChangeInfo.label
-                        )}
-                      </h3>
-                    </div>
-
-                    <div className="rounded-xl bg-white/80 p-2">
-                      {climateChangeInfo.isUp ? (
-                        <TrendingUp className="h-5 w-5 text-red-600" />
-                      ) : (
-                        <TrendingDown className="h-5 w-5 text-green-600" />
-                      )}
-                    </div>
-                  </div>
-
-                  <p
-                    className={`mt-2 text-sm font-semibold ${
-                      loadingAAL ? "text-gray-400" : climateChangeInfo.colorClass
-                    }`}
-                  >
-                    {getHazardLabel(hazard)}
-                  </p>
-
-                  <p className="mt-1 text-sm text-gray-600">
-                    {climateSignalText}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 xl:min-h-[160px]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-500">Indikasi Iklim Wilayah</p>
-                      <h3 className="mt-1 text-lg font-bold leading-snug text-gray-900">
-                        {!selectedRegion ? (
-                          <span className="text-base font-medium text-gray-400">
-                            Pilih wilayah
-                          </span>
-                        ) : loadingRegionAAL ? (
-                          <span className="animate-pulse text-gray-400">
-                            Loading...
-                          </span>
-                        ) : errorRegionAAL ? (
-                          <span className="text-base font-medium text-red-500">
-                            Error
-                          </span>
-                        ) : selectedRegionClimateChangeInfo ? (
-                          selectedRegionClimateChangeInfo.label
-                        ) : (
-                          <span className="text-base font-medium text-gray-400">
-                            N/A
-                          </span>
-                        )}
-                      </h3>
-                    </div>
-
-                    <div className="rounded-xl bg-white/80 p-2">
-                      {!selectedRegion ? (
-                        <MapPinned className="h-5 w-5 text-blue-600" />
-                      ) : selectedRegionClimateChangeInfo?.isUp ? (
-                        <TrendingUp className="h-5 w-5 text-red-600" />
-                      ) : (
-                        <TrendingDown className="h-5 w-5 text-green-600" />
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm font-semibold text-blue-700">
-                    {selectedRegion || "Belum ada wilayah dipilih"}
-                  </p>
-
-                  <p className="mt-1 text-sm text-gray-600">
-                    {selectedRegionClimateSignalText}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white p-2 shadow-sm">
-                    <Activity className="h-4 w-4 text-[var(--color-primary)]" />
-                  </div>
-
-                  <p className="text-sm leading-relaxed text-gray-700">
-                    {smartInsight}
-                  </p>
-                </div>
               </div>
             </div>
           </div>

@@ -57,6 +57,7 @@ backend/pipeline_result.json
 *.tif
 *.gpkg
 
+
 # ======================
 # ARCHIVE / LEGACY
 # ======================
@@ -78,3 +79,6 @@ PROJECT_STRUCTURE.md
 # local db & docs (temporary)
 db/
 docs/alur_pipeline.md
+
+# Debug Scripts
+backend/scripts/debug/

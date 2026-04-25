@@ -30,6 +30,9 @@ export type LayerItem = {
   total_prod?: number | null;
   /** false when this region has no data for the current filter combination */
   has_data?: boolean;
+  /** centroid coordinates — present only on production endpoint */
+  centroid_lng?: number | null;
+  centroid_lat?: number | null;
 };
 
 // ─── Latest run_id ────────────────────────────────────────────────────────────

@@ -188,21 +188,9 @@ export default function DashboardMapOverlay({
                 </div>
               )}
 
-              {activeLayers.production && (
-                <div className="surface-soft rounded-lg px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    Produksi Padi
-                  </p>
-                  <p className="mt-0.5 text-sm font-bold text-heading">
-                    {formatProduksi(props.total_prod)}
-                  </p>
-                </div>
-              )}
-
               {!activeLayers.loss &&
                !activeLayers.aal &&
-               !activeLayers.hazard &&
-               !activeLayers.production && (
+               !activeLayers.hazard && (
                 <div className="surface-soft rounded-lg px-3 py-2">
                   <p className="text-[11px] text-muted">
                     Aktifkan layer untuk melihat data wilayah ini.

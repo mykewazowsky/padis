@@ -259,6 +259,7 @@ export default function DashboardPage() {
   const [errorLayer, setErrorLayer] = useState<string | null>(null);
 
   const [resetSignal, setResetSignal] = useState(0);
+  const [regionCentroids, setRegionCentroids] = useState<Record<string, [number, number]>>({});
 
   const [showLoginNotice, setShowLoginNotice] = useState(false);
   const [loginNoticeMessage, setLoginNoticeMessage] = useState(
@@ -289,11 +290,23 @@ export default function DashboardPage() {
     // All kabupaten are present regardless of hazard/scenario/climate filter.
     fetchJson(`/api/layers/values/production`)
       .then((json: any) => {
-        const items = (json.data || []) as { kab_kota: string; prov: string }[];
+        const items = (json.data || []) as {
+          kab_kota: string;
+          prov: string;
+          centroid_lng?: number | null;
+          centroid_lat?: number | null;
+        }[];
         setRegions(items.map((item) => ({
           kab_kota: item.kab_kota || "",
           prov: item.prov || "",
         })));
+        const centroids: Record<string, [number, number]> = {};
+        for (const item of items) {
+          if (item.kab_kota && item.centroid_lat != null && item.centroid_lng != null) {
+            centroids[item.kab_kota.toLowerCase().trim()] = [item.centroid_lat, item.centroid_lng];
+          }
+        }
+        setRegionCentroids(centroids);
       })
       .catch((err) => {
         console.error("Regions fetch error:", err);
@@ -981,6 +994,7 @@ export default function DashboardPage() {
                     resetViewSignal={resetSignal}
                     activeLayers={activeLayers}
                     onToggleLayer={handleToggleLayer}
+                    regionCentroids={regionCentroids}
                   />
                 )}
 

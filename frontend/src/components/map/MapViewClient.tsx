@@ -31,6 +31,7 @@ type Props = {
   resetViewSignal?: number;
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
+  regionCentroids?: Record<string, [number, number]>;
 };
 
 // =========================
@@ -52,11 +53,9 @@ function formatCompactRupiah(value: number | null | undefined) {
 }
 
 // =========================
-// PALETTE
+// PALETTE (unified: green=low risk, red=high risk)
 // =========================
 const RISK_PALETTE = ["#1a9850", "#91cf60", "#fee08b", "#fc8d59", "#d73027"];
-// Yellow → amber → brown for production (rice crop intuition)
-const PRODUCTION_PALETTE = ["#fefce8", "#fde68a", "#fbbf24", "#d97706", "#92400e"];
 
 // =========================
 // KLASIFIKASI
@@ -103,11 +102,10 @@ function getColor(
   _hazard: string
 ): string {
   if (value == null || Number.isNaN(value)) return "#e5e7eb";
-  const palette = _hazard === "production" ? PRODUCTION_PALETTE : RISK_PALETTE;
   for (let i = 0; i < breaks.length; i++) {
-    if (value <= breaks[i]) return palette[i] ?? palette[palette.length - 1];
+    if (value <= breaks[i]) return RISK_PALETTE[i] ?? RISK_PALETTE[RISK_PALETTE.length - 1];
   }
-  return palette[palette.length - 1];
+  return RISK_PALETTE[RISK_PALETTE.length - 1];
 }
 
 // =========================
@@ -126,6 +124,7 @@ export default function MapViewClient({
   resetViewSignal = 0,
   activeLayers,
   onToggleLayer,
+  regionCentroids,
 }: Props) {
   const mapRef = useRef<LeafletMap | null>(null);
   const featureLayersRef = useRef<Record<string, Layer>>({});
@@ -149,21 +148,15 @@ export default function MapViewClient({
         (f: any) => Number(f?.properties?.loss ?? 0)
       );
     }
-    if (activeLayers.production && layers?.production?.features?.length) {
-      return layers.production.features.map(
-        (f: any) => Number(f?.properties?.total_prod ?? 0)
-      );
-    }
     return [];
-  }, [layers.loss, layers.aal, layers.hazard, layers.production, activeLayers.loss, activeLayers.aal, activeLayers.hazard, activeLayers.production]);
+  }, [layers.loss, layers.aal, layers.hazard, activeLayers.loss, activeLayers.aal, activeLayers.hazard]);
 
   const breaks = useMemo(() => {
     if (!activeValues.length) return [];
     if (activeLayers.hazard) return equalIntervalBreaks(activeValues);
     if (activeLayers.aal || activeLayers.loss) return logQuantileBreaks(activeValues);
-    if (activeLayers.production) return quantileBreaks(activeValues);
     return quantileBreaks(activeValues);
-  }, [activeValues, activeLayers.hazard, activeLayers.aal, activeLayers.loss, activeLayers.production]);
+  }, [activeValues, activeLayers.hazard, activeLayers.aal, activeLayers.loss]);
 
   const topRegionKeys = useMemo(() => {
     if (!layers?.loss?.features?.length) return new Set<string>();
@@ -210,6 +203,7 @@ export default function MapViewClient({
         onToggleLayer={onToggleLayer}
         layerOpacity={1}
         onOpacityChange={() => {}}
+        regionCentroids={regionCentroids}
       />
     </div>
   );

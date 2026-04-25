@@ -42,6 +42,7 @@ type Props = {
 
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
+  regionCentroids?: Record<string, [number, number]>;
 };
 
 export default function MapView({
@@ -58,6 +59,7 @@ export default function MapView({
   resetViewSignal,
   activeLayers,
   onToggleLayer,
+  regionCentroids,
 }: Props) {
   // =========================
   // SELECT ACTIVE DATA (for MapViewClient classification breaks)
@@ -203,6 +205,7 @@ export default function MapView({
         resetViewSignal={resetViewSignal}
         activeLayers={activeLayers}
         onToggleLayer={onToggleLayer}
+        regionCentroids={regionCentroids}
       />
 
       {/* OVERLAY */}

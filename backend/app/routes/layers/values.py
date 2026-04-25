@@ -318,7 +318,9 @@ def get_production_values():
                 r.id_kabkota,
                 r.kab_kota,
                 r.prov,
-                COALESCE(p.total_prod, 0)::float AS total_prod
+                COALESCE(p.total_prod, 0)::float          AS total_prod,
+                ST_X(ST_Centroid(r.geom))::float          AS centroid_lng,
+                ST_Y(ST_Centroid(r.geom))::float          AS centroid_lat
             FROM regions_adm r
             LEFT JOIN (
                 SELECT id_kabkota, SUM(total_prod)::float AS total_prod
@@ -327,7 +329,7 @@ def get_production_values():
             ) p ON r.id_kabkota = p.id_kabkota
         """)).fetchall()
 
-        return jsonify({"data": _to_list(rows, ["id_kabkota", "kab_kota", "prov", "total_prod"])})
+        return jsonify({"data": _to_list(rows, ["id_kabkota", "kab_kota", "prov", "total_prod", "centroid_lng", "centroid_lat"])})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:

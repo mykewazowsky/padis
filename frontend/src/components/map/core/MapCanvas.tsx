@@ -68,6 +68,7 @@ type MapCanvasProps = {
   layerOpacity?: number;
   onOpacityChange?: (value: number) => void;
   dataBounds?: DataBounds | null;
+  regionCentroids?: Record<string, [number, number]>;
 };
 
 type RegionFeature = Feature<Geometry, FeatureProps>;
@@ -486,6 +487,36 @@ function LabelZoomWatcher({
 }
 
 // ---------------------------------------------------------------------------
+// ZoomToRegion — zooms to a selected region's centroid when selection comes
+// from the dropdown (not from a map click, which already handles its own flyTo)
+// ---------------------------------------------------------------------------
+
+function ZoomToRegion({
+  selectedRegion,
+  regionCentroids,
+  zoomSourceRef,
+}: {
+  selectedRegion: string;
+  regionCentroids?: Record<string, [number, number]>;
+  zoomSourceRef: React.MutableRefObject<"click" | null>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedRegion || !regionCentroids) return;
+    if (zoomSourceRef.current === "click") {
+      zoomSourceRef.current = null;
+      return;
+    }
+    const coords = regionCentroids[selectedRegion.toLowerCase().trim()];
+    if (!coords) return;
+    map.flyTo(coords, 9, { duration: CLICK_FLY_DURATION });
+  }, [selectedRegion, map, regionCentroids, zoomSourceRef]);
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -508,9 +539,11 @@ export default function MapCanvas({
   activeLayers,
   onToggleLayer,
   dataBounds,
+  regionCentroids,
 }: MapCanvasProps) {
   const vtLayersRef = useRef<Partial<Record<LayerKey | "thematic", L.Layer>>>({});
   const popupRef = useRef<L.Popup | null>(null);
+  const zoomSourceRef = useRef<"click" | null>(null);
 
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_ZOOM);
@@ -621,6 +654,7 @@ export default function MapCanvas({
       vtLayer.on("mouseout", () => { popupRef.current?.close(); });
       vtLayer.on("click", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
+        zoomSourceRef.current = "click";
         onRegionSelect?.(ev.layer.properties?.kab_kota ?? "");
         if (ev.latlng) map.flyTo(ev.latlng, 9, { duration: CLICK_FLY_DURATION });
       });
@@ -641,17 +675,11 @@ export default function MapCanvas({
             const hasSel = Boolean(selectedRegion);
             const isSel = hasSel && rk === normalizeRegionKey(selectedRegion);
             const isDim = hasSel && !isSel;
-            const prodVal = props.total_prod as number | null | undefined;
-            // Use classified coloring when production is the sole active thematic layer
-            const fillColor = jenksBreaks.length && !analysisKey
-              ? getColorFromBreaks(prodVal, jenksBreaks, "production")
-              : "#ffa200";
-
             return {
               fill: true,
-              fillColor,
+              fillColor: "#ffa200",
               fillOpacity: isDim ? Math.max(0.05, prodOpacity * 0.12) : prodOpacity,
-              color: isSel ? getSelectedBorderColor(hazard) : isDim ? "#d1d5db" : "#d97706",
+              color: isSel ? getSelectedBorderColor(hazard) : isDim ? "#d1d5db" : "#ffb700",
               weight: isSel ? 2.5 : isDim ? 0.3 : 1.2,
               opacity: isDim ? 0.3 : 1,
             };
@@ -673,6 +701,7 @@ export default function MapCanvas({
       prodLayer.on("mouseout", () => { popupRef.current?.close(); });
       prodLayer.on("click", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
+        zoomSourceRef.current = "click";
         onRegionSelect?.(ev.layer.properties?.kab_kota ?? "");
         if (ev.latlng) map.flyTo(ev.latlng, 9, { duration: CLICK_FLY_DURATION });
       });
@@ -728,16 +757,11 @@ export default function MapCanvas({
   // ── Legend items ──────────────────────────────────────────────────────────
   const legendItems = useMemo(() => {
     if (!jenksBreaks.length) return [];
-    // Use "production" as the palette key when production is the sole active thematic layer
-    const colorKey =
-      activeLayers.production && !activeLayers.hazard && !activeLayers.loss && !activeLayers.aal
-        ? "production"
-        : hazard;
     return jenksBreaks.map((upper, index) => {
       const lower = index === 0 ? 0 : (jenksBreaks[index - 1] ?? 0);
       const sampleValue = upper ?? lower;
       return {
-        color: getColorFromBreaks(sampleValue, jenksBreaks, colorKey),
+        color: getColorFromBreaks(sampleValue, jenksBreaks, hazard),
         label: `${formatLayerValue(lower, activeLayers, formatCompactRupiah)} – ${formatLayerValue(upper, activeLayers, formatCompactRupiah)}`,
       };
     });
@@ -749,12 +773,9 @@ export default function MapCanvas({
       ? "Kerugian (Loss)"
       : activeLayers.aal
         ? "Risiko Tahunan (AAL)"
-        : activeLayers.production
-          ? "Produksi Padi"
-          : "Legenda";
+        : "Legenda";
 
-  const hasAnalysisLayer =
-    activeLayers.hazard || activeLayers.loss || activeLayers.aal || activeLayers.production;
+  const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;
 
   // ── Region labels (from geometry-free data with centroid prop) ────────────
   const showLabels = currentZoom >= LABEL_MIN_ZOOM && hasActiveTileLayer;
@@ -843,6 +864,12 @@ export default function MapCanvas({
               />
             );
           })}
+
+        <ZoomToRegion
+          selectedRegion={selectedRegion}
+          regionCentroids={regionCentroids}
+          zoomSourceRef={zoomSourceRef}
+        />
       </MapContainer>
 
       <MapLayerControlPanel

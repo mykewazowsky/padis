@@ -1,0 +1,50 @@
+# =============================================================================
+# .dockerignore — berlaku untuk semua docker build dari project root (PADIS/)
+# =============================================================================
+
+# --- Secrets & environment ---
+.env
+**/.env
+**/.env.*
+*.env
+backend/.env
+
+# --- Python cache ---
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+
+# --- Data (di-mount saat runtime, tidak di-bake ke image) ---
+backend/data/
+data/
+db/data/
+db/db-backup/
+
+# --- Frontend (tidak relevan untuk pipeline image) ---
+frontend/
+frontend/node_modules/
+frontend/.next/
+
+# --- Flask/web layer (bukan bagian pipeline image) ---
+backend/app/
+backend/run.py
+
+# --- Docs & scripts non-pipeline ---
+docs/
+backend/scripts/debug/
+
+# --- Git & IDE ---
+.git/
+.gitignore
+.gitattributes
+.idea/
+.vscode/
+*.code-workspace
+
+# --- Venv ---
+.venv/
+venv/
+env/

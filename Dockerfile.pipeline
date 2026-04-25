@@ -1,0 +1,80 @@
+# =============================================================================
+# PADIS Pipeline Docker Image
+# Pipeline analisis risiko kerugian padi — berjalan secara lokal oleh operator.
+# Flask / Railway / web layer tidak diikutsertakan.
+#
+# Build:
+#   docker build -f Dockerfile.pipeline -t padis-pipeline .
+#
+# Run (mode full, hazard flood):
+#   docker run --rm \
+#     -e DATABASE_URL="postgresql://user:pass@host:5432/postgres" \
+#     -v /path/to/local/data:/app/backend/data \
+#     padis-pipeline \
+#     --mode full --hazard flood --operator mitra_bandung
+# =============================================================================
+
+FROM python:3.11-slim-bookworm
+
+LABEL description="PADIS Pipeline — analisis risiko kerugian padi (pipeline-only, no Flask)"
+
+# ── System libraries ───────────────────────────────────────────────────────
+# rasterio, fiona, shapely, pyproj menggunakan manylinux wheels yang
+# sudah mem-bundle GDAL/GEOS/PROJ — tidak perlu install system GDAL.
+# libgomp1  : OpenMP runtime (dibutuhkan parallelism numpy/rasterio)
+# libexpat1 : XML parser runtime (fiona/GDAL internal)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+        libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Python dependencies ────────────────────────────────────────────────────
+WORKDIR /app
+
+COPY backend/requirements-pipeline.txt ./requirements-pipeline.txt
+RUN pip install --no-cache-dir -r requirements-pipeline.txt
+
+# ── Pipeline source code ───────────────────────────────────────────────────
+# Hanya backend/scripts/ yang di-copy.
+# Flask app, .env, dan data tidak dimasukkan ke image.
+#
+# Kenapa hanya scripts/?
+#   main.py menambahkan _PROJECT_ROOT (/app) ke sys.path secara otomatis,
+#   sehingga "from backend.scripts.*" resolve ke /app/backend/scripts/*.
+#   PYTHONPATH=/app menjadi fallback untuk subproses / direct python calls.
+COPY backend/scripts/ ./backend/scripts/
+
+# ── Data directory skeleton ────────────────────────────────────────────────
+# DATA_DIR dari paths.py / settings.py:
+#   BASE_DIR     = /app/backend/scripts/config      (lokasi paths.py)
+#   PROJECT_ROOT = /app/backend
+#   DATA_DIR     = /app/backend/data
+#
+# Mount data lokal ke /app/backend/data saat docker run:
+#   -v /local/path/data:/app/backend/data
+#
+# Direktori di bawah dibuat sebagai scaffold; volume mount akan overlay-nya.
+RUN mkdir -p \
+        /app/backend/data/raw/hazard \
+        /app/backend/data/raw/administrasi \
+        /app/backend/data/raw/exposure \
+        /app/backend/data/processed/hazard \
+        /app/backend/data/processed/vector \
+        /app/backend/data/output/zonal \
+        /app/backend/data/output/analysis
+
+VOLUME ["/app/backend/data"]
+
+# ── Runtime environment ────────────────────────────────────────────────────
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    MPLBACKEND=Agg
+
+# ── Entrypoint ─────────────────────────────────────────────────────────────
+# WORKDIR /app/backend agar path "scripts/main.py" konsisten dengan docs
+# dan path resolution di main.py (parents[2] dari settings.py = /app/backend).
+WORKDIR /app/backend
+
+ENTRYPOINT ["python", "scripts/main.py"]
+CMD ["--help"]

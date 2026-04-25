@@ -1,5 +1,4 @@
 import os
-import threading
 
 from datetime import datetime, timezone
 
@@ -16,101 +15,9 @@ OUTPUT_DIR = os.path.join(BACKEND_DIR, "data", "output", "analysis")
 
 SCRIPTS_DIR = os.path.join(BACKEND_DIR, "scripts")
 
-PROCESS_STATE = {
-    "status": "idle",
-    "started_at": None,
-    "finished_at": None,
-    "last_result": None,
-    "message": "Belum ada proses yang sedang berjalan.",
-    "hazard": None,
-    "mode": None,
-    "logs": [],
-    "current_script": None,
-    "current_step": 0,
-    "total_steps": 0,
-    "progress_percent": 0,
-    "updated_outputs": [],
-}
-
-PROCESS_LOCK = threading.Lock()
-MAX_PROCESS_LOG_ITEMS = 100
-
-PIPELINE_REGISTRY = {
-    "flood": {
-        "full": [
-            "run_preprocess.py",
-            "run_zonal.py",
-            "run_analysis_flood.py",
-            "run_etl.py",
-        ],
-        "preprocess": [
-            "run_preprocess.py",
-        ],
-        "analysis": [
-            "run_zonal.py",
-            "run_analysis_flood.py",
-        ],
-        "web": [
-            "run_etl.py",
-        ],
-    },
-    "drought": {
-        "full": [
-            "run_preprocess.py",
-            "run_zonal.py",
-            "run_analysis_drought.py",
-            "run_etl.py",
-        ],
-        "preprocess": [
-            "run_preprocess.py",
-        ],
-        "analysis": [
-            "run_zonal.py",
-            "run_analysis_drought.py",
-        ],
-        "web": [
-            "run_etl.py",
-        ],
-    },
-    "multi": {
-        "full": [
-            "run_analysis_flood.py",
-            "run_analysis_drought.py",
-            "run_analysis_multi.py",
-            "run_etl.py",
-        ],
-        "preprocess": [],
-        "analysis": [
-            "run_analysis_flood.py",
-            "run_analysis_drought.py",
-            "run_analysis_multi.py",
-        ],
-        "web": [
-            "run_etl.py",
-        ],
-    },
-}
-
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def update_process_state(**kwargs):
-    with PROCESS_LOCK:
-        PROCESS_STATE.update(kwargs)
-
-
-def append_process_log(script, returncode, stdout_text="", stderr_text="", timestamp=None):
-    with PROCESS_LOCK:
-        PROCESS_STATE["logs"].append({
-            "script": script,
-            "returncode": returncode,
-            "stdout": (stdout_text or "")[-4000:],
-            "stderr": (stderr_text or "")[-4000:],
-            "timestamp": timestamp or now_iso(),
-        })
-        PROCESS_STATE["logs"] = PROCESS_STATE["logs"][-MAX_PROCESS_LOG_ITEMS:]
 
 
 def safe_stat(path: str):

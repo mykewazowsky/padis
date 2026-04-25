@@ -1,343 +1,243 @@
+"""
+Pipeline status routes — Phase 3 refactor.
+
+Pipeline execution via subprocess/threading telah dihapus dari Flask.
+Pipeline sekarang dijalankan secara lokal/Docker oleh operator menggunakan:
+    docker run padis-pipeline --mode <mode> --hazard <hazard> --operator <name>
+
+Endpoint yang tersedia:
+    GET  /api/admin/run-status      (BARU) status pipeline dari tabel `runs`
+    GET  /api/admin/process-status  (LAMA, backward compat) sama, shape lama
+    GET  /api/admin/dependencies    (LAMA, disederhanakan) cek output files
+    POST /api/admin/run-analysis    (DEPRECATED) returns 410 Gone
+    POST /api/admin/finish-analysis (DEPRECATED) returns 410 Gone
+"""
+
 import os
-import sys
-import traceback
-import subprocess
-import threading
 
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
+from sqlalchemy import text
 
 from ..auth.auth_utils import admin_required
-from .admin_utils import (
-    PROCESS_LOCK,
-    PROCESS_STATE,
-    PIPELINE_REGISTRY,
-    SCRIPTS_DIR,
-    OUTPUT_DIR,
-    update_process_state,
-    append_process_log,
-    get_recent_outputs,
-)
+from .admin_utils import OUTPUT_DIR
+from ...db.session import SessionLocal
 
 admin_process_bp = Blueprint("admin_process_bp", __name__)
 
-SCRIPT_TIMEOUT_SECONDS = 3600
-MAX_LOG_CHARS = 5000
 
-
-def now_iso() -> str:
+def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def trim_text(value: str | None, max_chars: int = MAX_LOG_CHARS) -> str:
-    if not value:
-        return ""
-    return value[-max_chars:]
-
-
-def run_pipeline_scripts(script_names, hazard, mode):
+def _fetch_latest_run(session):
+    """Ambil satu baris terbaru dari tabel runs. Return None jika kosong."""
     try:
-        total_scripts = len(script_names)
-        scripts_root = os.path.abspath(SCRIPTS_DIR)
+        row = session.execute(text("""
+            SELECT id, run_name, created_at, status, is_active,
+                   step, progress, message, operator_name, source
+            FROM runs
+            ORDER BY created_at DESC
+            LIMIT 1
+        """)).fetchone()
+    except Exception:
+        # Fallback jika kolom baru (migration 002) belum dijalankan
+        try:
+            row = session.execute(text("""
+                SELECT id, run_name, created_at, status, is_active,
+                       NULL AS step, 0 AS progress, NULL AS message,
+                       NULL AS operator_name, NULL AS source
+                FROM runs
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)).fetchone()
+        except Exception:
+            row = None
+    return row
 
-        print("=" * 80)
-        print("[PADIS] START PIPELINE")
-        print(f"[PADIS] hazard={hazard}")
-        print(f"[PADIS] mode={mode}")
-        print(f"[PADIS] total_scripts={total_scripts}")
-        print(f"[PADIS] scripts={script_names}")
-        print("=" * 80)
 
-        if total_scripts == 0:
-            update_process_state(
-                status="idle",
-                finished_at=now_iso(),
-                last_result="failed",
-                message=f"Tidak ada script untuk hazard={hazard}, mode={mode}",
-                current_script=None,
-                current_step=0,
-                total_steps=0,
-                progress_percent=0,
-                updated_outputs=[],
-            )
-            return
+def _idle_state(message="Belum ada proses yang sedang berjalan.") -> dict:
+    return {
+        "status": "idle",
+        "started_at": None,
+        "finished_at": None,
+        "last_result": None,
+        "message": message,
+        "hazard": None,
+        "mode": None,
+        "logs": [],
+        "current_script": None,
+        "current_step": 0,
+        "total_steps": 0,
+        "progress_percent": 0,
+        "updated_outputs": [],
+    }
 
-        for index, script_name in enumerate(script_names, start=1):
-            script_path = os.path.abspath(os.path.join(SCRIPTS_DIR, script_name))
 
-            print("-" * 80)
-            print(f"[PADIS] RUNNING SCRIPT {index}/{total_scripts}")
-            print(f"[PADIS] script_name={script_name}")
-            print(f"[PADIS] script_path={script_path}")
-            print("-" * 80)
+# =============================================================================
+# GET /api/admin/run-status  (BARU — clean DB-based endpoint)
+# =============================================================================
 
-            if not script_path.startswith(scripts_root + os.sep):
-                raise RuntimeError(f"Path script tidak valid: {script_name}")
-
-            if not os.path.exists(script_path):
-                raise FileNotFoundError(f"Script tidak ditemukan: {script_name}")
-
-            if not os.path.isfile(script_path):
-                raise RuntimeError(f"Path bukan file script valid: {script_name}")
-
-            update_process_state(
-                current_script=script_name,
-                current_step=index,
-                total_steps=total_scripts,
-                message=f"Menjalankan {script_name}",
-                progress_percent=int(((index - 1) / total_scripts) * 100),
-            )
-
-            try:
-                result = subprocess.run(
-                    [sys.executable, "-u", script_path],
-                    cwd=SCRIPTS_DIR,
-                    capture_output=True,
-                    text=True,
-                    timeout=SCRIPT_TIMEOUT_SECONDS,
-                )
-            except subprocess.TimeoutExpired:
-                append_process_log(
-                    script=script_name,
-                    returncode=124,
-                    stdout_text="",
-                    stderr_text=f"Script timeout setelah {SCRIPT_TIMEOUT_SECONDS} detik",
-                    timestamp=now_iso(),
-                )
-                raise RuntimeError(
-                    f"Script timeout: {script_name} setelah {SCRIPT_TIMEOUT_SECONDS} detik"
-                )
-
-            print(f"[PADIS] FINISHED SCRIPT: {script_name}")
-            print(f"[PADIS] returncode={result.returncode}")
-
-            if result.stdout:
-                print("[PADIS][STDOUT][tail]")
-                print(result.stdout[-1500:])
-
-            if result.stderr:
-                print("[PADIS][STDERR][tail]")
-                print(result.stderr[-1500:])
-
-            append_process_log(
-                script=script_name,
-                returncode=result.returncode,
-                stdout_text=trim_text(result.stdout),
-                stderr_text=trim_text(result.stderr),
-                timestamp=now_iso(),
-            )
-
-            if result.returncode != 0:
-                raise RuntimeError(
-                    f"Script gagal: {script_name}\n{trim_text((result.stderr or '').strip(), 1000)}"
-                )
-
-            update_process_state(
-                progress_percent=int((index / total_scripts) * 100),
-            )
-
-        print("=" * 80)
-        print("[PADIS] PIPELINE SUCCESS")
-        print("=" * 80)
-
-        update_process_state(
-            status="idle",
-            finished_at=now_iso(),
-            last_result="success",
-            message=f"Pipeline {hazard} - {mode} selesai",
-            current_script=None,
-            current_step=total_scripts,
-            total_steps=total_scripts,
-            progress_percent=100,
-            updated_outputs=get_recent_outputs(minutes=10),
-        )
-
+@admin_process_bp.route("/api/admin/run-status", methods=["GET"])
+@admin_required
+def admin_run_status():
+    """
+    Mengembalikan status pipeline terbaru langsung dari tabel `runs`.
+    Cocok digunakan oleh pipeline-monitor page.
+    """
+    try:
+        with SessionLocal() as session:
+            row = _fetch_latest_run(session)
     except Exception as e:
-        print("=" * 80)
-        print("[PADIS] PIPELINE FAILED")
-        print(str(e))
-        print(traceback.format_exc())
-        print("=" * 80)
+        return jsonify({"error": "Gagal mengambil status run", "detail": str(e)}), 500
 
-        with PROCESS_LOCK:
-            current_step = PROCESS_STATE.get("current_step", 0)
-            total_steps = PROCESS_STATE.get("total_steps", 0)
-            progress_percent = PROCESS_STATE.get("progress_percent", 0)
+    if row is None:
+        return jsonify({"run": None, "message": "Belum ada pipeline run"}), 200
 
-        update_process_state(
-            status="idle",
-            finished_at=now_iso(),
-            last_result="failed",
-            message=str(e),
-            current_script=None,
-            current_step=current_step,
-            total_steps=total_steps,
-            progress_percent=progress_percent,
-            updated_outputs=[],
-        )
+    run = {
+        "id": row.id,
+        "run_name": row.run_name,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "status": row.status,
+        "is_active": row.is_active,
+        "step": row.step,
+        "progress": row.progress or 0,
+        "message": row.message,
+        "operator_name": row.operator_name,
+        "source": row.source,
+    }
+    return jsonify({"run": run}), 200
 
-        append_process_log(
-            script="system",
-            returncode=1,
-            stdout_text="",
-            stderr_text=trim_text(traceback.format_exc()),
-            timestamp=now_iso(),
-        )
 
+# =============================================================================
+# GET /api/admin/process-status  (LAMA — backward compat, shape tidak berubah)
+# =============================================================================
 
 @admin_process_bp.route("/api/admin/process-status", methods=["GET"])
 @admin_required
 def admin_process_status():
-    with PROCESS_LOCK:
-        return jsonify(PROCESS_STATE)
+    """
+    Mengembalikan status pipeline dalam format lama (PROCESS_STATE shape).
+    Dipertahankan untuk backward compatibility dengan admin panel yang ada.
+    Data sekarang dibaca dari tabel `runs`, bukan in-memory PROCESS_STATE.
+    """
+    try:
+        with SessionLocal() as session:
+            row = _fetch_latest_run(session)
+    except Exception:
+        row = None
 
+    if row is None:
+        return jsonify(_idle_state())
+
+    db_status = row.status or "idle"
+    is_running = (db_status == "running")
+
+    # Ekstrak hazard dari run_name: format "{hazard}_{operator}_{timestamp}"
+    hazard = None
+    if row.run_name:
+        parts = row.run_name.split("_")
+        if parts and parts[0] in ("flood", "drought", "multi", "multihazard"):
+            hazard = parts[0]
+
+    return jsonify({
+        "status": "running" if is_running else "idle",
+        "started_at": row.created_at.isoformat() if row.created_at else None,
+        "finished_at": None,
+        "last_result": None if is_running else db_status,
+        "message": row.message or "",
+        "hazard": hazard,
+        "mode": None,
+        "logs": [],
+        "current_script": row.step,
+        "current_step": 0,
+        "total_steps": 0,
+        "progress_percent": row.progress or 0,
+        "updated_outputs": [],
+    })
+
+
+# =============================================================================
+# GET /api/admin/dependencies  (LAMA — disederhanakan, cek output saja)
+# =============================================================================
 
 @admin_process_bp.route("/api/admin/dependencies", methods=["GET"])
 @admin_required
 def admin_dependencies():
+    """
+    Cek keberadaan file output yang diperlukan per hazard.
+    Script pipeline tidak lagi dicek di sini (pipeline berjalan via Docker).
+    """
     hazard = request.args.get("hazard", "multi")
-
-    allowed_hazards = {"flood", "drought", "multi"}
-    if hazard not in allowed_hazards:
+    if hazard not in {"flood", "drought", "multi"}:
         return jsonify({"error": "Hazard tidak valid"}), 400
 
-    script_paths = PIPELINE_REGISTRY.get(hazard, {}).get("full", [])
-    checks = []
+    targets = []
 
-    for script_rel_path in script_paths:
-        full_path = os.path.abspath(os.path.join(SCRIPTS_DIR, script_rel_path))
-        checks.append(
-            {
-                "type": "script",
-                "label": f"Script: {script_rel_path}",
-                "path": full_path,
-                "exists": os.path.exists(full_path),
-            }
-        )
-
-    extra_targets = []
-
-    if hazard == "flood":
-        extra_targets = [
-            ("input", "Raw raster folder", os.path.join(os.path.dirname(OUTPUT_DIR), "raw")),
-            ("output", "Flood loss std", os.path.join(OUTPUT_DIR, "kabkota_flood_loss_std.gpkg")),
-            ("output", "Flood AAL v2", os.path.join(OUTPUT_DIR, "kabkota_flood_aal_v2.csv")),
+    if hazard in ("flood", "multi"):
+        targets += [
+            ("output", "Flood loss std",  os.path.join(OUTPUT_DIR, "kabkota_flood_loss_std.gpkg")),
+            ("output", "Flood AAL",       os.path.join(OUTPUT_DIR, "kabkota_flood_aal.csv")),
         ]
-    elif hazard == "drought":
-        extra_targets = [
-            ("input", "Raw raster folder", os.path.join(os.path.dirname(OUTPUT_DIR), "raw")),
+    if hazard in ("drought", "multi"):
+        targets += [
             ("output", "Drought loss std", os.path.join(OUTPUT_DIR, "kabkota_drought_loss_std.gpkg")),
-            ("output", "Drought AAL v2", os.path.join(OUTPUT_DIR, "kabkota_drought_aal_v2.csv")),
+            ("output", "Drought AAL",      os.path.join(OUTPUT_DIR, "kabkota_drought_aal.csv")),
         ]
-    else:
-        extra_targets = [
-            ("input", "Flood loss source", os.path.join(OUTPUT_DIR, "kabkota_flood_loss.gpkg")),
-            ("input", "Drought loss source", os.path.join(OUTPUT_DIR, "kabkota_drought_loss.gpkg")),
+    if hazard == "multi":
+        targets += [
             ("output", "Multihazard clean", os.path.join(OUTPUT_DIR, "kabkota_multihazard_clean.gpkg")),
-            ("output", "Multihazard AAL v2", os.path.join(OUTPUT_DIR, "kabkota_multihazard_aal_v2.csv")),
+            ("output", "Multihazard AAL",   os.path.join(OUTPUT_DIR, "kabkota_multihazard_aal.csv")),
         ]
 
-    for item_type, label, path in extra_targets:
-        checks.append(
-            {
-                "type": item_type,
-                "label": label,
-                "path": path,
-                "exists": os.path.exists(path),
-            }
-        )
+    checks = [
+        {"type": t, "label": label, "path": path, "exists": os.path.exists(path)}
+        for t, label, path in targets
+    ]
+    return jsonify({
+        "hazard": hazard,
+        "all_ok": all(c["exists"] for c in checks),
+        "checks": checks,
+        "note": "Pipeline sekarang dijalankan via Docker — script tidak lagi dicek di sini.",
+    })
 
-    all_ok = all(item["exists"] for item in checks)
 
-    return jsonify(
-        {
-            "hazard": hazard,
-            "all_ok": all_ok,
-            "checks": checks,
-        }
-    )
-
+# =============================================================================
+# POST /api/admin/run-analysis  (DEPRECATED — 410 Gone)
+# =============================================================================
 
 @admin_process_bp.route("/api/admin/run-analysis", methods=["POST"])
 @admin_required
 def admin_run_analysis():
-    data = request.get_json(silent=True) or {}
-    hazard = data.get("hazard", "multi")
-    mode = data.get("mode", "full")
+    """
+    DEPRECATED: Pipeline tidak lagi dijalankan dari Flask.
+    Gunakan Docker CLI:
+        docker run padis-pipeline --mode <mode> --hazard <hazard> --operator <name>
+    """
+    return jsonify({
+        "error": "Endpoint ini tidak lagi tersedia.",
+        "message": (
+            "Pipeline sekarang dijalankan secara lokal oleh operator via Docker. "
+            "Gunakan: docker run padis-pipeline --mode full --hazard flood --operator <nama>"
+        ),
+        "docs": "Lihat Dockerfile.pipeline dan docs/refactor-pipeline-plan/pipeline-operation.md",
+    }), 410
 
-    allowed_hazards = {"flood", "drought", "multi"}
-    allowed_modes = {"full", "preprocess", "analysis", "web"}
 
-    if hazard not in allowed_hazards:
-        return jsonify({"error": "Hazard tidak valid"}), 400
-
-    if mode not in allowed_modes:
-        return jsonify({"error": "Mode tidak valid"}), 400
-
-    with PROCESS_LOCK:
-        if PROCESS_STATE.get("status") == "running":
-            return jsonify({"error": "Masih ada proses yang sedang berjalan"}), 409
-
-    scripts = PIPELINE_REGISTRY.get(hazard, {}).get(mode, [])
-    if not scripts:
-        return jsonify(
-            {
-                "error": f"Tidak ada script untuk hazard={hazard}, mode={mode}"
-            }
-        ), 400
-
-    update_process_state(
-        status="running",
-        started_at=now_iso(),
-        finished_at=None,
-        last_result="running",
-        message=f"Menjalankan pipeline {hazard} - {mode}",
-        hazard=hazard,
-        mode=mode,
-        logs=[],
-        current_script=None,
-        current_step=0,
-        total_steps=len(scripts),
-        progress_percent=0,
-        updated_outputs=[],
-    )
-
-    worker = threading.Thread(
-        target=run_pipeline_scripts,
-        args=(scripts, hazard, mode),
-        daemon=True,
-    )
-    worker.start()
-
-    return jsonify(
-        {
-            "message": "Pipeline berhasil dimulai",
-            "hazard": hazard,
-            "mode": mode,
-            "scripts": scripts,
-        }
-    )
-
+# =============================================================================
+# POST /api/admin/finish-analysis  (DEPRECATED — 410 Gone)
+# =============================================================================
 
 @admin_process_bp.route("/api/admin/finish-analysis", methods=["POST"])
 @admin_required
 def admin_finish_analysis():
-    with PROCESS_LOCK:
-        total_steps = PROCESS_STATE.get("total_steps", 0)
-
-    update_process_state(
-        status="idle",
-        finished_at=now_iso(),
-        last_result="manual_finish",
-        message="Analisis ditandai selesai secara manual oleh admin",
-        current_script=None,
-        current_step=total_steps,
-        total_steps=total_steps,
-        progress_percent=100,
-    )
-
-    return jsonify(
-        {
-            "message": "Analisis ditandai selesai secara manual"
-        }
-    )
+    """
+    DEPRECATED: Pipeline state sekarang dikelola langsung di tabel `runs`.
+    """
+    return jsonify({
+        "error": "Endpoint ini tidak lagi tersedia.",
+        "message": (
+            "Status pipeline sekarang dibaca langsung dari tabel `runs`. "
+            "Gunakan GET /api/admin/run-status untuk melihat status terbaru."
+        ),
+    }), 410

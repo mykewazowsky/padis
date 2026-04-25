@@ -3,16 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Select from "react-select";
-import {
-  Activity,
-  BarChart3,
-  Filter,
-  Layers3,
-  MapPinned,
-  ShieldAlert,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { Filter, ShieldAlert } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
 import { fetchAllLayers, fetchLatestRunId } from "../../../services/fetchLayers";
@@ -123,14 +114,6 @@ function formatCompact(value: number) {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
-}
-
-function formatFullRupiah(value: number) {
-  return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
-}
-
-function formatPercent(value: number) {
-  return `${value.toFixed(1)}%`;
 }
 
 function formatPercentChange(climateValue: number, nonclimateValue: number) {
@@ -640,104 +623,8 @@ export default function DashboardPage() {
     );
   }, [selectedRegion, regionAalSummary]);
 
-  const topRegionShare = useMemo(() => {
-    if (!layerSummary.totalLoss || !layerSummary.topLoss) return 0;
-    return (layerSummary.topLoss / layerSummary.totalLoss) * 100;
-  }, [layerSummary]);
-
   const isLayerEmpty =
     !loadingLayer && !errorLayer && layerSummary.dataCount === 0;
-
-  const climateSignalText = useMemo(() => {
-    if (loadingAAL) return "Menganalisis sinyal climate...";
-    if (errorAAL) return errorAAL;
-    if (climateChangeInfo.label === "N/A") {
-      return "Belum ada cukup data untuk menilai perubahan AAL.";
-    }
-    return climateChangeInfo.description;
-  }, [loadingAAL, errorAAL, climateChangeInfo]);
-
-  const selectedRegionClimateSignalText = useMemo(() => {
-    if (!selectedRegion) {
-      return "Pilih kabupaten/kota untuk melihat indikasi perubahan iklim wilayah.";
-    }
-
-    if (loadingRegionAAL) {
-      return "Menganalisis perubahan iklim wilayah terpilih...";
-    }
-
-    if (errorRegionAAL) {
-      return errorRegionAAL;
-    }
-
-    if (!selectedRegionClimateChangeInfo) {
-      return "Data indikasi perubahan iklim wilayah belum tersedia.";
-    }
-
-    if (selectedRegionClimateChangeInfo.label === "N/A") {
-      return "Belum ada cukup data untuk menghitung perubahan AAL wilayah.";
-    }
-
-    return selectedRegionClimateChangeInfo.description;
-  }, [
-    selectedRegion,
-    loadingRegionAAL,
-    errorRegionAAL,
-    selectedRegionClimateChangeInfo,
-  ]);
-
-  const smartInsight = useMemo(() => {
-    if (loadingLayer || loadingAAL) {
-      return "Menyusun insight analisis...";
-    }
-
-    if (errorLayer) {
-      return errorLayer;
-    }
-
-    if (isLayerEmpty) {
-      return "Tidak ada data yang tersedia untuk kombinasi filter saat ini.";
-    }
-
-    const hazardLabel = getHazardLabel(hazard);
-    const climateLabel = getClimateLabel(climate);
-    const wilayahAktif = selectedRegion || "Indonesia";
-    const totalLossText = formatFullRupiah(layerSummary.totalLoss);
-    const topLossText = formatFullRupiah(layerSummary.topLoss);
-    const aalDeltaText = formatFullRupiah(
-      Math.abs(climateChangeInfo.deltaValue)
-    );
-
-    const intro = `Pada cakupan ${wilayahAktif}, skenario ${scenario.toUpperCase()} dengan hazard ${hazardLabel} dan kondisi ${climateLabel}, total loss terhitung sebesar ${totalLossText}.`;
-
-    const topRegionText =
-      layerSummary.topRegion !== "-"
-        ? `${layerSummary.topRegion} menjadi wilayah dengan loss tertinggi sebesar ${topLossText}, atau sekitar ${formatPercent(topRegionShare)} dari total loss.`
-        : `Belum ada wilayah dominan yang dapat diidentifikasi pada kombinasi filter ini.`;
-
-    const aalText =
-      climateChangeInfo.label === "N/A"
-        ? "Perbandingan AAL climate dan non-climate belum dapat dihitung."
-        : climateChangeInfo.isUp
-          ? `Untuk hazard ${hazardLabel}, AAL climate lebih tinggi ${climateChangeInfo.label} dibanding non-climate, dengan selisih sekitar ${aalDeltaText}.`
-          : `Untuk hazard ${hazardLabel}, AAL climate lebih rendah ${climateChangeInfo.label} dibanding non-climate, dengan selisih sekitar ${aalDeltaText}.`;
-
-    const coverageText = `Analisis aktif mencakup ${layerSummary.dataCount} kabupaten/kota dengan data valid.`;
-
-    return `${intro} ${topRegionText} ${aalText} ${coverageText}`;
-  }, [
-    loadingLayer,
-    loadingAAL,
-    errorLayer,
-    isLayerEmpty,
-    hazard,
-    climate,
-    scenario,
-    selectedRegion,
-    layerSummary,
-    topRegionShare,
-    climateChangeInfo,
-  ]);
 
   const insightBadge = useMemo(() => {
     if (loadingLayer || loadingAAL) {
@@ -812,188 +699,102 @@ export default function DashboardPage() {
 
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
           <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="max-w-2xl">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
-                    Analisis Spasial
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 xl:text-3xl">
-                    Peta Risiko
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-gray-500">
-                    Eksplorasi distribusi kerugian dan AAL per wilayah berdasarkan
-                    parameter analisis aktif.
-                  </p>
-                </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
+                  Analisis Spasial
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 xl:text-3xl">
+                  Peta Risiko
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  Eksplorasi distribusi kerugian dan AAL per wilayah berdasarkan
+                  parameter analisis aktif.
+                </p>
+              </div>
 
-                <div className="flex shrink-0 items-center gap-2 sm:pt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
+              <div className="shrink-0 sm:max-w-[44%] sm:pt-1">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
                     Ringkasan Cepat
-                  </p>
+                  </span>
                   <span
                     className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${insightBadge.className}`}
                   >
                     {insightBadge.label}
                   </span>
                 </div>
-              </div>
 
-              <p className="text-xs text-gray-500">
-                Ringkasan utama untuk kombinasi filter yang sedang aktif.
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-                <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)] p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Total Kerugian</p>
-                      <h3 className="mt-0.5 text-xl font-bold leading-tight text-gray-900">
-                        {loadingLayer ? (
-                          <span className="animate-pulse text-gray-400">...</span>
-                        ) : (
-                          <>Rp {formatCompact(layerSummary.totalLoss)}</>
-                        )}
-                      </h3>
-                    </div>
-                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
-                      <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 truncate text-xs text-gray-600">
-                    {getHazardLabel(hazard)} · {getClimateLabel(climate)} ·{" "}
-                    {scenario.toUpperCase()}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[var(--color-secondary)]/40 bg-[var(--color-secondary-soft)] p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Wilayah Prioritas</p>
-                      <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
-                        {loadingLayer ? (
-                          <span className="animate-pulse text-gray-400">...</span>
-                        ) : (
-                          layerSummary.topRegion
-                        )}
-                      </h3>
-                    </div>
-                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
-                      <MapPinned className="h-4 w-4 text-[var(--color-secondary-dark)]" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 text-xs text-gray-600">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm leading-snug text-gray-700">
+                  <span className="font-semibold text-gray-900">
                     {loadingLayer ? (
-                      <span className="animate-pulse text-gray-400">Memuat...</span>
+                      <span className="animate-pulse text-gray-400">—</span>
                     ) : (
-                      <>
-                        Rp {formatCompact(layerSummary.topLoss)} ·{" "}
-                        {formatPercent(topRegionShare)} dari total
-                      </>
+                      `Rp ${formatCompact(layerSummary.totalLoss)}`
                     )}
-                  </p>
-                </div>
+                  </span>
 
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Cakupan Data</p>
-                      <h3 className="mt-0.5 text-xl font-bold text-gray-900">
-                        {loadingLayer ? (
-                          <span className="animate-pulse text-gray-400">...</span>
-                        ) : (
-                          layerSummary.dataCount
-                        )}
-                      </h3>
-                    </div>
-                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
-                      <Layers3 className="h-4 w-4 text-green-700" />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 truncate text-xs text-gray-600">
-                    {selectedRegion
-                      ? `Fokus aktif: ${selectedRegion}`
-                      : "Fokus aktif: Indonesia"}
-                  </p>
-                </div>
+                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
 
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Indikasi Perubahan Iklim</p>
-                      <h3 className="mt-0.5 text-xl font-bold leading-snug text-gray-900">
-                        {loadingAAL ? (
-                          <span className="animate-pulse text-gray-400">...</span>
-                        ) : (
-                          climateChangeInfo.label
-                        )}
-                      </h3>
-                    </div>
-                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
-                      {climateChangeInfo.isUp ? (
-                        <TrendingUp className="h-4 w-4 text-red-600" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-green-600" />
-                      )}
-                    </div>
-                  </div>
-                  <p
-                    className={`mt-0.5 text-xs font-semibold ${
-                      loadingAAL ? "text-gray-400" : climateChangeInfo.colorClass
+                  <span
+                    className={`font-semibold ${loadingAAL ? "text-gray-400" : climateChangeInfo.colorClass}`}
+                  >
+                    {loadingAAL ? (
+                      <span className="animate-pulse">—</span>
+                    ) : climateChangeInfo.label === "N/A" ? (
+                      "N/A"
+                    ) : (
+                      `${climateChangeInfo.label} ${climateChangeInfo.isUp ? "↑" : "↓"}`
+                    )}
+                  </span>
+
+                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
+
+                  <span className="max-w-[120px] truncate">
+                    {loadingLayer ? (
+                      <span className="animate-pulse text-gray-400">—</span>
+                    ) : layerSummary.topRegion !== "-" ? (
+                      layerSummary.topRegion.split(",")[0].trim()
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+
+                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
+
+                  <span>
+                    {loadingLayer ? (
+                      <span className="animate-pulse text-gray-400">—</span>
+                    ) : (
+                      `${layerSummary.dataCount} wilayah`
+                    )}
+                  </span>
+
+                  <span className="select-none text-gray-300" aria-hidden="true">|</span>
+
+                  <span
+                    className={`font-medium ${
+                      !selectedRegion
+                        ? "text-gray-400"
+                        : loadingRegionAAL
+                          ? "text-gray-400"
+                          : errorRegionAAL
+                            ? "text-red-500"
+                            : (selectedRegionClimateChangeInfo?.colorClass ?? "text-gray-500")
                     }`}
                   >
-                    {getHazardLabel(hazard)}
-                  </p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">
-                    {climateSignalText}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Indikasi Iklim Wilayah</p>
-                      <h3 className="mt-0.5 text-xl font-bold leading-snug text-gray-900">
-                        {!selectedRegion ? (
-                          <span className="text-sm font-medium text-gray-400">
-                            Pilih wilayah
-                          </span>
-                        ) : loadingRegionAAL ? (
-                          <span className="animate-pulse text-gray-400">...</span>
-                        ) : errorRegionAAL ? (
-                          <span className="text-sm font-medium text-red-500">Error</span>
-                        ) : selectedRegionClimateChangeInfo ? (
-                          selectedRegionClimateChangeInfo.label
-                        ) : (
-                          <span className="text-sm font-medium text-gray-400">N/A</span>
-                        )}
-                      </h3>
-                    </div>
-                    <div className="shrink-0 rounded-xl bg-white/80 p-1.5">
-                      {!selectedRegion ? (
-                        <MapPinned className="h-4 w-4 text-blue-600" />
-                      ) : selectedRegionClimateChangeInfo?.isUp ? (
-                        <TrendingUp className="h-4 w-4 text-red-600" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-green-600" />
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-0.5 truncate text-xs font-semibold text-blue-700">
-                    {selectedRegion || "Belum ada wilayah dipilih"}
-                  </p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">
-                    {selectedRegionClimateSignalText}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5">
-                <div className="flex items-start gap-2.5">
-                  <div className="shrink-0 rounded-xl bg-white p-1.5 shadow-sm">
-                    <Activity className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                  </div>
-                  <p className="text-xs leading-relaxed text-gray-700">{smartInsight}</p>
+                    {!selectedRegion ? (
+                      "Belum dipilih"
+                    ) : loadingRegionAAL ? (
+                      <span className="animate-pulse">—</span>
+                    ) : errorRegionAAL ? (
+                      "Error"
+                    ) : selectedRegionClimateChangeInfo ? (
+                      `${selectedRegionClimateChangeInfo.label} ${selectedRegionClimateChangeInfo.isUp ? "↑" : "↓"} (${selectedRegion})`
+                    ) : (
+                      "N/A"
+                    )}
+                  </span>
                 </div>
               </div>
             </div>

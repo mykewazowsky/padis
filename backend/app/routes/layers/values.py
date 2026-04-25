@@ -153,6 +153,7 @@ def get_loss_values():
 def get_aal_values():
     hazard  = _normalize_hazard(request.args.get("hazard", "flood"))
     climate = request.args.get("climate", "nonclimate").strip().lower()
+    run_id  = request.args.get("run_id", type=int)
 
     if hazard not in _HAZARD_ID:
         return jsonify({"error": f"Unknown hazard '{hazard}'. Valid: {list(_HAZARD_ID)}"}), 400
@@ -163,18 +164,25 @@ def get_aal_values():
     hazard_id   = _HAZARD_ID[hazard]
     scenario_id = _SCENARIO_ID[climate]
 
-    print({
-        "endpoint":    "values/aal",
-        "hazard":      hazard,
-        "hazard_id":   hazard_id,
-        "climate":     climate,
-        "scenario_id": scenario_id,
-    })
-
-    params = {"hazard_id": hazard_id, "scenario_id": scenario_id}
-
     db = SessionLocal()
     try:
+        if run_id is None:
+            row = db.execute(text("SELECT id FROM runs ORDER BY id DESC LIMIT 1")).fetchone()
+            run_id = int(row.id) if row else None
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
+        print({
+            "endpoint":    "values/aal",
+            "hazard":      hazard,
+            "hazard_id":   hazard_id,
+            "climate":     climate,
+            "scenario_id": scenario_id,
+            "run_id":      run_id,
+        })
+
+        params = {"hazard_id": hazard_id, "scenario_id": scenario_id, "run_id": run_id}
+
         rows = db.execute(text("""
             SELECT
                 r.id_kabkota,
@@ -187,6 +195,7 @@ def get_aal_values():
                 ON  r.id_kabkota  = a.id_kabkota
                 AND a.hazard_id   = :hazard_id
                 AND a.scenario_id = :scenario_id
+                AND a.run_id      = :run_id
         """), params).fetchall()
 
         data_bounds = _fetch_bounds(db, """
@@ -200,6 +209,7 @@ def get_aal_values():
                 ON  r.id_kabkota  = a.id_kabkota
                 AND a.hazard_id   = :hazard_id
                 AND a.scenario_id = :scenario_id
+                AND a.run_id      = :run_id
         """, params)
 
         return jsonify({

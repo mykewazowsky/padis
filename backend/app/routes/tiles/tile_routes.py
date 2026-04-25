@@ -104,6 +104,7 @@ def _tile_aal(db, p: dict) -> bytes:
                 ON  r.id_kabkota  = a.id_kabkota
                 AND a.hazard_id   = :hazard_id
                 AND a.scenario_id = :scenario_id
+                AND a.run_id      = :run_id
             WHERE {_bbox()}
         ) q
         WHERE q.geom IS NOT NULL
@@ -222,7 +223,7 @@ def get_tile(layer: str, z: int, x: int, y: int):
         return jsonify({"error": f"Invalid scenario '{scenario}'. Must be rp25/rp50/rp100/rp250"}), 400
 
     # ── Strict validation — no silent fallbacks ───────────────────────────────
-    if layer in ("loss", "hazard") and run_id is None:
+    if layer in ("loss", "aal", "hazard") and run_id is None:
         return jsonify({"error": "run_id is required for this layer"}), 400
 
     if hazard not in _HAZARD_ID:

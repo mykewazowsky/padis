@@ -330,7 +330,8 @@ export default function DashboardPage() {
     setLoadingAAL(true);
     setErrorAAL(null);
 
-    fetchJson<AalSummary>(`/api/aal-summary?hazard=${hazard}`)
+    const qs = `hazard=${hazard}${runId != null ? `&run_id=${runId}` : ""}`;
+    fetchJson<AalSummary>(`/api/aal-summary?${qs}`)
       .then((json) => setAalSummary(json))
       .catch((err) => {
         console.error("AAL summary fetch error:", err);
@@ -338,7 +339,7 @@ export default function DashboardPage() {
         setAalSummary(null);
       })
       .finally(() => setLoadingAAL(false));
-  }, [hazard]);
+  }, [hazard, runId]);
 
   useEffect(() => {
     if (!selectedRegion.trim()) {
@@ -351,10 +352,8 @@ export default function DashboardPage() {
     setLoadingRegionAAL(true);
     setErrorRegionAAL(null);
 
-    const params = new URLSearchParams({
-      hazard,
-      region: selectedRegion.trim(),
-    });
+    const params = new URLSearchParams({ hazard, region: selectedRegion.trim() });
+    if (runId != null) params.set("run_id", String(runId));
 
     fetchJson<AalSummary>(`/api/aal-summary?${params.toString()}`)
       .then((json) => setRegionAalSummary(json))
@@ -364,7 +363,7 @@ export default function DashboardPage() {
         setRegionAalSummary(null);
       })
       .finally(() => setLoadingRegionAAL(false));
-  }, [hazard, selectedRegion]);
+  }, [hazard, selectedRegion, runId]);
 
   // Fetch all layer values (geometry-free) whenever filter or runId changes.
   // Uses lightweight values endpoints (~30 KB total) instead of full GeoJSON (~20 MB).

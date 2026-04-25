@@ -17,6 +17,7 @@ def get_aal():
     raw_hazard = request.args.get("hazard", "flood")
     hazard     = _HAZARD_ALIAS.get(raw_hazard.strip().lower(), raw_hazard.strip().lower())
     climate    = request.args.get("climate", "nonclimate").strip().lower()
+    run_id     = request.args.get("run_id", type=int)
 
     if hazard not in _HAZARD_ID:
         return jsonify({"error": f"Unknown hazard '{hazard}'. Valid: {list(_HAZARD_ID)}"}), 400
@@ -27,16 +28,23 @@ def get_aal():
     hazard_id   = _HAZARD_ID[hazard]
     scenario_id = _SCENARIO_ID[climate]
 
-    print({
-        "endpoint":    "layers/aal",
-        "hazard":      hazard,
-        "hazard_id":   hazard_id,
-        "climate":     climate,
-        "scenario_id": scenario_id,
-    })
-
     db = SessionLocal()
     try:
+        if run_id is None:
+            row = db.execute(text("SELECT id FROM runs ORDER BY id DESC LIMIT 1")).fetchone()
+            run_id = int(row.id) if row else None
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
+        print({
+            "endpoint":    "layers/aal",
+            "hazard":      hazard,
+            "hazard_id":   hazard_id,
+            "climate":     climate,
+            "scenario_id": scenario_id,
+            "run_id":      run_id,
+        })
+
         result = db.execute(text("""
             SELECT
                 r.id_kabkota,
@@ -49,7 +57,8 @@ def get_aal():
                 ON  r.id_kabkota  = a.id_kabkota
                 AND a.hazard_id   = :hazard_id
                 AND a.scenario_id = :scenario_id
-        """), {"hazard_id": hazard_id, "scenario_id": scenario_id}).fetchall()
+                AND a.run_id      = :run_id
+        """), {"hazard_id": hazard_id, "scenario_id": scenario_id, "run_id": run_id}).fetchall()
 
         features = []
         for row in result:

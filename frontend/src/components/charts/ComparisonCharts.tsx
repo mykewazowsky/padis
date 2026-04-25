@@ -143,7 +143,9 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
     setLoadingAAL(true);
     setErrorAAL(null);
 
-    fetchJson<AalAllHazardsItem[]>("/api/aal-summary-all-hazards")
+    fetchJson<AalAllHazardsItem[]>(
+      `/api/aal-summary-all-hazards${runId != null ? `?run_id=${runId}` : ""}`
+    )
       .then((json) => setAalAllHazards(json))
       .catch((err) => {
         console.error("AAL all hazards fetch error:", err);
@@ -151,7 +153,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
         setAalAllHazards([]);
       })
       .finally(() => setLoadingAAL(false));
-  }, []);
+  }, [runId]);
 
   useEffect(() => {
     setLoadingLoss(true);

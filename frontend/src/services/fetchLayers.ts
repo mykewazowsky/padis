@@ -121,7 +121,7 @@ export async function fetchAllLayers({
   const [prodJson, lossJson, aalJson, hazardJson] = await Promise.all([
     fetchJson(`/api/layers/values/production`),
     fetchJson(`/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`),
-    fetchJson(`/api/layers/values/aal?hazard=${h}&climate=${c}`),
+    fetchJson(`/api/layers/values/aal?hazard=${h}&climate=${c}&run_id=${runId}`),
     // hazard endpoint: scenario param = climate value, rp param = scenario value
     fetchJson(`/api/layers/values/hazard?hazard=${h}&scenario=${c}&rp=${s}&run_id=${runId}`),
   ]);

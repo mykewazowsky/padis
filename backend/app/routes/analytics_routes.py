@@ -29,24 +29,15 @@ def get_latest_run():
 # ===============================
 # HELPERS
 # ===============================
-def map_hazard(hazard):
+def map_hazard(hazard: str) -> str:
     return "multihazard" if hazard == "multi" else hazard
 
 
-def hazard_filter_sql():
-    return """
-        (
-            (:hazard = 'multihazard' AND h.name IN ('flood', 'drought'))
-            OR h.name = :hazard
-        )
-    """
-
-
-def get_hazard_display_name(hazard: str):
+def get_hazard_display_name(hazard: str) -> str:
     return {
-        "flood": "Flood",
-        "drought": "Drought",
-        "multihazard": "Multi-hazard"
+        "flood":       "Flood",
+        "drought":     "Drought",
+        "multihazard": "Multi-hazard",
     }.get(hazard, hazard)
 
 
@@ -63,43 +54,51 @@ def _latest_run_id(db) -> int | None:
 def get_aal_summary():
     hazard = map_hazard(request.args.get("hazard", "multi"))
     region = request.args.get("region", "").strip()
+    run_id = request.args.get("run_id", type=int)
 
     db = SessionLocal()
     try:
+        if run_id is None:
+            run_id = _latest_run_id(db)
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
+
         if region:
             sql = text("""
                 SELECT
                     s.name AS scenario,
                     COALESCE(SUM(a.aal), 0) AS total_aal
                 FROM aal a
-                JOIN hazards h ON a.hazard_id = h.id
+                JOIN hazards h   ON a.hazard_id   = h.id
                 JOIN scenarios s ON a.scenario_id = s.id
                 JOIN regions_adm r ON a.id_kabkota = r.id_kabkota
                 WHERE h.name = :hazard
+                  AND a.run_id = :run_id
                   AND LOWER(TRIM(r.kab_kota)) = LOWER(TRIM(:region))
                 GROUP BY s.name
             """)
-            params = {"hazard": hazard, "region": region}
+            params = {"hazard": hazard, "run_id": run_id, "region": region}
         else:
             sql = text("""
                 SELECT
                     s.name AS scenario,
                     COALESCE(SUM(a.aal), 0) AS total_aal
                 FROM aal a
-                JOIN hazards h ON a.hazard_id = h.id
+                JOIN hazards h   ON a.hazard_id   = h.id
                 JOIN scenarios s ON a.scenario_id = s.id
                 WHERE h.name = :hazard
+                  AND a.run_id = :run_id
                 GROUP BY s.name
             """)
-            params = {"hazard": hazard}
+            params = {"hazard": hazard, "run_id": run_id}
 
-        rows = db.execute(sql, params).mappings().all()
+        rows   = db.execute(sql, params).mappings().all()
         totals = {row["scenario"]: float(row["total_aal"] or 0) for row in rows}
 
         return jsonify({
-            "hazard": hazard,
+            "hazard":              hazard,
             "total_aal_nonclimate": totals.get("nonclimate", 0),
-            "total_aal_climate": totals.get("climate", 0),
+            "total_aal_climate":    totals.get("climate",    0),
         })
 
     except Exception as e:
@@ -115,31 +114,34 @@ def get_aal_summary():
 # ===============================
 @analytics_bp.route("/aal-summary-all-hazards")
 def get_aal_summary_all_hazards():
-    hazards = ["flood", "drought", "multihazard"]
+    run_id = request.args.get("run_id", type=int)
 
     db = SessionLocal()
     try:
-        results = []
+        if run_id is None:
+            run_id = _latest_run_id(db)
+        if run_id is None:
+            return jsonify({"error": "No runs found"}), 404
 
-        for hazard in hazards:
-            sql = text("""
+        results = []
+        for hazard in ("flood", "drought", "multihazard"):
+            rows = db.execute(text("""
                 SELECT
                     s.name AS scenario,
                     COALESCE(SUM(a.aal), 0) AS total_aal
                 FROM aal a
-                JOIN hazards h ON a.hazard_id = h.id
+                JOIN hazards h   ON a.hazard_id   = h.id
                 JOIN scenarios s ON a.scenario_id = s.id
-                WHERE h.name = :hazard
+                WHERE h.name  = :hazard
+                  AND a.run_id = :run_id
                 GROUP BY s.name
-            """)
+            """), {"hazard": hazard, "run_id": run_id}).mappings().all()
 
-            rows = db.execute(sql, {"hazard": hazard}).mappings().all()
             totals = {row["scenario"]: float(row["total_aal"] or 0) for row in rows}
-
             results.append({
-                "hazard": get_hazard_display_name(hazard),
+                "hazard":              get_hazard_display_name(hazard),
                 "total_aal_nonclimate": totals.get("nonclimate", 0),
-                "total_aal_climate": totals.get("climate", 0),
+                "total_aal_climate":    totals.get("climate",    0),
             })
 
         return jsonify(results)
@@ -164,26 +166,20 @@ def get_loss_summary():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        sql = text(f"""
+        rows = db.execute(text("""
             SELECT
                 rp.rp,
                 COALESCE(SUM(l.loss), 0) AS total_loss
             FROM losses l
-            JOIN hazards h ON l.hazard_id = h.id
-            JOIN scenarios s ON l.scenario_id = s.id
-            JOIN return_periods rp ON l.rp_id = rp.id
-            WHERE {hazard_filter_sql()}
-              AND s.name = :climate
+            JOIN hazards h        ON l.hazard_id   = h.id
+            JOIN scenarios s      ON l.scenario_id = s.id
+            JOIN return_periods rp ON l.rp_id       = rp.id
+            WHERE h.name   = :hazard
+              AND s.name   = :climate
               AND l.run_id = :run_id
             GROUP BY rp.rp
             ORDER BY rp.rp
-        """)
-
-        rows = db.execute(sql, {
-            "hazard":  hazard,
-            "climate": climate,
-            "run_id":  run_id,
-        }).mappings().all()
+        """), {"hazard": hazard, "climate": climate, "run_id": run_id}).mappings().all()
 
         rp_map = {
             f"rp{row['rp']}": int(round(float(row["total_loss"] or 0)))
@@ -214,22 +210,20 @@ def get_loss_summary_compare_climate():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        sql = text(f"""
+        rows = db.execute(text("""
             SELECT
                 rp.rp,
                 s.name AS climate,
                 COALESCE(SUM(l.loss), 0) AS total_loss
             FROM losses l
-            JOIN hazards h ON l.hazard_id = h.id
-            JOIN scenarios s ON l.scenario_id = s.id
-            JOIN return_periods rp ON l.rp_id = rp.id
-            WHERE {hazard_filter_sql()}
+            JOIN hazards h        ON l.hazard_id   = h.id
+            JOIN scenarios s      ON l.scenario_id = s.id
+            JOIN return_periods rp ON l.rp_id       = rp.id
+            WHERE h.name   = :hazard
               AND l.run_id = :run_id
             GROUP BY rp.rp, s.name
             ORDER BY rp.rp
-        """)
-
-        rows = db.execute(sql, {"hazard": hazard, "run_id": run_id}).mappings().all()
+        """), {"hazard": hazard, "run_id": run_id}).mappings().all()
 
         merged = {
             "rp25":  {"scenario": "RP25",  "nonclimate": 0, "climate": 0},
@@ -269,35 +263,28 @@ def get_top_regions():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        sql = text(f"""
+        rows = db.execute(text("""
             SELECT
                 r.kab_kota AS region_name,
                 SUM(l.loss) AS loss
             FROM losses l
-            JOIN regions_adm r ON l.id_kabkota = r.id_kabkota
-            JOIN hazards h ON l.hazard_id = h.id
-            JOIN scenarios s ON l.scenario_id = s.id
-            JOIN return_periods rp ON l.rp_id = rp.id
-            WHERE {hazard_filter_sql()}
-              AND rp.rp = :rp
-              AND s.name = :climate
+            JOIN regions_adm r    ON l.id_kabkota  = r.id_kabkota
+            JOIN hazards h        ON l.hazard_id   = h.id
+            JOIN scenarios s      ON l.scenario_id = s.id
+            JOIN return_periods rp ON l.rp_id       = rp.id
+            WHERE h.name   = :hazard
+              AND rp.rp    = :rp
+              AND s.name   = :climate
               AND l.run_id = :run_id
             GROUP BY r.kab_kota
             ORDER BY loss DESC
             LIMIT 10
-        """)
-
-        rows = db.execute(sql, {
-            "hazard":  hazard,
-            "rp":      rp,
-            "climate": climate,
-            "run_id":  run_id,
-        }).mappings().all()
+        """), {"hazard": hazard, "rp": rp, "climate": climate, "run_id": run_id}).mappings().all()
 
         return jsonify([
             {
                 "name": row["region_name"],
-                "loss": int(round(float(row["loss"] or 0)))
+                "loss": int(round(float(row["loss"] or 0))),
             }
             for row in rows
         ])
@@ -324,25 +311,19 @@ def hazard_breakdown():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        sql = text("""
+        rows = db.execute(text("""
             SELECT
                 h.name AS hazard,
                 SUM(l.loss) AS total
             FROM losses l
-            JOIN hazards h ON l.hazard_id = h.id
-            JOIN scenarios s ON l.scenario_id = s.id
-            JOIN return_periods rp ON l.rp_id = rp.id
-            WHERE rp.rp = :rp
-              AND s.name = :climate
+            JOIN hazards h        ON l.hazard_id   = h.id
+            JOIN scenarios s      ON l.scenario_id = s.id
+            JOIN return_periods rp ON l.rp_id       = rp.id
+            WHERE rp.rp    = :rp
+              AND s.name   = :climate
               AND l.run_id = :run_id
             GROUP BY h.name
-        """)
-
-        rows = db.execute(sql, {
-            "rp":     rp,
-            "climate": climate,
-            "run_id": run_id,
-        }).mappings().all()
+        """), {"rp": rp, "climate": climate, "run_id": run_id}).mappings().all()
 
         totals = {
             row["hazard"]: int(round(float(row["total"] or 0)))

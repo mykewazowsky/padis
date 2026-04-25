@@ -83,6 +83,7 @@ def _query_data(db, hazard_id, scenario_id, rp_id, run_id):
             ON  r.id_kabkota  = a.id_kabkota
             AND a.hazard_id   = :hazard_id
             AND a.scenario_id = :scenario_id
+            AND a.run_id      = :run_id
         LEFT JOIN zonal_kabupaten z
             ON  r.id_kabkota  = z.id_kabkota
             AND z.hazard_id   = :hazard_id
@@ -102,12 +103,14 @@ def _query_data(db, hazard_id, scenario_id, rp_id, run_id):
     }).fetchall()
 
 
-def _aal_total(db, hazard_id, scenario_id):
+def _aal_total(db, hazard_id, scenario_id, run_id):
     row = db.execute(text("""
         SELECT COALESCE(SUM(aal), 0)::float AS total
         FROM aal
-        WHERE hazard_id = :hid AND scenario_id = :sid
-    """), {"hid": hazard_id, "sid": scenario_id}).fetchone()
+        WHERE hazard_id   = :hid
+          AND scenario_id = :sid
+          AND run_id      = :run_id
+    """), {"hid": hazard_id, "sid": scenario_id, "run_id": run_id}).fetchone()
     return float(row.total) if row else 0.0
 
 
@@ -569,8 +572,8 @@ def generate_report_v2():
         total_loss = sum(r.loss for r in valid)
         top_rows   = valid[:10]
 
-        aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"])
-        aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"])
+        aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"], run_id)
+        aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"],    run_id)
         aal_delta = aal_cc - aal_nc
         aal_pct   = ((aal_delta / aal_nc) * 100.0) if aal_nc else 0.0
 

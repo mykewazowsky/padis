@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
@@ -91,6 +92,43 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
 
 const NONCLIMATE_COLOR = "var(--color-primary)";
 const CLIMATE_COLOR = "var(--color-secondary)";
+
+const HAZARD_COLORS: Record<string, string> = {
+  Flood: "#3b82f6",
+  Drought: "#f97316",
+  "Multi-hazard": "#a855f7",
+};
+
+// ─── Custom Shapes ────────────────────────────────────────────────────────────
+
+function HazardDot({
+  cx = 0,
+  cy = 0,
+  fill = "#8884d8",
+  payload,
+}: {
+  cx?: number;
+  cy?: number;
+  fill?: string;
+  payload?: ScatterPoint;
+}) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={8} fill={fill} stroke="white" strokeWidth={2} />
+      <text
+        x={cx}
+        y={cy - 13}
+        textAnchor="middle"
+        fontSize={11}
+        fill={fill}
+        fontWeight={600}
+        fontFamily="inherit"
+      >
+        {payload?.name}
+      </text>
+    </g>
+  );
+}
 
 // ─── Custom Tooltips ──────────────────────────────────────────────────────────
 
@@ -242,8 +280,11 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
   const scatterDomain = useMemo((): [number, number] => {
     const vals = aalChartData.flatMap((d) => [d.nonclimate, d.climate]);
-    const max = vals.length > 0 ? Math.max(...vals) : 0;
-    return [0, max > 0 ? max * 1.15 : 1];
+    if (!vals.length || Math.max(...vals) === 0) return [0, 1];
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = (max - min || max * 0.1) * 0.2;
+    return [Math.max(0, min - pad), max + pad];
   }, [aalChartData]);
 
   const sortedLossData = useMemo(() => {
@@ -252,6 +293,18 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       (a, b) => rpNum(a.scenario) - rpNum(b.scenario)
     );
   }, [lossCompareClimate]);
+
+  const lossYDomain = useMemo((): [number, number] => {
+    if (!sortedLossData.length) return [0, 1];
+    const vals = sortedLossData.flatMap((d) => [
+      safeNumber(d.nonclimate),
+      safeNumber(d.climate),
+    ]);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = (max - min || 1) * 0.12;
+    return [Math.max(0, min - pad), max + pad];
+  }, [sortedLossData]);
 
   const hasAALData = useMemo(() => {
     return aalChartData.some(
@@ -513,7 +566,15 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                       fill: "#9ca3af",
                     }}
                   />
-                  <Scatter data={scatterData} fill={NONCLIMATE_COLOR} />
+                  {scatterData.map((point) => (
+                    <Scatter
+                      key={point.name}
+                      name={point.name}
+                      data={[point]}
+                      fill={HAZARD_COLORS[point.name] ?? "#8884d8"}
+                      shape={HazardDot}
+                    />
+                  ))}
                 </ScatterChart>
               </ResponsiveContainer>
             )}
@@ -629,6 +690,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   />
                   <YAxis
                     tickFormatter={formatCompact}
+                    domain={lossYDomain}
                     width={72}
                     tick={{ fontSize: 11, fill: "#6b7280" }}
                   />

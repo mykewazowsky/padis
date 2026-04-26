@@ -48,8 +48,9 @@ type HazardKey = "flood" | "drought" | "multi";
 
 function stepToStageIndex(step: string | null): number {
   if (step === "preprocess") return 0;
-  if (step === "zonal") return 1;
-  if (step === "analysis" || step === "etl") return 2;
+  if (step === "zonal")      return 1;
+  if (step === "analysis")   return 2;
+  if (step === "etl")        return 3;
   return -1;
 }
 
@@ -121,48 +122,34 @@ function buildMainStageNodes(run: RunStatus | null): PipelineNode[] {
   }
 
   return [
-    { id: "preprocess", label: "Preprocess",     desc: "Reproyeksi raster dan interseksi vektor sawah–administrasi.", state: stageState(0) },
-    { id: "zonal",      label: "Zonal Stats",    desc: "Menghitung statistik zonal per wilayah untuk setiap hazard.", state: stageState(1) },
-    { id: "analysis",   label: "Analysis + ETL", desc: "LOP → Loss → AAL → Aggregate, lalu muat hasil ke database.", state: stageState(2) },
+    { id: "preprocess", label: "Preprocess", desc: "Reproyeksi raster dan interseksi vektor sawah–administrasi.", state: stageState(0) },
+    { id: "zonal",      label: "Zonal",      desc: "Menghitung statistik zonal per wilayah untuk setiap hazard.", state: stageState(1) },
+    { id: "analysis",   label: "Analysis",   desc: "LOP → Loss → AAL → Aggregate per hazard.",                   state: stageState(2) },
+    { id: "etl",        label: "ETL",        desc: "Muat hasil analisis ke database (Supabase).",                 state: stageState(3) },
   ];
 }
 
-function buildHazardNodes(hazard: HazardKey, run: RunStatus | null): PipelineNode[] {
+function buildHazardNode(hazard: HazardKey, run: RunStatus | null): PipelineNode {
   const activeHazard = extractHazard(run?.run_name ?? null);
   const included =
     activeHazard === hazard ||
     (activeHazard === "multi" && hazard !== "multi");
 
-  let nodeState: StepState = "pending";
+  let state: StepState = "pending";
   if (included && run) {
     const stage = stepToStageIndex(run.step);
-    if (run.status === "success") nodeState = "success";
-    else if (run.status === "running" && stage === 2) nodeState = "running";
-    else if (run.status === "failed"  && stage === 2) nodeState = "failed";
+    if (run.status === "success") state = "success";
+    else if (run.status === "running" && stage >= 2) state = "running";
+    else if (run.status === "failed"  && stage >= 2) state = "failed";
   }
 
-  if (hazard === "flood") {
-    return [
-      { id: "flood-lop",    label: "Flood LOP",    desc: "Menghitung peluang kerugian banjir per sawah.",          state: nodeState },
-      { id: "flood-loss",   label: "Flood Loss",   desc: "Menghitung total kerugian banjir per kab/kota.",         state: nodeState },
-      { id: "flood-aal",    label: "Flood AAL",    desc: "Menghitung Annual Average Loss untuk banjir.",           state: nodeState },
-      { id: "flood-output", label: "Flood Output", desc: "Menyimpan hasil akhir flood ke file GeoJSON.",           state: nodeState },
-    ];
-  }
-  if (hazard === "drought") {
-    return [
-      { id: "drought-di",   label: "Drought DI",   desc: "Menghitung Drought Indicator per wilayah.",              state: nodeState },
-      { id: "drought-lop",  label: "Drought LOP",  desc: "Menghitung peluang kerugian kekeringan.",                state: nodeState },
-      { id: "drought-loss", label: "Drought Loss", desc: "Menghitung total kerugian kekeringan per kab/kota.",     state: nodeState },
-      { id: "drought-aal",  label: "Drought AAL",  desc: "Menghitung Annual Average Loss untuk kekeringan.",       state: nodeState },
-    ];
-  }
-  return [
-    { id: "multi-merge",  label: "Merge Hazards", desc: "Menggabungkan hasil flood dan drought.",           state: nodeState },
-    { id: "multi-loss",   label: "Multi Loss",    desc: "Menghitung kerugian gabungan multi-hazard.",       state: nodeState },
-    { id: "multi-aal",    label: "Multi AAL",     desc: "Menghitung AAL untuk multi-hazard.",               state: nodeState },
-    { id: "multi-output", label: "Multi Output",  desc: "Menyimpan hasil akhir multi-hazard.",              state: nodeState },
-  ];
+  const meta: Record<HazardKey, { label: string; desc: string }> = {
+    flood:   { label: "Flood Analysis",   desc: "LOP → Loss → AAL untuk hazard banjir." },
+    drought: { label: "Drought Analysis", desc: "DI → LOP → Loss → AAL untuk hazard kekeringan." },
+    multi:   { label: "Multi-hazard",     desc: "Menggabungkan flood + drought → AAL gabungan." },
+  };
+
+  return { id: hazard, ...meta[hazard], state };
 }
 
 // =============================================================================
@@ -274,10 +261,10 @@ export default function AdminPipelineMonitorPage() {
   const activeHazard = useMemo(() => capitalize(extractHazard(currentRun?.run_name ?? null)), [currentRun?.run_name]);
   const activeStep   = useMemo(() => capitalize(currentRun?.step), [currentRun?.step]);
 
-  const mainNodes    = useMemo(() => buildMainStageNodes(currentRun), [currentRun]);
-  const floodNodes   = useMemo(() => buildHazardNodes("flood", currentRun), [currentRun]);
-  const droughtNodes = useMemo(() => buildHazardNodes("drought", currentRun), [currentRun]);
-  const multiNodes   = useMemo(() => buildHazardNodes("multi", currentRun), [currentRun]);
+  const mainNodes   = useMemo(() => buildMainStageNodes(currentRun), [currentRun]);
+  const floodNode   = useMemo(() => buildHazardNode("flood", currentRun), [currentRun]);
+  const droughtNode = useMemo(() => buildHazardNode("drought", currentRun), [currentRun]);
+  const multiNode   = useMemo(() => buildHazardNode("multi", currentRun), [currentRun]);
 
   return (
     <main className="space-y-6">
@@ -395,7 +382,7 @@ export default function AdminPipelineMonitorPage() {
           </div>
         ) : currentRun === null ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
-            Belum ada monitoring run. Jalankan pipeline menggunakan Docker CLI.
+            Belum ada monitoring run. Gunakan halaman <strong>Process Control</strong> untuk menjalankan pipeline.
           </div>
         ) : (
           <div className="space-y-3">
@@ -456,7 +443,7 @@ export default function AdminPipelineMonitorPage() {
             Alur utama pipeline: Preprocess → Zonal → Analysis + ETL.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {mainNodes.map((node) => <NodeCard key={node.id} node={node} />)}
         </div>
       </section>
@@ -471,9 +458,7 @@ export default function AdminPipelineMonitorPage() {
               <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Flood</h2>
             </div>
           </div>
-          <div className="space-y-3">
-            {floodNodes.map((node) => <NodeCard key={node.id} node={node} />)}
-          </div>
+          <NodeCard node={floodNode} />
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -484,9 +469,7 @@ export default function AdminPipelineMonitorPage() {
               <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Drought</h2>
             </div>
           </div>
-          <div className="space-y-3">
-            {droughtNodes.map((node) => <NodeCard key={node.id} node={node} />)}
-          </div>
+          <NodeCard node={droughtNode} />
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -500,9 +483,7 @@ export default function AdminPipelineMonitorPage() {
           <div className="mb-4 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
             Multi-hazard bergantung pada hasil flood dan drought.
           </div>
-          <div className="space-y-3">
-            {multiNodes.map((node) => <NodeCard key={node.id} node={node} />)}
-          </div>
+          <NodeCard node={multiNode} />
         </div>
       </section>
 

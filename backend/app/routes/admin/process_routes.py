@@ -7,6 +7,7 @@ Pipeline sekarang dijalankan secara lokal/Docker oleh operator menggunakan:
 
 Endpoint yang tersedia:
     GET  /api/admin/run-status      (BARU) status pipeline dari tabel `runs`
+    POST /api/admin/start-pipeline  (BARU) jalankan pipeline CLI lokal
     GET  /api/admin/process-status  (LAMA, backward compat) sama, shape lama
     GET  /api/admin/dependencies    (LAMA, disederhanakan) cek output files
     POST /api/admin/run-analysis    (DEPRECATED) returns 410 Gone
@@ -14,13 +15,16 @@ Endpoint yang tersedia:
 """
 
 import os
+import re
+import subprocess
+import sys
 
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from sqlalchemy import text
 
 from ..auth.auth_utils import admin_required
-from .admin_utils import OUTPUT_DIR
+from .admin_utils import OUTPUT_DIR, PROJECT_ROOT, SCRIPTS_DIR
 from ...db.session import SessionLocal
 
 admin_process_bp = Blueprint("admin_process_bp", __name__)
@@ -80,6 +84,35 @@ def _idle_state(message="Belum ada proses yang sedang berjalan.") -> dict:
         "progress_percent": 0,
         "updated_outputs": [],
     }
+
+
+# A run still marked "running" after this many seconds is considered stale
+# (subprocess crashed / was killed without updating the DB row).
+_STALE_RUN_THRESHOLD_S = 7200  # 2 hours
+
+
+def _get_blocking_run(session):
+    """
+    Return the latest monitoring run if it is actively running AND not stale.
+    Return None when it is safe to start a new run:
+      - no run exists
+      - latest run is not in status 'running'
+      - latest run is running but older than _STALE_RUN_THRESHOLD_S (crashed)
+    """
+    row = _fetch_latest_run(session)
+    if row is None or row.status != "running":
+        return None
+
+    if row.created_at is None:
+        # No timestamp — conservatively treat as active.
+        return row
+
+    created = row.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+
+    age_s = (datetime.now(timezone.utc) - created).total_seconds()
+    return None if age_s > _STALE_RUN_THRESHOLD_S else row
 
 
 # =============================================================================
@@ -277,6 +310,103 @@ def admin_list_runs():
         "count": len(runs),
         "limit": limit,
     }), 200
+
+
+# =============================================================================
+# POST /api/admin/start-pipeline  (BARU — spawn CLI pipeline lokal)
+# =============================================================================
+
+_VALID_MODES   = {"full", "preprocess", "analysis", "web"}
+_VALID_HAZARDS = {"flood", "drought", "multi"}
+
+
+@admin_process_bp.route("/api/admin/start-pipeline", methods=["POST"])
+@admin_required
+def admin_start_pipeline():
+    """
+    Spawn pipeline CLI sebagai subprocess terpisah (fire-and-forget).
+
+    Body JSON:
+        mode     str  "full" | "preprocess" | "analysis" | "web"  (default: "full")
+        hazard   str  "flood" | "drought" | "multi"  (default: "multi")
+        operator str  nama operator  (default: "operator")
+
+    Returns:
+        202  pipeline berhasil di-spawn
+        400  parameter tidak valid
+        409  ada pipeline yang sedang berjalan
+        500  gagal spawn subprocess atau cek DB
+    """
+    body     = request.get_json(silent=True) or {}
+    mode     = body.get("mode", "full")
+    hazard   = body.get("hazard", "multi")
+    operator = body.get("operator", "operator")
+
+    if mode not in _VALID_MODES:
+        return jsonify({
+            "error": f"Mode tidak valid: '{mode}'. Pilih salah satu: {sorted(_VALID_MODES)}",
+        }), 400
+
+    if hazard not in _VALID_HAZARDS:
+        return jsonify({
+            "error": f"Hazard tidak valid: '{hazard}'. Pilih salah satu: {sorted(_VALID_HAZARDS)}",
+        }), 400
+
+    # Strip unsafe characters from operator name (alphanumeric, underscore, hyphen only)
+    operator = re.sub(r"[^\w\-]", "_", operator.strip())[:50] or "operator"
+
+    # Block if a non-stale run is already active
+    try:
+        with SessionLocal() as session:
+            blocking = _get_blocking_run(session)
+    except Exception as e:
+        return jsonify({"error": "Gagal memeriksa status pipeline", "detail": str(e)}), 500
+
+    if blocking is not None:
+        return jsonify({
+            "error": (
+                "Pipeline sedang berjalan. "
+                "Tunggu hingga selesai sebelum memulai yang baru."
+            ),
+            "active_run": {
+                "id":            blocking.id,
+                "run_name":      blocking.run_name,
+                "created_at":    blocking.created_at.isoformat() if blocking.created_at else None,
+                "operator_name": blocking.operator_name,
+                "step":          blocking.step,
+                "progress":      blocking.progress or 0,
+            },
+        }), 409
+
+    # Spawn CLI as a detached subprocess (output discarded — progress tracked via DB)
+    script_path = os.path.join(SCRIPTS_DIR, "main.py")
+    cmd = [sys.executable, script_path,
+           "--mode", mode, "--hazard", hazard, "--operator", operator]
+
+    spawn_kwargs = (
+        {"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
+        if os.name == "nt"
+        else {"start_new_session": True}
+    )
+
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=PROJECT_ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **spawn_kwargs,
+        )
+    except Exception as e:
+        return jsonify({"error": "Gagal menjalankan pipeline", "detail": str(e)}), 500
+
+    return jsonify({
+        "message": "Pipeline berhasil dimulai.",
+        "pid":      proc.pid,
+        "mode":     mode,
+        "hazard":   hazard,
+        "operator": operator,
+    }), 202
 
 
 # =============================================================================

@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Clock3,
   Gauge,
   PlayCircle,
   RefreshCw,
-  TerminalSquare,
 } from "lucide-react";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
 
@@ -15,27 +14,13 @@ type HazardKey = "flood" | "drought" | "multi";
 type ModeKey = "full" | "preprocess" | "analysis" | "web";
 type StepStatus = "pending" | "running" | "success" | "failed";
 
-type ProcessLogItem = {
-  script?: string;
-  returncode?: number;
-  message?: string;
-  timestamp?: string;
-  stdout?: string;
-  stderr?: string;
-};
-
 type ProcessStatus = {
   status: "running" | "success" | "failed" | "idle";
   message: string;
   progress_percent: number;
-  current_step: number;
-  total_steps: number;
-  last_result: string | null;
-  logs: ProcessLogItem[];
   started_at?: string | null;
   current_script?: string | null;
   hazard?: string | null;
-  mode?: string | null;
 };
 
 const HAZARD_OPTIONS: { key: HazardKey; label: string; desc: string }[] = [
@@ -79,8 +64,8 @@ const MODE_OPTIONS: { key: ModeKey; label: string; desc: string }[] = [
   },
 ];
 
-// Maps step name or legacy script filename to visual stage index (0-based)
-// Stages: 0=PREPROCESS, 1=ZONAL, 2=ANALISIS, 3=DATABASE
+// Maps step name to visual stage index (0-based)
+// Stages: 0=PREPROCESS, 1=ZONAL, 2=ANALYSIS, 3=ETL
 function inferStageFromScript(script?: string | null): number {
   if (!script) return -1;
   const s = script.toLowerCase();
@@ -93,9 +78,9 @@ function inferStageFromScript(script?: string | null): number {
 
 const STEP_DEFS = [
   { name: "preprocess", label: "PREPROCESS" },
-  { name: "zonal", label: "ZONAL" },
-  { name: "analisis", label: "ANALISIS" },
-  { name: "database", label: "DATABASE" },
+  { name: "zonal",      label: "ZONAL"      },
+  { name: "analysis",   label: "ANALYSIS"   },
+  { name: "etl",        label: "ETL"        },
 ];
 
 function formatDuration(seconds: number) {
@@ -183,13 +168,13 @@ function PipelineSteps({
 
 export default function AdminProcessPage() {
   const [selectedHazard, setSelectedHazard] = useState<HazardKey>("flood");
+  const [operatorName, setOperatorName] = useState("operator");
   const [status, setStatus] = useState<ProcessStatus | null>(null);
   const [runningAction, setRunningAction] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const logRef = useRef<HTMLDivElement>(null);
 
   const loadStatus = useCallback(async (showRefresh = false) => {
     try {
@@ -217,26 +202,38 @@ export default function AdminProcessPage() {
     return () => clearInterval(id);
   }, [status?.status, loadStatus]);
 
-  useEffect(() => {
-    if (!logRef.current) return;
-    logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [status?.logs]);
-
   async function handleRun(mode: ModeKey) {
     try {
       setRunningAction(true);
       setErrorMessage("");
-      const res = await fetchWithAuth("/api/admin/run-analysis", {
+      setSuccessMessage("");
+      const res = await fetchWithAuth("/api/admin/start-pipeline", {
         method: "POST",
-        body: JSON.stringify({ hazard: selectedHazard, mode }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, hazard: selectedHazard, operator: operatorName || "operator" }),
       });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error((json as any)?.error || `Gagal memulai proses (${res.status})`);
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 202) {
+        const pid = (json as any).pid;
+        setSuccessMessage(
+          `Pipeline berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
+        );
+        await loadStatus(false);
+      } else if (res.status === 409) {
+        const active = (json as any).active_run;
+        const who = active?.operator_name ? ` oleh ${active.operator_name}` : "";
+        const step = active?.step ? ` — step: ${active.step}` : "";
+        setErrorMessage(
+          `Pipeline sedang berjalan${who}${step}. Tunggu hingga selesai sebelum memulai yang baru.`
+        );
+      } else {
+        throw new Error(
+          (json as any)?.error ||
+          `Gagal memulai pipeline (${res.status}). Periksa koneksi server.`
+        );
       }
-      await loadStatus(false);
     } catch (err: any) {
-      setErrorMessage(err?.message || "Gagal menjalankan proses.");
+      setErrorMessage(err?.message || "Gagal menjalankan proses. Periksa koneksi server.");
     } finally {
       setRunningAction(false);
     }
@@ -276,9 +273,6 @@ export default function AdminProcessPage() {
     if (status?.status === "failed") return "GAGAL";
     return "IDLE";
   }, [status?.current_script, status?.status]);
-
-  const currentStepNum = status?.current_step ?? 0;
-  const totalSteps = status?.total_steps ?? 0;
 
   const etaData = useMemo(
     () => calculateETA(status?.started_at, status?.progress_percent),
@@ -321,6 +315,12 @@ export default function AdminProcessPage() {
           </button>
         </div>
       </section>
+
+      {successMessage && (
+        <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {successMessage}
+        </div>
+      )}
 
       {errorMessage && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -368,8 +368,23 @@ export default function AdminProcessPage() {
             })}
           </div>
 
+          {/* Operator */}
+          <div className="mt-5">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Nama Operator
+            </label>
+            <input
+              type="text"
+              value={operatorName}
+              onChange={(e) => setOperatorName(e.target.value)}
+              placeholder="contoh: mitra_bandung"
+              disabled={status?.status === "running"}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
           {/* Primary actions */}
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             <button
               type="button"
               onClick={() => handleRun("full")}
@@ -454,33 +469,19 @@ export default function AdminProcessPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Current Script
+                Tahap Aktif
               </p>
               <p className="mt-1 text-base font-bold text-slate-900">
                 {currentScriptDisplay}
               </p>
-              {totalSteps > 0 && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Skrip {currentStepNum} / {totalSteps}
-                </p>
-              )}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Last Result
+                Hazard
               </p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {capitalize(status?.last_result || "-")}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Hazard / Mode
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
-                {capitalize(status?.hazard || "-")} / {capitalize(status?.mode || "-")}
+                {capitalize(status?.hazard || "-")}
               </p>
             </div>
           </div>
@@ -586,75 +587,6 @@ export default function AdminProcessPage() {
         </div>
       </section>
 
-      {/* Live logs */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              LIVE LOGS
-            </p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Log Proses
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Output skrip yang berjalan di backend.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-100 p-3">
-            <TerminalSquare className="h-5 w-5 text-slate-600" />
-          </div>
-        </div>
-
-        <div
-          ref={logRef}
-          className="h-[480px] overflow-auto rounded-2xl bg-[#0d1117] p-4 font-mono text-xs"
-        >
-          {status?.logs?.length ? (
-            <div className="space-y-3">
-              {status.logs.map((log, index) => {
-                const isError = log.returncode != null && log.returncode !== 0;
-                return (
-                  <div key={index} className="break-words">
-                    <div className="flex items-start gap-2">
-                      <span className={isError ? "text-red-400" : "text-green-400"}>
-                        {isError ? "✗" : "✓"}
-                      </span>
-                      <span className={isError ? "text-red-300" : "text-green-300"}>
-                        {log.script || log.message || "Log entry"}
-                      </span>
-                      {log.returncode != null && (
-                        <span className={`ml-auto shrink-0 ${isError ? "text-red-500" : "text-slate-600"}`}>
-                          [rc: {log.returncode}]
-                        </span>
-                      )}
-                    </div>
-
-                    {log.stdout && !isError && (
-                      <div className="mt-1 border-l-2 border-slate-700 pl-3 text-slate-400">
-                        {log.stdout.slice(-400)}
-                      </div>
-                    )}
-
-                    {isError && log.stderr && (
-                      <div className="mt-1 border-l-2 border-red-700 pl-3 text-red-400">
-                        {log.stderr.slice(-600)}
-                      </div>
-                    )}
-
-                    {log.timestamp && (
-                      <p className="mt-0.5 pl-5 text-[10px] text-slate-600">
-                        {formatDateTime(log.timestamp)}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <span className="text-slate-600">Belum ada log proses...</span>
-          )}
-        </div>
-      </section>
     </main>
   );
 }

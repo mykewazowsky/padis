@@ -25,7 +25,7 @@ type ProcessLogItem = {
 };
 
 type ProcessStatus = {
-  status: "idle" | "running";
+  status: "running" | "success" | "failed" | "idle";
   message: string;
   progress_percent: number;
   current_step: number;
@@ -147,11 +147,11 @@ function getStepColor(status: StepStatus) {
   }
 }
 
-function getStatusTone(status?: string | null, lastResult?: string | null) {
+function getStatusTone(status?: string | null) {
   if (status === "running") return { label: "Running", className: "text-amber-600" };
-  if (lastResult === "success") return { label: "Idle (OK)", className: "text-green-600" };
-  if (lastResult === "failed") return { label: "Idle (Failed)", className: "text-red-600" };
-  return { label: capitalize(status || "idle"), className: "text-slate-900" };
+  if (status === "success") return { label: "Selesai", className: "text-green-600" };
+  if (status === "failed")  return { label: "Gagal",   className: "text-red-600"   };
+  return { label: "Idle",    className: "text-slate-900" };
 }
 
 function PipelineSteps({
@@ -183,11 +183,11 @@ function PipelineSteps({
 
 export default function AdminProcessPage() {
   const [selectedHazard, setSelectedHazard] = useState<HazardKey>("flood");
-  const [selectedMode, setSelectedMode] = useState<ModeKey>("full");
   const [status, setStatus] = useState<ProcessStatus | null>(null);
   const [runningAction, setRunningAction] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -196,6 +196,10 @@ export default function AdminProcessPage() {
       if (showRefresh) setRefreshing(true);
       setErrorMessage("");
       const res = await fetchWithAuth("/api/admin/process-status");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as any).error || "Gagal memuat status proses. Coba refresh atau periksa koneksi server.");
+      }
       const json = await res.json();
       setStatus(json);
     } catch (err: any) {
@@ -218,13 +222,13 @@ export default function AdminProcessPage() {
     logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [status?.logs]);
 
-  async function handleRun() {
+  async function handleRun(mode: ModeKey) {
     try {
       setRunningAction(true);
       setErrorMessage("");
       const res = await fetchWithAuth("/api/admin/run-analysis", {
         method: "POST",
-        body: JSON.stringify({ hazard: selectedHazard, mode: selectedMode }),
+        body: JSON.stringify({ hazard: selectedHazard, mode }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
@@ -240,20 +244,20 @@ export default function AdminProcessPage() {
 
   const steps = useMemo(() => {
     const activeStage = inferStageFromScript(status?.current_script);
-    const isRunning = status?.status === "running";
-    const lastResult = status?.last_result;
+    const pipelineStatus = status?.status;
+    const isRunning = pipelineStatus === "running";
 
     return STEP_DEFS.map((def, index) => {
       let stepStatus: StepStatus = "pending";
 
-      if (lastResult === "success") {
+      if (pipelineStatus === "success") {
         stepStatus = "success";
       } else if (isRunning) {
         if (activeStage >= 0) {
           if (index < activeStage) stepStatus = "success";
           else if (index === activeStage) stepStatus = "running";
         }
-      } else if (lastResult === "failed") {
+      } else if (pipelineStatus === "failed") {
         if (activeStage >= 0) {
           if (index < activeStage) stepStatus = "success";
           else if (index === activeStage) stepStatus = "failed";
@@ -268,10 +272,10 @@ export default function AdminProcessPage() {
     if (status?.current_script) {
       return status.current_script.replace(".py", "").replace("run_", "").toUpperCase();
     }
-    if (status?.last_result === "success") return "SELESAI";
-    if (status?.last_result === "failed") return "GAGAL";
+    if (status?.status === "success") return "SELESAI";
+    if (status?.status === "failed") return "GAGAL";
     return "IDLE";
-  }, [status?.current_script, status?.last_result]);
+  }, [status?.current_script, status?.status]);
 
   const currentStepNum = status?.current_step ?? 0;
   const totalSteps = status?.total_steps ?? 0;
@@ -282,12 +286,11 @@ export default function AdminProcessPage() {
   );
 
   const statusTone = useMemo(
-    () => getStatusTone(status?.status, status?.last_result),
-    [status?.status, status?.last_result]
+    () => getStatusTone(status?.status),
+    [status?.status]
   );
 
   const selectedHazardInfo = HAZARD_OPTIONS.find((o) => o.key === selectedHazard);
-  const selectedModeInfo = MODE_OPTIONS.find((o) => o.key === selectedMode);
   const canRun = !runningAction && status?.status !== "running";
 
   return (
@@ -307,27 +310,15 @@ export default function AdminProcessPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-start gap-3">
-            <button
-              type="button"
-              onClick={() => loadStatus(true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              {refreshing ? "Memuat..." : "Refresh"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleRun}
-              disabled={!canRun}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <PlayCircle className="h-4 w-4" />
-              {runningAction ? "Menjalankan..." : "Run Process"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => loadStatus(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Memuat..." : "Refresh"}
+          </button>
         </div>
       </section>
 
@@ -377,34 +368,66 @@ export default function AdminProcessPage() {
             })}
           </div>
 
-          <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Mode
-          </p>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            {MODE_OPTIONS.map((item) => {
-              const active = selectedMode === item.key;
-              return (
+          {/* Primary actions */}
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handleRun("full")}
+              disabled={!canRun}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-5 py-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <PlayCircle className="h-4 w-4 shrink-0" />
+              <span>
+                {runningAction ? "Menjalankan..." : "Jalankan Pipeline Penuh"}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRun("web")}
+              disabled={!canRun}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Activity className="h-4 w-4 shrink-0" />
+              <span>Muat ke Database Saja</span>
+            </button>
+          </div>
+
+          {/* Advanced (collapsed by default) */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+            >
+              {showAdvanced ? "▲ Sembunyikan opsi lanjutan" : "▼ Opsi lanjutan"}
+            </button>
+            {showAdvanced && (
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <button
-                  key={item.key}
                   type="button"
-                  onClick={() => setSelectedMode(item.key)}
-                  disabled={status?.status === "running"}
-                  className={
-                    active
-                      ? "rounded-2xl border border-[var(--color-primary)] bg-[var(--color-primary-soft)] p-3 text-left shadow-sm"
-                      : "rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-[var(--color-primary)]"
-                  }
+                  onClick={() => handleRun("preprocess")}
+                  disabled={!canRun}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.desc}</p>
+                  <p className="text-sm font-semibold text-slate-900">Preprocess Saja</p>
+                  <p className="mt-1 text-xs text-slate-500">Hanya jalankan preprocessing data raster.</p>
                 </button>
-              );
-            })}
+                <button
+                  type="button"
+                  onClick={() => handleRun("analysis")}
+                  disabled={!canRun}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <p className="text-sm font-semibold text-slate-900">Analisis Saja</p>
+                  <p className="mt-1 text-xs text-slate-500">Zonal stats + analisis hazard (skip preprocess).</p>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <span className="font-semibold text-slate-900">Akan dijalankan:</span>{" "}
-            {selectedHazardInfo?.label || "-"} — {selectedModeInfo?.label || "-"}
+            <span className="font-semibold text-slate-900">Hazard dipilih:</span>{" "}
+            {selectedHazardInfo?.label || "-"}
           </div>
         </div>
 

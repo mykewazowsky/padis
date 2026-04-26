@@ -46,6 +46,7 @@ def run():
 
         for idx, row in gdf.iterrows():
             try:
+                cur.execute("SAVEPOINT row_sp")
                 geom = force_2d(row["geometry"])
                 geom = to_multipolygon(geom)
 
@@ -63,14 +64,15 @@ def run():
                     geom.wkt,
                 ))
 
+                cur.execute("RELEASE SAVEPOINT row_sp")
                 inserted += 1
 
                 if inserted % 100 == 0:
                     print(f"   ➜ {inserted} sawah regions loaded...")
 
             except Exception as e:
-                conn.rollback()
-                print(f"❌ Error row {idx}: {e}")
+                cur.execute("ROLLBACK TO SAVEPOINT row_sp")
+                print(f"⚠️ Skip row {idx}: {e}")
 
         conn.commit()
         print(f"✅ regions_sawah loaded ({inserted} rows)")

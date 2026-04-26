@@ -220,11 +220,11 @@ export default function AdminPipelineMonitorPage() {
     try {
       const [statusRes, runsRes] = await Promise.allSettled([
         fetchWithAuth("/api/admin/run-status").then((r) => {
-          if (!r.ok) throw new Error(`run-status: HTTP ${r.status}`);
+          if (!r.ok) throw new Error("Gagal memuat status pipeline. Coba refresh atau periksa koneksi server.");
           return r.json();
         }),
         fetchWithAuth("/api/admin/runs?limit=10").then((r) => {
-          if (!r.ok) throw new Error(`runs: HTTP ${r.status}`);
+          if (!r.ok) throw new Error("Gagal memuat riwayat run. Coba refresh atau periksa koneksi server.");
           return r.json();
         }),
       ]);

@@ -137,6 +137,21 @@ def multihazard_pipeline(zonal_path: str) -> str:
                 f"Pastikan flood dan drought pipeline sudah selesai."
             )
 
+    # Reject stale inputs: flood and drought must have been produced within
+    # _MAX_INPUT_AGE_DIFF_S seconds of each other to avoid mixing runs.
+    _MAX_INPUT_AGE_DIFF_S = 3600  # 1 hour
+    flood_mtime  = os.path.getmtime(flood_path)
+    drought_mtime = os.path.getmtime(drought_path)
+    if abs(flood_mtime - drought_mtime) > _MAX_INPUT_AGE_DIFF_S:
+        import datetime
+        fmt = lambda t: datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
+        raise ValueError(
+            f"Input flood dan drought berasal dari run berbeda "
+            f"(flood: {fmt(flood_mtime)}, drought: {fmt(drought_mtime)}, "
+            f"selisih {abs(flood_mtime - drought_mtime):.0f}s > {_MAX_INPUT_AGE_DIFF_S}s). "
+            f"Jalankan ulang flood dan drought dari run yang sama sebelum multi-hazard."
+        )
+
     print("  [1/4] Merge hazards")
     flood = gpd.read_file(flood_path)
     drought = gpd.read_file(drought_path)

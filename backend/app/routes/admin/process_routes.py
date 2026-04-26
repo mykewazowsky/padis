@@ -132,16 +132,14 @@ def admin_process_status():
     try:
         with SessionLocal() as session:
             row = _fetch_latest_run(session)
-    except Exception:
-        row = None
+    except Exception as e:
+        return jsonify({"error": "Gagal mengambil status proses", "detail": str(e)}), 500
 
     if row is None:
         return jsonify(_idle_state())
 
-    db_status = row.status or "idle"
-    is_running = (db_status == "running")
+    db_status = row.status  # one of: "running", "success", "failed", or None
 
-    # Ekstrak hazard dari run_name: format "{hazard}_{operator}_{timestamp}"
     hazard = None
     if row.run_name:
         parts = row.run_name.split("_")
@@ -149,10 +147,10 @@ def admin_process_status():
             hazard = parts[0]
 
     return jsonify({
-        "status": "running" if is_running else "idle",
+        "status": db_status,
         "started_at": row.created_at.isoformat() if row.created_at else None,
         "finished_at": None,
-        "last_result": None if is_running else db_status,
+        "last_result": None,
         "message": row.message or "",
         "hazard": hazard,
         "mode": None,
@@ -199,7 +197,7 @@ def admin_dependencies():
         ]
 
     checks = [
-        {"type": t, "label": label, "path": path, "exists": os.path.exists(path)}
+        {"type": t, "label": label, "exists": os.path.exists(path)}
         for t, label, path in targets
     ]
     return jsonify({

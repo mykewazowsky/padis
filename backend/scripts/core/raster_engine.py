@@ -70,6 +70,19 @@ def _make_valid_mask(data: np.ndarray, nodata_val) -> np.ndarray:
     return (data != nodata_val) & (~np.isnan(data))
 
 
+def _is_valid_raster(path: str) -> bool:
+    """Return True only if the file exists AND rasterio can open and read it.
+    A partially-written or truncated file will fail here and trigger regeneration."""
+    if not os.path.exists(path):
+        return False
+    try:
+        with rasterio.open(path) as src:
+            src.read(1, window=rasterio.windows.Window(0, 0, min(src.width, 4), min(src.height, 4)))
+        return True
+    except Exception:
+        return False
+
+
 def _write_array(output_path: str, profile: dict, data: np.ndarray, nodata_val) -> str:
     profile = profile.copy()
     profile.update(
@@ -123,7 +136,7 @@ def reproject_raster(
     overwrite: bool = False,
 ) -> str:
 
-    if os.path.exists(output_path) and not overwrite:
+    if _is_valid_raster(output_path) and not overwrite:
         if VERBOSE:
             print(f"[SKIP] {os.path.basename(output_path)}")
         return output_path
@@ -192,7 +205,7 @@ def normalize_raster(
     overwrite: bool = False,
 ) -> str:
 
-    if os.path.exists(output_path) and not overwrite:
+    if _is_valid_raster(output_path) and not overwrite:
         if VERBOSE:
             print(f"[SKIP] {os.path.basename(output_path)}")
         return output_path
@@ -251,8 +264,8 @@ def normalize_drought_pair_with_common_overlap(
     """
 
     if (
-        os.path.exists(non_climate_output)
-        and os.path.exists(climate_output)
+        _is_valid_raster(non_climate_output)
+        and _is_valid_raster(climate_output)
         and not overwrite
     ):
         if VERBOSE:

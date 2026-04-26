@@ -402,6 +402,50 @@ def get_registry_datasets():
     return registry
 
 
+@admin_bp.route("/api/admin/data/readiness", methods=["GET"])
+@login_required
+@admin_required
+def admin_data_readiness():
+    """
+    Validates that all required pipeline input files are present in the correct
+    subdirectories of backend/data/raw/.  Returns a per-group checklist.
+    """
+    raw_hazard_dir  = os.path.join(RAW_DIR, "hazard")
+    raw_admin_dir   = os.path.join(RAW_DIR, "administrasi")
+    raw_exposure_dir = os.path.join(RAW_DIR, "exposure")
+
+    def _checks(folder, filenames):
+        return [
+            {"label": f, "exists": os.path.isfile(os.path.join(folder, f))}
+            for f in filenames
+        ]
+
+    flood_checks = _checks(raw_hazard_dir, [
+        "flood_r25.tif", "flood_r50.tif", "flood_r100.tif", "flood_r250.tif",
+        "flood_rc25.tif", "flood_rc50.tif", "flood_rc100.tif", "flood_rc250.tif",
+    ])
+    drought_checks = _checks(raw_hazard_dir, [
+        "drought_r25.tif", "drought_r50.tif", "drought_r100.tif", "drought_r250.tif",
+        "drought_rc25.tif", "drought_rc50.tif", "drought_rc100.tif", "drought_rc250.tif",
+    ])
+    admin_checks   = _checks(raw_admin_dir,   ["regions.gpkg"])
+    sawah_checks   = _checks(raw_exposure_dir, ["sawah_selected.gpkg"])
+    prod_checks    = _checks(raw_exposure_dir, ["totalproduksipadi.csv"])
+
+    groups = [
+        {"label": "Raster Flood",        "folder": "raw/hazard/",        "checks": flood_checks,   "ok": all(c["exists"] for c in flood_checks)},
+        {"label": "Raster Drought",       "folder": "raw/hazard/",        "checks": drought_checks, "ok": all(c["exists"] for c in drought_checks)},
+        {"label": "Batas Administrasi",   "folder": "raw/administrasi/",  "checks": admin_checks,   "ok": all(c["exists"] for c in admin_checks)},
+        {"label": "Layer Sawah",          "folder": "raw/exposure/",      "checks": sawah_checks,   "ok": all(c["exists"] for c in sawah_checks)},
+        {"label": "Data Produksi Padi",   "folder": "raw/exposure/",      "checks": prod_checks,    "ok": all(c["exists"] for c in prod_checks)},
+    ]
+
+    return jsonify({
+        "all_ok": all(g["ok"] for g in groups),
+        "groups": groups,
+    })
+
+
 @admin_bp.route("/api/admin/data", methods=["GET"])
 @login_required
 @admin_required

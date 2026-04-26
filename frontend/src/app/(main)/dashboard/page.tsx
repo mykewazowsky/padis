@@ -763,7 +763,10 @@ export default function DashboardPage() {
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                       Prioritas
                     </p>
-                    <p className="mt-1 truncate text-sm font-bold text-gray-900">
+                    <p
+                      className="mt-1 truncate text-sm font-bold text-gray-900"
+                      title={layerSummary.topRegion !== "-" ? layerSummary.topRegion : undefined}
+                    >
                       {loadingLayer ? (
                         <span className="animate-pulse text-gray-300">—</span>
                       ) : layerSummary.topRegion !== "-" ? (
@@ -796,7 +799,7 @@ export default function DashboardPage() {
                     }
                   >
                     {!selectedRegion ? (
-                      "Wilayah belum dipilih"
+                      "Pilih wilayah di peta atau dropdown"
                     ) : loadingRegionAAL ? (
                       <span className="animate-pulse">—</span>
                     ) : errorRegionAAL ? (
@@ -837,6 +840,7 @@ export default function DashboardPage() {
                     value={selectedHazardOption}
                     onChange={(option) => setHazard(option?.value ?? "multi")}
                     isSearchable={false}
+                    isDisabled={loadingLayer}
                     styles={{ ...selectStyles, ...selectPortalStyles }}
                     menuPortalTarget={typeof window !== "undefined" ? document.body : null}
                     menuPosition="fixed"
@@ -853,6 +857,7 @@ export default function DashboardPage() {
                     value={selectedClimateOption}
                     onChange={(option) => setClimate(option?.value ?? "nonclimate")}
                     isSearchable={false}
+                    isDisabled={loadingLayer}
                     styles={{ ...selectStyles, ...selectPortalStyles }}
                     menuPortalTarget={typeof window !== "undefined" ? document.body : null}
                     menuPosition="fixed"
@@ -869,6 +874,7 @@ export default function DashboardPage() {
                     value={selectedScenarioOption}
                     onChange={(option) => setScenario(option?.value ?? "rp25")}
                     isSearchable={false}
+                    isDisabled={loadingLayer}
                     styles={{ ...selectStyles, ...selectPortalStyles }}
                     menuPortalTarget={typeof window !== "undefined" ? document.body : null}
                     menuPosition="fixed"
@@ -956,10 +962,10 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {layers?.loss && layers.loss.features?.length === 0 && (
+                {!loadingLayer && layers?.loss && layers.loss.features?.length === 0 && !selectedRegion && (
                   <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
                     <div className="rounded-xl bg-white/90 px-4 py-2 text-sm text-gray-600 shadow backdrop-blur">
-                      Tidak ada data untuk filter ini — coba ubah filter
+                      Belum ada data untuk kombinasi filter ini — coba ubah jenis bencana atau periode ulang
                     </div>
                   </div>
                 )}

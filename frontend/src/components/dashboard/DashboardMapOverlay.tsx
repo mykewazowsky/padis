@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, FileText, LocateFixed, X } from "lucide-react";
+import { useState } from "react";
+import { Download, FileText, Loader2, LocateFixed, X } from "lucide-react";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 
 type SelectedFeature = {
@@ -61,6 +62,23 @@ export default function DashboardMapOverlay({
   onDownloadCsv,
   onGenerateReport,
 }: Props) {
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportingReport, setExportingReport] = useState(false);
+
+  function handleCsv() {
+    if (!onDownloadCsv || exportingCsv) return;
+    setExportingCsv(true);
+    onDownloadCsv();
+    setTimeout(() => setExportingCsv(false), 4000);
+  }
+
+  function handleReport() {
+    if (!onGenerateReport || exportingReport) return;
+    setExportingReport(true);
+    onGenerateReport();
+    setTimeout(() => setExportingReport(false), 6000);
+  }
+
   const props = selectedFeature?.properties;
 
   return (
@@ -72,30 +90,38 @@ export default function DashboardMapOverlay({
             onClick={onResetView}
             className={
               hasActiveRegion
-                ? "btn-primary text-xs font-medium shadow-sm"
-                : "btn-outline text-xs font-medium shadow-sm backdrop-blur"
+                ? "btn-primary text-xs font-medium shadow-sm transition-opacity"
+                : "btn-outline text-xs font-medium shadow-sm backdrop-blur transition-opacity"
             }
           >
             <LocateFixed className="h-4 w-4" />
-            <span className="hidden sm:inline">{hasActiveRegion ? "Reset View" : "Fit to Data"}</span>
+            <span className="hidden sm:inline">{hasActiveRegion ? "Reset Tampilan" : "Sesuaikan Peta"}</span>
           </button>
 
           <button
             type="button"
-            onClick={onDownloadCsv}
-            className="btn-outline text-xs font-medium shadow-sm backdrop-blur"
+            onClick={handleCsv}
+            disabled={exportingCsv}
+            className="btn-outline text-xs font-medium shadow-sm backdrop-blur transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Unduh CSV</span>
+            {exportingCsv
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Download className="h-4 w-4" />
+            }
+            <span className="hidden sm:inline">{exportingCsv ? "Memuat..." : "Unduh CSV"}</span>
           </button>
 
           <button
             type="button"
-            onClick={onGenerateReport}
-            className="btn-primary text-xs font-medium shadow-sm"
+            onClick={handleReport}
+            disabled={exportingReport}
+            className="btn-primary text-xs font-medium shadow-sm transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Generate Report</span>
+            {exportingReport
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <FileText className="h-4 w-4" />
+            }
+            <span className="hidden sm:inline">{exportingReport ? "Memuat..." : "Buat Laporan"}</span>
           </button>
         </div>
       </div>

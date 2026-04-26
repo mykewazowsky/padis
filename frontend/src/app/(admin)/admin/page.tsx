@@ -859,16 +859,10 @@ export default function AdminOverviewPage() {
                   </p>
                   <p
                     className={`mt-1 text-lg font-bold ${getStatusTone(
-                      processStatus?.status || processStatus?.last_result
+                      processStatus?.status
                     )}`}
                   >
-                    {capitalize(
-                      processStatus?.status === "running"
-                        ? processStatus?.status
-                        : processStatus?.last_result ||
-                            processStatus?.status ||
-                            "unknown"
-                    )}
+                    {capitalize(processStatus?.status || "unknown")}
                   </p>
                 </div>
 

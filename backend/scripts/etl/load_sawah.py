@@ -3,6 +3,7 @@ from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 
 from backend.scripts.utils.db import get_conn
+from backend.scripts.utils import log
 from backend.scripts.config.settings import FILE_SAWAH
 
 
@@ -17,10 +18,10 @@ def to_multipolygon(geom):
 
 
 def run():
-    print("🌾 Loading regions_sawah (sawah-admin intersection)...")
+    log.info("SAWAH", "Memuat regions_sawah (sawah-admin intersection)...")
 
     file_path = FILE_SAWAH
-    print(f"📂 Source file: {file_path}")
+    log.info("SAWAH", f"Sumber: {file_path}")
 
     conn = get_conn()
     cur = conn.cursor()
@@ -28,18 +29,18 @@ def run():
     try:
         gdf = gpd.read_file(str(file_path))
 
-        print("📊 Columns:", list(gdf.columns))
-        print("📊 Total features:", len(gdf))
+        log.info("SAWAH", f"Kolom: {list(gdf.columns)}")
+        log.info("SAWAH", f"Total fitur: {len(gdf)}")
 
         if gdf.crs is None:
-            print("⚠️ CRS not found, forcing EPSG:4326")
+            log.warn("SAWAH", "CRS tidak ditemukan, memaksa EPSG:4326")
             gdf.set_crs(epsg=4326, inplace=True)
         else:
             gdf = gdf.to_crs(epsg=4326)
 
         gdf = gdf[gdf.geometry.notnull()]
 
-        print("⚡ Simplifying geometry...")
+        log.info("SAWAH", "Menyederhanakan geometri...")
         gdf["geometry"] = gdf["geometry"].simplify(0.001, preserve_topology=True)
 
         inserted = 0
@@ -68,17 +69,17 @@ def run():
                 inserted += 1
 
                 if inserted % 100 == 0:
-                    print(f"   ➜ {inserted} sawah regions loaded...")
+                    log.info("SAWAH", f"Dimuat: {inserted} baris...")
 
             except Exception as e:
                 cur.execute("ROLLBACK TO SAVEPOINT row_sp")
-                print(f"⚠️ Skip row {idx}: {e}")
+                log.warn("SAWAH", f"Lewati baris {idx}: {e}")
 
         conn.commit()
-        print(f"✅ regions_sawah loaded ({inserted} rows)")
+        log.ok("SAWAH", f"regions_sawah selesai ({inserted} baris)")
 
     except Exception as e:
-        print("❌ Failed loading regions_sawah:", e)
+        log.error("SAWAH", f"Gagal memuat regions_sawah: {e}")
 
     finally:
         cur.close()

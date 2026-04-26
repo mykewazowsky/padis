@@ -3,6 +3,7 @@ from psycopg2.extras import execute_values
 from pathlib import Path
 
 from backend.scripts.utils.db import get_conn
+from backend.scripts.utils import log
 from backend.scripts.config.settings import FILES_PRODUCTION
 
 
@@ -32,7 +33,7 @@ def format_id_kabkota(val):
 # MAIN
 # ===============================
 def run(run_id=None):
-    print("🔄 Loading production (FINAL)...")
+    log.info("PROD", "Memuat data produksi...")
 
     conn = get_conn()
     cur = conn.cursor()
@@ -44,7 +45,7 @@ def run(run_id=None):
         cur.execute("SELECT id_kabkota FROM regions_adm")
         valid_ids = set(r[0] for r in cur.fetchall())
 
-        print(f"🗺️ Valid regions: {len(valid_ids)}")
+        log.info("PROD", f"Valid regions: {len(valid_ids)}")
 
         # ===============================
         # LOOP FILE
@@ -52,16 +53,16 @@ def run(run_id=None):
         for name, path in FILES_PRODUCTION.items():
 
             full_path = Path(path)
-            print(f"📂 Processing: {full_path}")
+            log.info("PROD", f"Baca file: {full_path}")
 
             if not full_path.exists():
-                print(f"❌ File not found: {full_path}")
+                log.error("PROD", f"File tidak ditemukan: {full_path}")
                 continue
 
             df = pd.read_csv(full_path)
 
-            print("🧾 Columns:", df.columns.tolist())
-            print("🧱 Total rows:", len(df))
+            log.info("PROD", f"Kolom: {df.columns.tolist()}")
+            log.info("PROD", f"Total baris: {len(df)}")
 
             # ===============================
             # CLEANING
@@ -80,7 +81,7 @@ def run(run_id=None):
                     "id_kabkota", keep="last"
                 )
 
-            print("📊 After deduplicate:", len(df))
+            log.info("PROD", f"Setelah deduplikasi: {len(df)}")
 
             # ===============================
             # FILTER VALID REGION (FK SAFE)
@@ -89,7 +90,7 @@ def run(run_id=None):
             df = df[df["id_kabkota"].isin(valid_ids)]
             after = len(df)
 
-            print(f"🧹 Filter invalid region: {before} → {after}")
+            log.info("PROD", f"Filter wilayah tidak valid: {before} → {after}")
 
             # ===============================
             # PREPARE DATA
@@ -100,7 +101,7 @@ def run(run_id=None):
             )
 
             if not data:
-                print("⚠️ No valid data to insert")
+                log.warn("PROD", "Tidak ada data valid untuk dimasukkan")
                 continue
 
             # ===============================
@@ -119,11 +120,11 @@ def run(run_id=None):
             )
 
         conn.commit()
-        print("✅ Production loaded successfully")
+        log.ok("PROD", "Data produksi berhasil dimuat")
 
     except Exception as e:
         conn.rollback()
-        print("❌ Failed loading production:", e)
+        log.error("PROD", f"Gagal memuat produksi: {e}")
 
     finally:
         cur.close()

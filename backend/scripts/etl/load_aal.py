@@ -3,6 +3,7 @@ from psycopg2.extras import execute_values
 
 from backend.scripts.utils.db import get_conn
 from backend.scripts.utils.parser import parse_aal
+from backend.scripts.utils import log
 from backend.scripts.config.settings import FILES_ANALYSIS
 
 
@@ -14,7 +15,7 @@ def get_active_run_id(cur):
     result = cur.fetchone()
 
     if not result:
-        raise ValueError("❌ Tidak ada run aktif")
+        raise ValueError("Tidak ada run aktif di tabel runs")
 
     return result[0]
 
@@ -36,7 +37,7 @@ def get_lookup(cur):
 # MAIN
 # ===============================
 def run(run_id):
-    print("🔄 Loading AAL (FINAL - VERSIONED)...")
+    log.info("AAL", "Memuat data AAL...")
 
     conn = get_conn()
     cur = conn.cursor()
@@ -45,14 +46,10 @@ def run(run_id):
         hazards, scenarios = get_lookup(cur)
         run_id = get_active_run_id(cur)
 
-        # 🔥 deduplicate pakai dict
         data_map = {}
 
-        # ===============================
-        # LOOP FILE
-        # ===============================
         for path in FILES_ANALYSIS.values():
-            print(f"📂 Processing: {path}")
+            log.info("AAL", f"Baca file: {path}")
 
             gdf = gpd.read_file(path).fillna(0)
 
@@ -66,7 +63,6 @@ def run(run_id):
                     try:
                         hazard, scenario = parse_aal(col)
 
-                        # fix naming
                         if hazard == "multi":
                             hazard = "multihazard"
 
@@ -88,25 +84,14 @@ def run(run_id):
                         data_map[key] = val
 
                     except Exception as e:
-                        print(f"⚠️ Skip {col}: {e}")
+                        log.warn("AAL", f"Lewati kolom {col}: {e}")
 
-        # ===============================
-        # PREPARE DATA
-        # ===============================
-        batch_data = [
-            (*k, v) for k, v in data_map.items()
-        ]
+        batch_data = [(*k, v) for k, v in data_map.items()]
 
-        print(f"🚀 Total rows to insert: {len(batch_data)}")
+        log.info("AAL", f"Total baris: {len(batch_data)}")
 
-        # ===============================
-        # CLEAN OLD DATA
-        # ===============================
         cur.execute("DELETE FROM aal WHERE run_id = %s;", (run_id,))
 
-        # ===============================
-        # BULK INSERT (UPSERT)
-        # ===============================
         execute_values(
             cur,
             """
@@ -122,11 +107,11 @@ def run(run_id):
         )
 
         conn.commit()
-        print("✅ AAL loaded successfully (VERSIONED & CLEAN)")
+        log.ok("AAL", "Data AAL berhasil dimuat")
 
     except Exception as e:
         conn.rollback()
-        print("❌ Failed loading AAL:", e)
+        log.error("AAL", f"Gagal memuat AAL: {e}")
 
     finally:
         cur.close()

@@ -3,6 +3,7 @@ from psycopg2.extras import execute_values
 
 from backend.scripts.utils.db import get_conn
 from backend.scripts.utils.parser import parse_loss
+from backend.scripts.utils import log
 from backend.scripts.config.settings import FILES_ANALYSIS
 
 
@@ -14,7 +15,7 @@ def get_active_run_id(cur):
     result = cur.fetchone()
 
     if not result:
-        raise ValueError("❌ Tidak ada run aktif")
+        raise ValueError("Tidak ada run aktif di tabel runs")
 
     return result[0]
 
@@ -39,7 +40,7 @@ def get_lookup(cur):
 # MAIN
 # ===============================
 def run(run_id):
-    print("🔄 Loading losses (FINAL - VERSIONED)...")
+    log.info("LOSSES", "Memuat data losses...")
 
     conn = get_conn()
     cur = conn.cursor()
@@ -48,16 +49,11 @@ def run(run_id):
         hazards, scenarios, rps = get_lookup(cur)
         run_id = get_active_run_id(cur)
 
-        # 🔥 pakai dict untuk deduplikasi
         data_map = {}
-
         skipped_unknown = 0
 
-        # ===============================
-        # LOOP FILE
-        # ===============================
         for path in FILES_ANALYSIS.values():
-            print(f"📂 Processing: {path}")
+            log.info("LOSSES", f"Baca file: {path}")
 
             gdf = gpd.read_file(path).fillna(0)
 
@@ -71,7 +67,6 @@ def run(run_id):
                     try:
                         hazard, scenario, rp = parse_loss(col)
 
-                        # FIX multi naming
                         if hazard == "multi":
                             hazard = "multihazard"
 
@@ -95,30 +90,19 @@ def run(run_id):
                             run_id
                         )
 
-                        # 🔥 overwrite jika duplikat
                         data_map[key] = val
 
                     except Exception as e:
-                        print(f"⚠️ Skip col {col}: {e}")
+                        log.warn("LOSSES", f"Lewati kolom {col}: {e}")
 
-        # ===============================
-        # PREPARE FINAL DATA
-        # ===============================
-        batch_data = [
-            (*k, v) for k, v in data_map.items()
-        ]
+        batch_data = [(*k, v) for k, v in data_map.items()]
 
-        print(f"🚀 Total rows to insert: {len(batch_data)}")
-        print(f"⚠️ Skipped unknown hazard: {skipped_unknown}")
+        log.info("LOSSES", f"Total baris: {len(batch_data)}")
+        if skipped_unknown:
+            log.warn("LOSSES", f"Hazard tidak dikenal, dilewati: {skipped_unknown}")
 
-        # ===============================
-        # DELETE OLD DATA FOR THIS RUN
-        # ===============================
         cur.execute("DELETE FROM losses WHERE run_id = %s;", (run_id,))
 
-        # ===============================
-        # BULK INSERT (UPSERT)
-        # ===============================
         execute_values(
             cur,
             """
@@ -134,11 +118,11 @@ def run(run_id):
         )
 
         conn.commit()
-        print("✅ Losses loaded successfully (VERSIONED & CLEAN)")
+        log.ok("LOSSES", "Data losses berhasil dimuat")
 
     except Exception as e:
         conn.rollback()
-        print("❌ Failed loading losses:", e)
+        log.error("LOSSES", f"Gagal memuat losses: {e}")
 
     finally:
         cur.close()

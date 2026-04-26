@@ -1,4 +1,5 @@
 from backend.scripts.utils.db import get_conn
+from backend.scripts.utils import log
 
 from backend.scripts.etl.load_regions_adm import run as load_regions
 from backend.scripts.etl.load_sawah import run as load_sawah
@@ -31,12 +32,12 @@ def create_run():
         run_id = cur.fetchone()[0]
         conn.commit()
 
-        print(f"🆔 RUN ID: {run_id}")
+        log.info("ETL", f"Run ID: {run_id}")
         return run_id
 
     except Exception as e:
         conn.rollback()
-        print("❌ Failed create run:", e)
+        log.error("ETL", f"Gagal membuat run: {e}")
         return None
 
     finally:
@@ -48,55 +49,37 @@ def create_run():
 # MAIN ETL
 # ===============================
 def run():
-    print("🚀 START ETL PROCESS\n")
+    log.header("ETL PROCESS")
 
     run_id = create_run()
 
     if not run_id:
-        print("❌ ETL STOPPED: gagal create run_id")
+        log.error("ETL", "Pipeline dihentikan: gagal membuat run_id")
         return
 
     try:
-        # ===============================
-        # STEP 1: REGIONS (static)
-        # ===============================
-        print("🔄 Loading regions...")
+        log.info("ETL", "[1/6] Loading regions_adm...")
         load_regions()
 
-        # ===============================
-        # STEP 2: SAWAH (static)
-        # ===============================
-        print("🔄 Loading sawah...")
+        log.info("ETL", "[2/6] Loading regions_sawah...")
         load_sawah()
 
-        # ===============================
-        # STEP 3: PRODUCTION (exposure)
-        # ===============================
-        print("🔄 Loading production...")
+        log.info("ETL", "[3/6] Loading production...")
         load_production(run_id)
 
-        # ===============================
-        # STEP 4: LOSSES
-        # ===============================
-        print("🔄 Loading losses...")
+        log.info("ETL", "[4/6] Loading losses...")
         load_losses(run_id)
 
-        # ===============================
-        # STEP 5: AAL
-        # ===============================
-        print("🔄 Loading AAL...")
+        log.info("ETL", "[5/6] Loading AAL...")
         load_aal(run_id)
 
-        # ===============================
-        # STEP 6: ZONAL (AGGREGATED)
-        # ===============================
-        print("🔄 Loading zonal (aggregated)...")
+        log.info("ETL", "[6/6] Loading zonal aggregation...")
         load_zonal(run_id)
 
-        print("\n🔥 ALL DATA SUCCESSFULLY UPLOADED")
+        log.ok("ETL", "Semua data berhasil dimuat")
 
     except Exception as e:
-        print(f"\n❌ ETL FAILED: {e}")
+        log.error("ETL", f"Pipeline gagal: {e}")
 
 
 # ===============================

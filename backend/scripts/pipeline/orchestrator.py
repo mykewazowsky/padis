@@ -10,6 +10,7 @@ from backend.scripts.config.analysis_registry import (
 )
 from backend.scripts.config.hazard import RASTER_HAZARDS
 from backend.scripts.utils.run_manager import PipelineRunManager
+from backend.scripts.utils import log
 
 
 # =============================================================================
@@ -36,7 +37,7 @@ def _load_zonal_results_from_disk() -> list[dict]:
             "output": output_path,
             "status": "loaded_from_disk",
         })
-        print(f"  [LOAD] {name}: {output_path}")
+        log.info("LOAD", f"{name}: {output_path}")
     return results
 
 
@@ -75,19 +76,16 @@ def _run_analysis_for_hazard(hazard: str, zonal_results: list[dict]) -> list[dic
     results = []
 
     if hazard in ("flood", "multi"):
-        print("\n[ANALYSIS] FLOOD")
         zonal_path = _get_zonal_path("flood", zonal_results)
         output_path = flood_pipeline(zonal_path)
         results.append({"hazard": "flood", "output": output_path, "status": "success"})
 
     if hazard in ("drought", "multi"):
-        print("\n[ANALYSIS] DROUGHT")
         zonal_path = _get_zonal_path("drought", zonal_results)
         output_path = drought_pipeline(zonal_path)
         results.append({"hazard": "drought", "output": output_path, "status": "success"})
 
     if hazard == "multi":
-        print("\n[ANALYSIS] MULTIHAZARD")
         output_path = multihazard_pipeline("")
         results.append({"hazard": "multihazard", "output": output_path, "status": "success"})
 
@@ -120,7 +118,7 @@ def run_padis_pipeline(
     Backward compatible: panggilan lama run_padis_pipeline() tanpa args masih berfungsi
     (hazard="multi", tidak ada etl step).
     """
-    print(f"PADIS PIPELINE  hazard={hazard}  operator={operator_name}")
+    log.info("PIPELINE", f"hazard={hazard}  operator={operator_name}")
 
     start_total = time.time()
     results = {}
@@ -141,54 +139,36 @@ def run_padis_pipeline(
         # STEP 1 — PREPROCESS
         # =====================================================================
         if run_preprocess_step:
-            print("\n[1] PREPROCESS")
             manager.update("preprocess", 5, "Preprocess dimulai")
             try:
                 preprocess_result = run_preprocess()
                 results["preprocess"] = preprocess_result
                 manager.update("preprocess", 25, "Preprocess selesai")
             except Exception as e:
-                print(f"Preprocess gagal: {e}")
+                log.error("PREPROCESS", f"Gagal: {e}")
                 raise
 
-        # =====================================================================
-        # STEP 2 — ZONAL
-        # =====================================================================
         if run_zonal_step:
-            print("\n[2] ZONAL")
             manager.update("zonal", 30, "Zonal statistics dimulai")
             try:
                 zonal_results = run_zonal_all()
                 results["zonal"] = zonal_results
                 manager.update("zonal", 50, "Zonal statistics selesai")
             except Exception as e:
-                print(f"Zonal gagal: {e}")
+                log.error("ZONAL", f"Gagal: {e}")
                 raise
 
-        # =====================================================================
-        # STEP 3 — ANALYSIS
-        # Gunakan _run_analysis_for_hazard() agar single-hazard run tidak mencoba
-        # menjalankan multihazard pass yang tidak relevan (dan gagal).
-        # =====================================================================
         if run_analysis_step:
-            print("\n[3] ANALYSIS")
             manager.update("analysis", 55, f"Analysis dimulai ({hazard})")
             try:
                 analysis_results = _run_analysis_for_hazard(hazard, zonal_results)
                 results["analysis"] = analysis_results
                 manager.update("analysis", 75, "Analysis selesai")
             except Exception as e:
-                print(f"Analysis gagal: {e}")
+                log.error("ANALYSIS", f"Gagal: {e}")
                 raise
 
-        # =====================================================================
-        # STEP 4 — ETL  (push ke Supabase)
-        # Import dilakukan di dalam blok agar ETL tidak di-load saat step ini di-skip.
-        # Dengan begitu, environment tanpa DATABASE_URL tetap bisa menjalankan
-        # preprocess/zonal/analysis tanpa error import.
-        # =====================================================================
         if run_etl_step:
-            print("\n[4] ETL — push ke database")
             manager.update("etl", 80, "ETL dimulai")
             try:
                 from backend.scripts.etl.run_all import run as _run_etl
@@ -196,14 +176,11 @@ def run_padis_pipeline(
                 results["etl"] = "success"
                 manager.update("etl", 95, "ETL selesai")
             except Exception as e:
-                print(f"ETL gagal: {e}")
+                log.error("ETL", f"Gagal: {e}")
                 raise
 
-        # =====================================================================
-        # SELESAI
-        # =====================================================================
         elapsed = time.time() - start_total
-        print(f"\nPIPELINE SELESAI ({elapsed:.2f} detik)")
+        log.ok("PIPELINE", f"Selesai ({elapsed:.2f} detik)")
         manager.finish(success=True, message="Pipeline selesai")
 
         return {

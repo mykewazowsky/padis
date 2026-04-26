@@ -5,6 +5,7 @@ from backend.scripts.core.zonal_engine import run_zonal
 from backend.scripts.config.paths import DATA_DIR
 from backend.scripts.config.hazard import RASTER_HAZARDS
 from backend.scripts.config.settings import ZONAL_CHUNK_SIZE
+from backend.scripts.utils import log
 
 # ===============================
 # PATHS
@@ -33,7 +34,7 @@ OUTPUT_FOLDER = os.path.join(
 # PIPELINE
 # ===============================
 def run_zonal_all() -> list[dict]:
-    print("=== ZONAL PIPELINE ===")
+    log.header("ZONAL PIPELINE")
 
     if not os.path.exists(VECTOR_PATH):
         raise FileNotFoundError(f"Vector tidak ditemukan: {VECTOR_PATH}")
@@ -44,11 +45,12 @@ def run_zonal_all() -> list[dict]:
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
     results = []
+    total = len(RASTER_HAZARDS)
 
     for i, hazard in enumerate(RASTER_HAZARDS, start=1):
         name = hazard["name"]
 
-        print(f"\n[{i}/{len(RASTER_HAZARDS)}] ZONAL {name.upper()}")
+        log.progress(i, total, f"Zonal {name.upper()}")
 
         output_path = os.path.join(OUTPUT_FOLDER, f"{name}_stats.geojson")
 
@@ -60,7 +62,7 @@ def run_zonal_all() -> list[dict]:
                 raster_suffix=hazard.get("suffix", "_reproj.tif"),
                 output_path=output_path,
                 chunk_size=ZONAL_CHUNK_SIZE,
-                overwrite=True  # 🔥 penting biar rerun tidak skip
+                overwrite=True,
             )
 
             results.append({
@@ -70,9 +72,9 @@ def run_zonal_all() -> list[dict]:
             })
 
         except Exception as e:
-            print(f"❌ Zonal {name} gagal: {e}")
+            log.error("ZONAL", f"{name} gagal: {e}")
             raise
 
-    print("\n✅ Semua zonal selesai")
+    log.ok("ZONAL", "Semua zonal selesai")
 
     return results

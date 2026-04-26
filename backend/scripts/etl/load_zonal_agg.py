@@ -3,6 +3,7 @@ from psycopg2.extras import execute_values
 
 from backend.scripts.utils.db import get_conn
 from backend.scripts.utils.parser import parse_zonal
+from backend.scripts.utils import log
 from backend.scripts.config.settings import FILES_ZONAL
 
 
@@ -14,7 +15,7 @@ def get_active_run_id(cur):
     result = cur.fetchone()
 
     if not result:
-        raise ValueError("❌ Tidak ada run aktif")
+        raise ValueError("Tidak ada run aktif di tabel runs")
 
     return result[0]
 
@@ -39,7 +40,7 @@ def get_lookup(cur):
 # MAIN
 # ===============================
 def run(run_id):
-    print("🔄 Loading zonal_kabupaten (FINAL - VERSIONED)...")
+    log.info("ZONAL-AGG", "Memuat data zonal aggregation...")
 
     conn = get_conn()
     cur = conn.cursor()
@@ -57,7 +58,7 @@ def run(run_id):
         # LOOP FILE
         # ===============================
         for path in FILES_ZONAL:
-            print(f"📂 Processing: {path}")
+            log.info("ZONAL-AGG", f"Baca file: {path}")
 
             gdf = gpd.read_file(path).fillna(0)
 
@@ -115,7 +116,7 @@ def run(run_id):
             mean_val = sum(values) / len(values)
             batch_data.append((*key, mean_val))
 
-        print(f"🚀 Total rows: {len(batch_data)}")
+        log.info("ZONAL-AGG", f"Total baris: {len(batch_data)}")
 
         # ===============================
         # CLEAN OLD DATA
@@ -143,11 +144,11 @@ def run(run_id):
         )
 
         conn.commit()
-        print("✅ Zonal loaded successfully (VERSIONED & CLEAN)")
+        log.ok("ZONAL-AGG", "Data zonal berhasil dimuat")
 
     except Exception as e:
         conn.rollback()
-        print("❌ Failed loading zonal:", e)
+        log.error("ZONAL-AGG", f"Gagal memuat zonal: {e}")
 
     finally:
         cur.close()

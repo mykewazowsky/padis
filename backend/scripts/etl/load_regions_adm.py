@@ -2,6 +2,7 @@ import geopandas as gpd
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 from backend.scripts.utils.db import get_conn
+from backend.scripts.utils import log
 from backend.scripts.config.settings import FILES_ADMIN
 
 
@@ -22,10 +23,10 @@ def to_multipolygon(geom):
 # MAIN LOAD FUNCTION
 # =========================
 def run():
-    print("🗺️ Loading regions_adm (batas administrasi)...")
+    log.info("REGIONS-ADM", "Memuat regions_adm (batas administrasi)...")
 
     file_path = FILES_ADMIN["regions"]
-    print(f"📂 Source file: {file_path}")
+    log.info("REGIONS-ADM", f"Sumber: {file_path}")
 
     conn = get_conn()
     cur = conn.cursor()
@@ -36,14 +37,14 @@ def run():
         # =========================
         gdf = gpd.read_file(str(file_path))
 
-        print("📊 Columns:", list(gdf.columns))
-        print("📊 Total features:", len(gdf))
+        log.info("REGIONS-ADM", f"Kolom: {list(gdf.columns)}")
+        log.info("REGIONS-ADM", f"Total fitur: {len(gdf)}")
 
         # =========================
         # CRS FIX
         # =========================
         if gdf.crs is None:
-            print("⚠️ CRS not found, forcing EPSG:4326")
+            log.warn("REGIONS-ADM", "CRS tidak ditemukan, memaksa EPSG:4326")
             gdf.set_crs(epsg=4326, inplace=True)
         else:
             gdf = gdf.to_crs(epsg=4326)
@@ -53,7 +54,7 @@ def run():
         # =========================
         # SIMPLIFY (PERFORMANCE)
         # =========================
-        print("⚡ Simplifying geometry...")
+        log.info("REGIONS-ADM", "Menyederhanakan geometri...")
         gdf["geometry"] = gdf["geometry"].simplify(0.001, preserve_topology=True)
 
         inserted = 0
@@ -89,17 +90,17 @@ def run():
                 inserted += 1
 
                 if inserted % 100 == 0:
-                    print(f"   ➜ {inserted} regions loaded...")
+                    log.info("REGIONS-ADM", f"Dimuat: {inserted} baris...")
 
             except Exception as e:
                 cur.execute("ROLLBACK TO SAVEPOINT row_sp")
-                print(f"⚠️ Skip row {idx}: {e}")
+                log.warn("REGIONS-ADM", f"Lewati baris {idx}: {e}")
 
         conn.commit()
-        print(f"✅ regions_adm loaded ({inserted} rows)")
+        log.ok("REGIONS-ADM", f"regions_adm selesai ({inserted} baris)")
 
     except Exception as e:
-        print("❌ Failed loading regions_adm:", e)
+        log.error("REGIONS-ADM", f"Gagal memuat regions_adm: {e}")
 
     finally:
         cur.close()

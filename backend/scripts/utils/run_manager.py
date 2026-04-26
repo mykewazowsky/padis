@@ -10,6 +10,7 @@ on the final data run.
 """
 
 import time
+from backend.scripts.utils import log
 
 
 class PipelineRunManager:
@@ -53,9 +54,9 @@ class PipelineRunManager:
             self._conn.commit()
             cur.close()
             self._available = True
-            print(f"  [RUN] #{self._run_id} dibuat  operator={self._operator_name}  hazard={self._hazard}")
+            log.info("RUN", f"#{self._run_id} dibuat  operator={self._operator_name}  hazard={self._hazard}")
         except Exception as e:
-            print(f"  [RUN] DB tidak tersedia, monitoring dinonaktifkan: {e}")
+            log.warn("RUN", f"DB tidak tersedia, monitoring dinonaktifkan: {e}")
             self._available = False
 
     def update(self, step: str, progress: int, message: str = "") -> None:
@@ -72,7 +73,7 @@ class PipelineRunManager:
             cur.close()
             self._last_progress = progress
         except Exception as e:
-            print(f"  [RUN] update gagal (non-fatal): {e}")
+            log.warn("RUN", f"Update gagal (non-fatal): {e}")
             self._available = False
 
     def finish(self, success: bool = True, message: str = "") -> None:
@@ -99,9 +100,9 @@ class PipelineRunManager:
             )
             self._conn.commit()
             cur.close()
-            print(f"  [RUN] #{self._run_id} selesai: {status}")
+            log.ok("RUN", f"#{self._run_id} selesai: {status}")
         except Exception as e:
-            print(f"  [RUN] finish gagal (non-fatal): {e}")
+            log.warn("RUN", f"Finish gagal (non-fatal): {e}")
         finally:
             self._close()
 
@@ -113,7 +114,7 @@ class PipelineRunManager:
             self._conn = get_conn()
             self._available = True
         except Exception as e:
-            print(f"  [RUN] reconnect gagal, finish tidak dapat ditulis: {e}")
+            log.warn("RUN", f"Reconnect gagal, finish tidak dapat ditulis: {e}")
 
     # -------------------------------------------------------------------------
     # PRIVATE

@@ -11,6 +11,7 @@ from backend.scripts.config.settings import (
     RASTER_NODATA,
     VERBOSE,
 )
+from backend.scripts.utils import log
 
 
 # =========================
@@ -40,7 +41,7 @@ def get_raster_files(folder: str, prefix: str, suffix: str = ".tif") -> list[str
     ])
 
     if VERBOSE:
-        print(f"[RASTER] ditemukan {len(rasters)} file ({prefix}*)")
+        log.info("RASTER", f"Ditemukan {len(rasters)} file ({prefix}*)")
 
     return rasters
 
@@ -138,7 +139,7 @@ def reproject_raster(
 
     if _is_valid_raster(output_path) and not overwrite:
         if VERBOSE:
-            print(f"[SKIP] {os.path.basename(output_path)}")
+            log.info("SKIP", os.path.basename(output_path))
         return output_path
 
     if RASTER_RESAMPLING_METHOD not in RESAMPLING_MAP:
@@ -154,7 +155,7 @@ def reproject_raster(
             # COPY jika CRS sama
             if src.crs.to_string() == DEFAULT_CRS:
                 if VERBOSE:
-                    print(f"[COPY] {os.path.basename(input_path)}")
+                    log.info("COPY", os.path.basename(input_path))
                 shutil.copy(input_path, output_path)
                 return output_path
 
@@ -207,7 +208,7 @@ def normalize_raster(
 
     if _is_valid_raster(output_path) and not overwrite:
         if VERBOSE:
-            print(f"[SKIP] {os.path.basename(output_path)}")
+            log.info("SKIP", os.path.basename(output_path))
         return output_path
 
     try:

@@ -5,6 +5,7 @@ from backend.scripts.core.vector_engine import intersect_sawah_admin
 
 from backend.scripts.config.paths import DATA_DIR
 from backend.scripts.config.hazard import HAZARDS
+from backend.scripts.utils import log
 
 # ===============================
 # PATHS
@@ -26,25 +27,22 @@ OUTPUT_VECTOR = os.path.join(
 # PIPELINE
 # ===============================
 def run_preprocess() -> dict:
-    print("=== PREPROCESS PADIS ===")
+    log.header("PREPROCESS PADIS")
 
     os.makedirs(PROCESSED_HAZARD_FOLDER, exist_ok=True)
     os.makedirs(PROCESSED_VECTOR_FOLDER, exist_ok=True)
 
     results = {}
 
-    # ===============================
-    # RASTER PROCESSING
-    # ===============================
     for hazard in HAZARDS:
         name = hazard["name"]
 
         if hazard.get("derived", False):
-            print(f"\n--- {name.upper()} SKIPPED (DERIVED) ---")
+            log.info(name.upper(), "Dilewati (derived)")
             results[name] = "skipped"
             continue
 
-        print(f"\n--- {name.upper()} REPROJECT ---")
+        log.info(name.upper(), "Reproject...")
 
         try:
             run_reproject_batch(
@@ -53,10 +51,8 @@ def run_preprocess() -> dict:
                 prefix=hazard["prefix"]
             )
 
-            # optional step (only if defined)
             if hazard.get("normalize", False):
-                print(f"\n--- {name.upper()} NORMALIZATION ---")
-
+                log.info(name.upper(), "Normalisasi...")
                 run_normalize_batch(
                     input_folder=PROCESSED_HAZARD_FOLDER,
                     output_folder=PROCESSED_HAZARD_FOLDER,
@@ -66,13 +62,10 @@ def run_preprocess() -> dict:
             results[name] = "success"
 
         except Exception as e:
-            print(f"❌ Preprocess {name} gagal: {e}")
+            log.error("PREPROCESS", f"{name} gagal: {e}")
             raise
 
-    # ===============================
-    # VECTOR PROCESSING
-    # ===============================
-    print("\n--- VECTOR INTERSECTION ---")
+    log.info("VEKTOR", "Interseksi sawah-administrasi...")
 
     intersect_sawah_admin(
         regions_path=REGIONS_PATH,
@@ -82,6 +75,6 @@ def run_preprocess() -> dict:
 
     results["vector"] = OUTPUT_VECTOR
 
-    print("\n✅ Preprocess selesai")
+    log.ok("PREPROCESS", "Selesai")
 
     return results

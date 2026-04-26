@@ -16,6 +16,7 @@ from backend.scripts.config.settings import (
     DEFAULT_CRS,
     RASTER_NODATA,
 )
+from backend.scripts.utils import log
 
 # ===============================
 # VALIDATION
@@ -67,7 +68,7 @@ def ensure_crs(gdf: gpd.GeoDataFrame):
 
     if gdf.crs.to_string() != DEFAULT_CRS:
         if VERBOSE:
-            print(f"[REPROJECT VECTOR] → {DEFAULT_CRS}")
+            log.info("REPROJECT", f"Vector → {DEFAULT_CRS}")
         gdf = gdf.to_crs(DEFAULT_CRS)
 
     return gdf
@@ -152,7 +153,7 @@ def bulk_zonal_stats(gdf, raster_path, chunk_size, stats):
         chunk = gdf.iloc[start:end]
 
         if VERBOSE:
-            print(f"  chunk {i}/{total_chunks} ({start+1}-{end})")
+            log.progress(i, total_chunks, f"chunk {start+1}-{end}")
 
         try:
             zs = zonal_stats(

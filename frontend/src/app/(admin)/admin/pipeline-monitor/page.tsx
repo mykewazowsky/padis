@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertCircle,
@@ -14,29 +14,24 @@ import {
 } from "lucide-react";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
 
-type HazardKey = "flood" | "drought" | "multi";
+// =============================================================================
+// Types
+// =============================================================================
+
+type RunStatus = {
+  id: number;
+  run_name: string;
+  created_at: string | null;
+  status: string;
+  is_active: boolean;
+  step: string | null;
+  progress: number;
+  message: string | null;
+  operator_name: string | null;
+  source: string | null;
+};
+
 type StepState = "pending" | "running" | "success" | "failed";
-
-type ProcessLogItem = {
-  script?: string;
-  returncode?: number;
-  message?: string;
-  timestamp?: string;
-};
-
-type ProcessStatus = {
-  status: "idle" | "running";
-  message: string;
-  progress_percent: number;
-  current_step: number;
-  total_steps: number;
-  last_result: string | null;
-  logs: ProcessLogItem[];
-  started_at?: string | null;
-  current_script?: string | null;
-  hazard?: string | null;
-  mode?: string | null;
-};
 
 type PipelineNode = {
   id: string;
@@ -45,35 +40,25 @@ type PipelineNode = {
   state: StepState;
 };
 
-// Script execution order (used to determine "already passed" state)
-const SCRIPT_ORDER = [
-  "run_preprocess.py",
-  "run_zonal.py",
-  "run_analysis_flood.py",
-  "run_analysis_drought.py",
-  "run_analysis_multi.py",
-  "run_etl.py",
-];
+type HazardKey = "flood" | "drought" | "multi";
 
-function scriptIndex(script: string | null | undefined): number {
-  return SCRIPT_ORDER.indexOf(script ?? "");
-}
+// =============================================================================
+// Pure helpers
+// =============================================================================
 
-// Maps current_script to main stage index: 0=Preprocess, 1=Zonal, 2=Analysis+ETL
-function inferMainStageIndex(script?: string | null): number {
-  if (!script) return -1;
-  if (script === "run_preprocess.py") return 0;
-  if (script === "run_zonal.py") return 1;
-  if (script.startsWith("run_analysis_") || script === "run_etl.py") return 2;
+function stepToStageIndex(step: string | null): number {
+  if (step === "preprocess") return 0;
+  if (step === "zonal") return 1;
+  if (step === "analysis" || step === "etl") return 2;
   return -1;
 }
 
-function inferMainStageLabel(script?: string | null): string {
-  const idx = inferMainStageIndex(script);
-  if (idx === 0) return "Preprocess";
-  if (idx === 1) return "Zonal";
-  if (idx === 2) return "Analysis";
-  return "Idle";
+function extractHazard(runName: string | null): HazardKey | null {
+  if (!runName) return null;
+  const h = runName.split("_")[0];
+  return (["flood", "drought", "multi"] as HazardKey[]).includes(h as HazardKey)
+    ? (h as HazardKey)
+    : null;
 }
 
 function capitalize(text?: string | null) {
@@ -88,15 +73,101 @@ function formatDateTime(value?: string | null) {
   return date.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
 }
 
-function getMainStatusTone(status?: string | null, lastResult?: string | null) {
+function getStatusTone(status?: string | null) {
   if (status === "running")
     return { label: "Running", className: "text-amber-600", badgeClass: "border-amber-200 bg-amber-50 text-amber-700" };
-  if (lastResult === "success")
-    return { label: "Idle (OK)", className: "text-green-600", badgeClass: "border-green-200 bg-green-50 text-green-700" };
-  if (lastResult === "failed")
-    return { label: "Idle (Failed)", className: "text-red-600", badgeClass: "border-red-200 bg-red-50 text-red-700" };
+  if (status === "success")
+    return { label: "Success", className: "text-green-600", badgeClass: "border-green-200 bg-green-50 text-green-700" };
+  if (status === "failed")
+    return { label: "Failed", className: "text-red-600", badgeClass: "border-red-200 bg-red-50 text-red-700" };
   return { label: capitalize(status || "idle"), className: "text-slate-900", badgeClass: "border-slate-200 bg-slate-50 text-slate-700" };
 }
+
+function getStatusBadgeClass(status?: string | null) {
+  if (status === "running") return "bg-amber-100 text-amber-700";
+  if (status === "success") return "bg-green-100 text-green-700";
+  if (status === "failed")  return "bg-red-100 text-red-700";
+  return "bg-slate-100 text-slate-600";
+}
+
+function getProgressBarClass(status?: string | null) {
+  if (status === "failed")  return "bg-red-400";
+  if (status === "success") return "bg-green-500";
+  return "bg-[var(--color-primary)]";
+}
+
+// =============================================================================
+// Pipeline node builders
+// =============================================================================
+
+function buildMainStageNodes(run: RunStatus | null): PipelineNode[] {
+  const activeStage = stepToStageIndex(run?.step ?? null);
+  const isRunning   = run?.status === "running";
+  const failed      = run?.status === "failed";
+  const succeeded   = run?.status === "success";
+
+  function stageState(idx: number): StepState {
+    if (succeeded) return "success";
+    if (isRunning) {
+      if (activeStage < 0) return "pending";
+      if (idx < activeStage) return "success";
+      if (idx === activeStage) return "running";
+    } else if (failed) {
+      if (activeStage < 0) return "pending";
+      if (idx < activeStage) return "success";
+      if (idx === activeStage) return "failed";
+    }
+    return "pending";
+  }
+
+  return [
+    { id: "preprocess", label: "Preprocess",     desc: "Reproyeksi raster dan interseksi vektor sawah–administrasi.", state: stageState(0) },
+    { id: "zonal",      label: "Zonal Stats",    desc: "Menghitung statistik zonal per wilayah untuk setiap hazard.", state: stageState(1) },
+    { id: "analysis",   label: "Analysis + ETL", desc: "LOP → Loss → AAL → Aggregate, lalu muat hasil ke database.", state: stageState(2) },
+  ];
+}
+
+function buildHazardNodes(hazard: HazardKey, run: RunStatus | null): PipelineNode[] {
+  const activeHazard = extractHazard(run?.run_name ?? null);
+  const included =
+    activeHazard === hazard ||
+    (activeHazard === "multi" && hazard !== "multi");
+
+  let nodeState: StepState = "pending";
+  if (included && run) {
+    const stage = stepToStageIndex(run.step);
+    if (run.status === "success") nodeState = "success";
+    else if (run.status === "running" && stage === 2) nodeState = "running";
+    else if (run.status === "failed"  && stage === 2) nodeState = "failed";
+  }
+
+  if (hazard === "flood") {
+    return [
+      { id: "flood-lop",    label: "Flood LOP",    desc: "Menghitung peluang kerugian banjir per sawah.",          state: nodeState },
+      { id: "flood-loss",   label: "Flood Loss",   desc: "Menghitung total kerugian banjir per kab/kota.",         state: nodeState },
+      { id: "flood-aal",    label: "Flood AAL",    desc: "Menghitung Annual Average Loss untuk banjir.",           state: nodeState },
+      { id: "flood-output", label: "Flood Output", desc: "Menyimpan hasil akhir flood ke file GeoJSON.",           state: nodeState },
+    ];
+  }
+  if (hazard === "drought") {
+    return [
+      { id: "drought-di",   label: "Drought DI",   desc: "Menghitung Drought Indicator per wilayah.",              state: nodeState },
+      { id: "drought-lop",  label: "Drought LOP",  desc: "Menghitung peluang kerugian kekeringan.",                state: nodeState },
+      { id: "drought-loss", label: "Drought Loss", desc: "Menghitung total kerugian kekeringan per kab/kota.",     state: nodeState },
+      { id: "drought-aal",  label: "Drought AAL",  desc: "Menghitung Annual Average Loss untuk kekeringan.",       state: nodeState },
+    ];
+  }
+  return [
+    { id: "multi-merge",  label: "Merge Hazards", desc: "Menggabungkan hasil flood dan drought.",           state: nodeState },
+    { id: "multi-loss",   label: "Multi Loss",    desc: "Menghitung kerugian gabungan multi-hazard.",       state: nodeState },
+    { id: "multi-aal",    label: "Multi AAL",     desc: "Menghitung AAL untuk multi-hazard.",               state: nodeState },
+    { id: "multi-output", label: "Multi Output",  desc: "Menyimpan hasil akhir multi-hazard.",              state: nodeState },
+  ];
+}
+
+// =============================================================================
+// NodeCard
+// =============================================================================
 
 function getNodeStyles(state: StepState) {
   if (state === "success")
@@ -106,106 +177,6 @@ function getNodeStyles(state: StepState) {
   if (state === "failed")
     return { border: "border-red-200", bg: "bg-red-50", text: "text-red-700", icon: <XCircle className="h-4 w-4 text-red-600" />, statusLabel: "FAILED" };
   return { border: "border-slate-200", bg: "bg-slate-50", text: "text-slate-600", icon: <Activity className="h-4 w-4 text-slate-400" />, statusLabel: "PENDING" };
-}
-
-function buildMainStageNodes(status: ProcessStatus | null): PipelineNode[] {
-  const activeStage = inferMainStageIndex(status?.current_script);
-  const isRunning = status?.status === "running";
-  const failed = status?.last_result === "failed";
-  const succeeded = status?.last_result === "success";
-
-  function stageState(stageIdx: number): StepState {
-    if (succeeded) return "success";
-    if (isRunning) {
-      if (activeStage < 0) return "pending";
-      if (stageIdx < activeStage) return "success";
-      if (stageIdx === activeStage) return "running";
-    } else if (failed) {
-      if (activeStage < 0) return "pending";
-      if (stageIdx < activeStage) return "success";
-      if (stageIdx === activeStage) return "failed";
-    }
-    return "pending";
-  }
-
-  return [
-    { id: "preprocess", label: "Preprocess", desc: "Reproyeksi raster dan interseksi vektor sawah–administrasi.", state: stageState(0) },
-    { id: "zonal", label: "Zonal Stats", desc: "Menghitung statistik zonal per wilayah untuk setiap hazard.", state: stageState(1) },
-    { id: "analysis", label: "Analysis + ETL", desc: "LOP → Loss → AAL → Aggregate, lalu muat hasil ke database.", state: stageState(2) },
-  ];
-}
-
-function getHazardNodeState(
-  nodeHazard: HazardKey,
-  analysisScript: string,
-  status: ProcessStatus | null,
-): StepState {
-  if (!status) return "pending";
-
-  const activeHazard = status.hazard as HazardKey | null;
-  if (!activeHazard) return "pending";
-
-  // Is this hazard included in the current/last run?
-  const included =
-    activeHazard === nodeHazard ||
-    (activeHazard === "multi" && nodeHazard !== "multi") ||
-    false;
-  if (!included) return "pending";
-
-  const currScript = status.current_script;
-  const isRunning = status.status === "running";
-  const lastResult = status.last_result;
-
-  if (isRunning) {
-    if (currScript === analysisScript) return "running";
-    const currIdx = scriptIndex(currScript);
-    const thisIdx = scriptIndex(analysisScript);
-    if (currIdx > thisIdx && thisIdx >= 0) return "success";
-    return "pending";
-  }
-
-  if (lastResult === "success") return "success";
-
-  if (lastResult === "failed") {
-    // If the pipeline failed after this script (i.e. this script already ran OK)
-    const currIdx = scriptIndex(currScript);
-    const thisIdx = scriptIndex(analysisScript);
-    if (currIdx > thisIdx && thisIdx >= 0) return "success";
-    // The current script is exactly this one — it failed
-    return "failed";
-  }
-
-  return "pending";
-}
-
-function buildHazardNodes(hazard: HazardKey, status: ProcessStatus | null): PipelineNode[] {
-  const analysisScript = `run_analysis_${hazard === "multi" ? "multi" : hazard}.py`;
-  const nodeState = getHazardNodeState(hazard, analysisScript, status);
-
-  if (hazard === "flood") {
-    return [
-      { id: "flood-lop", label: "Flood LOP", desc: "Menghitung peluang kerugian banjir per sawah.", state: nodeState },
-      { id: "flood-loss", label: "Flood Loss", desc: "Menghitung total kerugian banjir per kab/kota.", state: nodeState },
-      { id: "flood-aal", label: "Flood AAL", desc: "Menghitung Annual Average Loss untuk banjir.", state: nodeState },
-      { id: "flood-output", label: "Flood Output", desc: "Menyimpan hasil akhir flood ke file GeoJSON.", state: nodeState },
-    ];
-  }
-
-  if (hazard === "drought") {
-    return [
-      { id: "drought-di", label: "Drought DI", desc: "Menghitung Drought Indicator per wilayah.", state: nodeState },
-      { id: "drought-lop", label: "Drought LOP", desc: "Menghitung peluang kerugian kekeringan.", state: nodeState },
-      { id: "drought-loss", label: "Drought Loss", desc: "Menghitung total kerugian kekeringan per kab/kota.", state: nodeState },
-      { id: "drought-aal", label: "Drought AAL", desc: "Menghitung Annual Average Loss untuk kekeringan.", state: nodeState },
-    ];
-  }
-
-  return [
-    { id: "multi-merge", label: "Merge Hazards", desc: "Menggabungkan hasil flood dan drought.", state: nodeState },
-    { id: "multi-loss", label: "Multi Loss", desc: "Menghitung kerugian gabungan multi-hazard.", state: nodeState },
-    { id: "multi-aal", label: "Multi AAL", desc: "Menghitung AAL untuk multi-hazard.", state: nodeState },
-    { id: "multi-output", label: "Multi Output", desc: "Menyimpan hasil akhir multi-hazard.", state: nodeState },
-  ];
 }
 
 function NodeCard({ node }: { node: PipelineNode }) {
@@ -226,58 +197,92 @@ function NodeCard({ node }: { node: PipelineNode }) {
   );
 }
 
+// =============================================================================
+// Page
+// =============================================================================
+
+const POLL_MS = 4000;
+
 export default function AdminPipelineMonitorPage() {
-  const [status, setStatus] = useState<ProcessStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [currentRun, setCurrentRun] = useState<RunStatus | null>(null);
+  const [recentRuns, setRecentRuns] = useState<RunStatus[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const inFlightRef = useRef(false);
 
-  const loadStatus = useCallback(async (showRefresh = false) => {
+  const loadData = useCallback(async (showRefresh = false) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    if (showRefresh) setRefreshing(true);
+    setErrorMessage("");
+
     try {
-      if (showRefresh) setRefreshing(true);
-      setErrorMessage("");
-      const res = await fetchWithAuth("/api/admin/process-status");
-      const json = await res.json();
-      setStatus(json);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Gagal memuat status pipeline.");
+      const [statusRes, runsRes] = await Promise.allSettled([
+        fetchWithAuth("/api/admin/run-status").then((r) => {
+          if (!r.ok) throw new Error(`run-status: HTTP ${r.status}`);
+          return r.json();
+        }),
+        fetchWithAuth("/api/admin/runs?limit=10").then((r) => {
+          if (!r.ok) throw new Error(`runs: HTTP ${r.status}`);
+          return r.json();
+        }),
+      ]);
+
+      const errors: string[] = [];
+
+      if (statusRes.status === "fulfilled") {
+        if (statusRes.value?.error) {
+          errors.push(statusRes.value.error);
+        } else {
+          setCurrentRun(statusRes.value?.run ?? null);
+        }
+      } else {
+        errors.push(statusRes.reason?.message ?? "Gagal memuat status run.");
+      }
+
+      if (runsRes.status === "fulfilled") {
+        if (runsRes.value?.error) {
+          errors.push(runsRes.value.error);
+        } else {
+          setRecentRuns(Array.isArray(runsRes.value?.runs) ? runsRes.value.runs : []);
+        }
+      } else {
+        errors.push(runsRes.reason?.message ?? "Gagal memuat riwayat run.");
+      }
+
+      if (errors.length > 0) {
+        setErrorMessage(errors.join(" · "));
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal memuat data pipeline.";
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      inFlightRef.current = false;
     }
   }, []);
 
-  useEffect(() => { loadStatus(); }, [loadStatus]);
-
   useEffect(() => {
-    if (status?.status !== "running") return;
-    const id = setInterval(() => loadStatus(false), 2500);
-    return () => clearInterval(id);
-  }, [status?.status, loadStatus]);
+    loadData();
+    const id = window.setInterval(() => loadData(false), POLL_MS);
+    return () => window.clearInterval(id);
+  }, [loadData]);
 
-  const statusTone = useMemo(
-    () => getMainStatusTone(status?.status, status?.last_result),
-    [status?.status, status?.last_result]
-  );
+  const statusTone   = useMemo(() => getStatusTone(currentRun?.status), [currentRun?.status]);
+  const activeHazard = useMemo(() => capitalize(extractHazard(currentRun?.run_name ?? null)), [currentRun?.run_name]);
+  const activeStep   = useMemo(() => capitalize(currentRun?.step), [currentRun?.step]);
 
-  const mainStageLabel = useMemo(
-    () => (status?.status === "running" ? inferMainStageLabel(status.current_script) : "Idle"),
-    [status?.status, status?.current_script]
-  );
-
-  const mainNodes = useMemo(() => buildMainStageNodes(status), [status]);
-  const floodNodes = useMemo(() => buildHazardNodes("flood", status), [status]);
-  const droughtNodes = useMemo(() => buildHazardNodes("drought", status), [status]);
-  const multiNodes = useMemo(() => buildHazardNodes("multi", status), [status]);
-
-  const recentLogs = useMemo(() => (status?.logs || []).slice(-5).reverse(), [status?.logs]);
-
-  const activeHazard = capitalize(status?.hazard || "-");
-  const activeMode = capitalize(status?.mode || "-");
+  const mainNodes    = useMemo(() => buildMainStageNodes(currentRun), [currentRun]);
+  const floodNodes   = useMemo(() => buildHazardNodes("flood", currentRun), [currentRun]);
+  const droughtNodes = useMemo(() => buildHazardNodes("drought", currentRun), [currentRun]);
+  const multiNodes   = useMemo(() => buildHazardNodes("multi", currentRun), [currentRun]);
 
   return (
     <main className="space-y-6">
-      {/* Header */}
+
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-4xl">
@@ -290,11 +295,13 @@ export default function AdminPipelineMonitorPage() {
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 md:text-base">
               Pantau tahapan pipeline, status setiap skrip, dan alur per hazard secara real-time.
             </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Auto refresh setiap {POLL_MS / 1000} detik
+            </p>
           </div>
-
           <button
             type="button"
-            onClick={() => loadStatus(true)}
+            onClick={() => loadData(true)}
             disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -310,7 +317,7 @@ export default function AdminPipelineMonitorPage() {
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* ── Summary cards ───────────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
@@ -333,7 +340,7 @@ export default function AdminPipelineMonitorPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm text-slate-500">Tahap Aktif</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">{mainStageLabel}</h2>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">{activeStep}</h2>
             </div>
             <div className="rounded-2xl bg-blue-50 p-3">
               <Workflow className="h-5 w-5 text-blue-600" />
@@ -358,26 +365,93 @@ export default function AdminPipelineMonitorPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm text-slate-500">Mode</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">{activeMode}</h2>
+              <p className="text-sm text-slate-500">Operator</p>
+              <h2 className="mt-2 truncate text-2xl font-bold text-slate-900">
+                {currentRun?.operator_name || "-"}
+              </h2>
             </div>
             <div className="rounded-2xl bg-green-50 p-3">
               <Layers3 className="h-5 w-5 text-green-600" />
             </div>
           </div>
-          <p className="mt-3 text-sm text-slate-600">Mode proses yang dipakai.</p>
+          <p className="mt-3 text-sm text-slate-600">Operator yang menjalankan pipeline terakhir.</p>
         </div>
       </section>
 
-      {/* Main pipeline stages */}
+      {/* ── Current run detail ───────────────────────────────────────────────── */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
+            STATUS SAAT INI
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Run Terbaru</h2>
+        </div>
+
+        {loading ? (
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 w-1/3 rounded bg-slate-200" />
+            <div className="h-8 rounded bg-slate-200" />
+            <div className="h-4 w-2/3 rounded bg-slate-200" />
+          </div>
+        ) : currentRun === null ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
+            Belum ada monitoring run. Jalankan pipeline menggunakan Docker CLI.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Progress
+                </p>
+                <p className="text-sm font-bold text-slate-900">{currentRun.progress}%</p>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className={`h-full rounded-full transition-all ${getProgressBarClass(currentRun.status)}`}
+                  style={{ width: `${Math.min(100, Math.max(0, currentRun.progress))}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tahap</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {capitalize(currentRun.step) || "—"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mulai</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {formatDateTime(currentRun.created_at)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Run Name</p>
+                <p className="mt-1 break-all text-xs font-medium text-slate-700">
+                  {currentRun.run_name}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pesan</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                {currentRun.message || "Tidak ada pesan."}
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── Main pipeline stages ─────────────────────────────────────────────── */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
           <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
             MAIN PIPELINE
           </p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-            Tahap Utama Proses
-          </h2>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Tahap Utama Proses</h2>
           <p className="mt-1 text-sm text-slate-500">
             Alur utama pipeline: Preprocess → Zonal → Analysis + ETL.
           </p>
@@ -387,18 +461,14 @@ export default function AdminPipelineMonitorPage() {
         </div>
       </section>
 
-      {/* Hazard branches */}
+      {/* ── Hazard branches ──────────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-blue-600" />
             <div>
-              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-                FLOOD
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">
-                Jalur Flood
-              </h2>
+              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">FLOOD</p>
+              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Flood</h2>
             </div>
           </div>
           <div className="space-y-3">
@@ -410,12 +480,8 @@ export default function AdminPipelineMonitorPage() {
           <div className="mb-5 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <div>
-              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-                DROUGHT
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">
-                Jalur Drought
-              </h2>
+              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">DROUGHT</p>
+              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Drought</h2>
             </div>
           </div>
           <div className="space-y-3">
@@ -427,12 +493,8 @@ export default function AdminPipelineMonitorPage() {
           <div className="mb-5 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-indigo-600" />
             <div>
-              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-                MULTI-HAZARD
-              </p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">
-                Jalur Multi-hazard
-              </h2>
+              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">MULTI-HAZARD</p>
+              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Multi-hazard</h2>
             </div>
           </div>
           <div className="mb-4 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
@@ -444,122 +506,84 @@ export default function AdminPipelineMonitorPage() {
         </div>
       </section>
 
-      {/* Status detail + recent logs */}
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              STATUS DETAIL
-            </p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              Ringkasan Saat Ini
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Progress</p>
-              <p className="mt-1 text-lg font-bold text-slate-900">
-                {status?.progress_percent ?? 0}%
-              </p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-[var(--color-primary)] transition-all"
-                  style={{ width: `${Math.min(100, Math.max(0, status?.progress_percent ?? 0))}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Current Script
-                </p>
-                <p className="mt-1 break-all text-sm font-semibold text-slate-900">
-                  {status?.current_script || "-"}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Script ke-
-                </p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {status?.current_step ?? 0} / {status?.total_steps ?? 0}
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Started At
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
-                {formatDateTime(status?.started_at)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Message</p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-700">
-                {status?.message || "Belum ada proses aktif."}
-              </p>
-            </div>
-          </div>
+      {/* ── Run history table ────────────────────────────────────────────────── */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
+            RIWAYAT RUN
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">10 Run Terakhir</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Daftar monitoring run terbaru dari tabel{" "}
+            <code className="text-xs">runs</code>, diperbarui setiap {POLL_MS / 1000} detik.
+          </p>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              RECENT LOGS
-            </p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Log Terbaru</h2>
+        {loading ? (
+          <div className="animate-pulse space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-10 rounded-xl bg-slate-100" />
+            ))}
           </div>
-
-          {loading ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
-              Memuat log...
-            </div>
-          ) : recentLogs.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
-              Belum ada log proses yang dapat ditampilkan.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentLogs.map((log, index) => {
-                const hasError = log.returncode != null && log.returncode !== 0;
-                return (
-                  <div
-                    key={index}
-                    className={`rounded-2xl border px-4 py-4 ${
-                      hasError ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {log.script || log.message || "Log entry"}
+        ) : recentRuns.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
+            Belum ada riwayat run yang tersedia.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left">
+                  {["Run Name", "Status", "Progress", "Operator", "Dibuat"].map((h) => (
+                    <th
+                      key={h}
+                      className="pb-3 pr-4 last:pr-0 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentRuns.map((run) => (
+                  <tr key={run.id} className="transition-colors hover:bg-slate-50">
+                    <td className="py-3 pr-4">
+                      <p
+                        className="max-w-[180px] truncate font-medium text-slate-900"
+                        title={run.run_name}
+                      >
+                        {run.run_name}
                       </p>
-                      {log.returncode != null && (
-                        <span className={`shrink-0 text-xs font-medium ${hasError ? "text-red-600" : "text-green-600"}`}>
-                          rc: {log.returncode}
-                        </span>
-                      )}
-                    </div>
-                    {hasError && (
-                      <p className="mt-1 text-xs font-medium text-red-600">
-                        Terjadi error pada langkah ini.
-                      </p>
-                    )}
-                    <p className="mt-2 text-xs text-slate-500">{formatDateTime(log.timestamp)}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(run.status)}`}
+                      >
+                        {capitalize(run.status)}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className={`h-full rounded-full ${getProgressBarClass(run.status)}`}
+                            style={{ width: `${Math.min(100, run.progress)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-500">{run.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4 text-slate-600">{run.operator_name || "-"}</td>
+                    <td className="py-3 text-slate-500">{formatDateTime(run.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
-      {/* Guide */}
+      {/* ── Guide ────────────────────────────────────────────────────────────── */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
           <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
@@ -573,19 +597,22 @@ export default function AdminPipelineMonitorPage() {
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
             <p className="font-semibold text-slate-900">Tahap Utama</p>
             <p className="mt-2 text-sm text-slate-600">
-              Preprocess → Zonal → Analysis+ETL. Setiap tahap diwakili satu skrip runner.
+              Preprocess → Zonal → Analysis+ETL. Tahap ditentukan dari field{" "}
+              <code className="text-xs">step</code> di tabel runs.
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
             <p className="font-semibold text-slate-900">Jalur Hazard</p>
             <p className="mt-2 text-sm text-slate-600">
-              Sub-langkah analisis di dalam skrip <code className="text-xs">run_analysis_*.py</code>. Semua node di satu hazard mencerminkan status skrip tersebut.
+              Sub-langkah analisis per hazard ditentukan dari prefix{" "}
+              <code className="text-xs">run_name</code> (flood/drought/multi).
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="font-semibold text-slate-900">Status Node</p>
+            <p className="font-semibold text-slate-900">Riwayat Run</p>
             <p className="mt-2 text-sm text-slate-600">
-              Pending = belum jalan, Running = sedang aktif (animasi), Success = selesai, Failed = gagal.
+              10 monitoring run terakhir dari tabel runs. Auto-refresh setiap{" "}
+              {POLL_MS / 1000} detik tanpa interaksi pengguna.
             </p>
           </div>
         </div>

@@ -31,24 +31,32 @@ def _now_iso() -> str:
 
 
 def _fetch_latest_run(session):
-    """Ambil satu baris terbaru dari tabel runs. Return None jika kosong."""
+    """
+    Ambil monitoring run terbaru (source='local') dari tabel runs.
+    Filter source='local' mencegah ETL run (source=NULL) menyembunyikan
+    monitoring run operator.
+    Fallback ke query tanpa kolom baru jika migration 002 belum dijalankan.
+    """
     try:
         row = session.execute(text("""
             SELECT id, run_name, created_at, status, is_active,
                    step, progress, message, operator_name, source
             FROM runs
-            ORDER BY created_at DESC
+            WHERE source = 'local'
+            ORDER BY created_at DESC, id DESC
             LIMIT 1
         """)).fetchone()
     except Exception:
-        # Fallback jika kolom baru (migration 002) belum dijalankan
+        # Kolom baru (migration 002) belum ada — rollback dulu agar session valid
         try:
+            session.rollback()
             row = session.execute(text("""
                 SELECT id, run_name, created_at, status, is_active,
                        NULL AS step, 0 AS progress, NULL AS message,
                        NULL AS operator_name, NULL AS source
                 FROM runs
-                ORDER BY created_at DESC
+                WHERE source = 'local'
+                ORDER BY created_at DESC, id DESC
                 LIMIT 1
             """)).fetchone()
         except Exception:
@@ -200,6 +208,77 @@ def admin_dependencies():
         "checks": checks,
         "note": "Pipeline sekarang dijalankan via Docker — script tidak lagi dicek di sini.",
     })
+
+
+# =============================================================================
+# GET /api/admin/runs  — list recent monitoring runs
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs", methods=["GET"])
+@admin_required
+def admin_list_runs():
+    """
+    Mengembalikan daftar monitoring run terbaru (source='local').
+
+    Query params:
+        limit         int  1–50, default 10
+        operator_name str  filter exact match
+        hazard        str  filter by run_name prefix (flood/drought/multi)
+    """
+    try:
+        raw_limit = request.args.get("limit", 10, type=int)
+        limit = max(1, min(raw_limit, 50))
+
+        operator_filter = request.args.get("operator_name", "").strip()
+        hazard_filter   = request.args.get("hazard", "").strip()
+
+        conditions = ["source = 'local'"]
+        params: dict = {"limit": limit}
+
+        if operator_filter:
+            conditions.append("operator_name = :operator_name")
+            params["operator_name"] = operator_filter
+
+        if hazard_filter and hazard_filter in ("flood", "drought", "multi"):
+            conditions.append("run_name LIKE :run_name_prefix")
+            params["run_name_prefix"] = f"{hazard_filter}_%"
+
+        where_clause = " AND ".join(conditions)
+
+        with SessionLocal() as session:
+            rows = session.execute(text(f"""
+                SELECT id, run_name, created_at, status, is_active,
+                       step, progress, message, operator_name, source
+                FROM runs
+                WHERE {where_clause}
+                ORDER BY created_at DESC, id DESC
+                LIMIT :limit
+            """), params).fetchall()
+
+    except Exception as e:
+        return jsonify({"error": "Gagal mengambil daftar runs", "detail": str(e)}), 500
+
+    runs = [
+        {
+            "id":            row.id,
+            "run_name":      row.run_name,
+            "created_at":    row.created_at.isoformat() if row.created_at else None,
+            "status":        row.status,
+            "is_active":     row.is_active,
+            "step":          row.step,
+            "progress":      row.progress if row.progress is not None else 0,
+            "message":       row.message,
+            "operator_name": row.operator_name,
+            "source":        row.source,
+        }
+        for row in rows
+    ]
+
+    return jsonify({
+        "runs":  runs,
+        "count": len(runs),
+        "limit": limit,
+    }), 200
 
 
 # =============================================================================

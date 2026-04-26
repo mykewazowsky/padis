@@ -79,14 +79,15 @@ const MODE_OPTIONS: { key: ModeKey; label: string; desc: string }[] = [
   },
 ];
 
-// Maps script filename to visual stage index (0-based)
+// Maps step name or legacy script filename to visual stage index (0-based)
 // Stages: 0=PREPROCESS, 1=ZONAL, 2=ANALISIS, 3=DATABASE
 function inferStageFromScript(script?: string | null): number {
   if (!script) return -1;
-  if (script === "run_preprocess.py") return 0;
-  if (script === "run_zonal.py") return 1;
-  if (script.startsWith("run_analysis_")) return 2;
-  if (script === "run_etl.py") return 3;
+  const s = script.toLowerCase();
+  if (s === "preprocess" || s === "run_preprocess.py") return 0;
+  if (s === "zonal"      || s === "run_zonal.py")      return 1;
+  if (s === "analysis"   || s.startsWith("run_analysis_")) return 2;
+  if (s === "etl"        || s === "run_etl.py")         return 3;
   return -1;
 }
 

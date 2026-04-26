@@ -25,6 +25,7 @@ class PipelineRunManager:
         self._run_id: int | None = None
         self._conn = None
         self._available = False
+        self._last_progress: int = 0  # tracks last successful progress for failure reporting
 
     # -------------------------------------------------------------------------
     # PUBLIC API
@@ -69,20 +70,32 @@ class PipelineRunManager:
             )
             self._conn.commit()
             cur.close()
+            self._last_progress = progress
         except Exception as e:
             print(f"  [RUN] update gagal (non-fatal): {e}")
             self._available = False
 
     def finish(self, success: bool = True, message: str = "") -> None:
-        """Mark run success or failed; close the DB connection."""
+        """
+        Mark run success or failed; close the DB connection.
+
+        Attempts a fresh connection if the existing one was lost (_available=False),
+        so a transient DB failure during update() does not permanently prevent
+        the final status from being written.
+        """
+        if self._run_id is None:
+            return  # start() never succeeded — nothing to finalise
+
         if not self._available:
-            return
+            self._try_reconnect()
+
         status = "success" if success else "failed"
+        final_progress = 100 if success else self._last_progress
         try:
             cur = self._conn.cursor()
             cur.execute(
                 "UPDATE runs SET status=%s, progress=%s, message=%s WHERE id=%s",
-                (status, 100 if success else None, message or status, self._run_id),
+                (status, final_progress, message or status, self._run_id),
             )
             self._conn.commit()
             cur.close()
@@ -91,6 +104,16 @@ class PipelineRunManager:
             print(f"  [RUN] finish gagal (non-fatal): {e}")
         finally:
             self._close()
+
+    def _try_reconnect(self) -> None:
+        """Attempt a fresh DB connection for finish(). Silent on failure."""
+        try:
+            from backend.scripts.utils.db import get_conn
+            self._close()
+            self._conn = get_conn()
+            self._available = True
+        except Exception as e:
+            print(f"  [RUN] reconnect gagal, finish tidak dapat ditulis: {e}")
 
     # -------------------------------------------------------------------------
     # PRIVATE

@@ -147,7 +147,10 @@ export default function MapLayerControlPanel({
   }
 
   return (
-    <div className="absolute left-4 top-4 z-[1060] flex max-h-[calc(100svh-440px)] w-72 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur">
+    <div
+      className="absolute left-4 top-4 z-[1060] flex w-72 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur"
+      style={{ maxHeight: "max(10rem, calc(100svh - 440px))" }}
+    >
       {/* Header — fixed */}
       <div className="flex-shrink-0 px-3 pt-3">
         <div className="mb-3 flex items-start justify-between">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Select from "react-select";
-import { Filter, ShieldAlert } from "lucide-react";
+import { Filter, ShieldAlert, X } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
 import { fetchAllLayers, fetchLatestRunId } from "../../../services/fetchLayers";
@@ -62,10 +62,10 @@ const climateOptions: OptionType[] = [
 ];
 
 const scenarioOptions: OptionType[] = [
-  { value: "rp25", label: "RP25" },
-  { value: "rp50", label: "RP50" },
-  { value: "rp100", label: "RP100" },
-  { value: "rp250", label: "RP250" },
+  { value: "rp25", label: "25 Tahun (RP25)" },
+  { value: "rp50", label: "50 Tahun (RP50)" },
+  { value: "rp100", label: "100 Tahun (RP100)" },
+  { value: "rp250", label: "250 Tahun (RP250)" },
 ];
 
 const quickPresets: PresetItem[] = [
@@ -248,6 +248,7 @@ export default function DashboardPage() {
   const [loginNoticeMessage, setLoginNoticeMessage] = useState(
     "Silakan login terlebih dahulu."
   );
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const [activeLayers, setActiveLayers] = useState<Record<LayerKey, boolean>>({
     regions: false,
@@ -456,6 +457,7 @@ export default function DashboardPage() {
 
   async function openProtectedDownload(path: string, fallbackFilename: string) {
     const token = getToken();
+    setDownloadError(null);
 
     if (!token) {
       setLoginNoticeMessage(
@@ -523,7 +525,7 @@ export default function DashboardPage() {
       window.URL.revokeObjectURL(objectUrl);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Gagal download file.");
+      setDownloadError(err.message || "Gagal download file.");
     }
   }
 
@@ -629,41 +631,41 @@ export default function DashboardPage() {
   const insightBadge = useMemo(() => {
     if (loadingLayer || loadingAAL) {
       return {
-        label: "Analyzing...",
+        label: "Memuat...",
         className: "bg-gray-100 text-gray-600 border border-gray-200",
       };
     }
 
     if (errorLayer || errorAAL) {
       return {
-        label: "Check Data",
+        label: "Periksa Data",
         className: "bg-red-50 text-red-700 border border-red-200",
       };
     }
 
     if (isLayerEmpty) {
       return {
-        label: "No Data",
+        label: "Tidak Ada Data",
         className: "bg-gray-100 text-gray-600 border border-gray-200",
       };
     }
 
     if (climateChangeInfo.label === "N/A") {
       return {
-        label: "AAL Unavailable",
+        label: "AAL Tidak Tersedia",
         className: "bg-gray-100 text-gray-600 border border-gray-200",
       };
     }
 
     if (climateChangeInfo.isUp) {
       return {
-        label: "Risk Increasing",
+        label: "Risiko Meningkat",
         className: "bg-red-50 text-red-700 border border-red-200",
       };
     }
 
     return {
-      label: "Risk Lower",
+      label: "Risiko Menurun",
       className: "bg-green-50 text-green-700 border border-green-200",
     };
   }, [
@@ -743,7 +745,7 @@ export default function DashboardPage() {
 
                   <div className="min-w-0 flex-1 px-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-                      Δ AAL
+                      Perubahan AAL
                     </p>
                     <p
                       className={`mt-1 truncate text-sm font-bold ${
@@ -919,7 +921,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="relative h-[60vh] w-full sm:h-[65vh] md:h-[70vh] xl:h-[75vh]">
+              <div className="relative h-[50vh] w-full sm:h-[65vh] md:h-[70vh] xl:h-[75vh]">
                 {runId !== null && (
                   <MapView
                     scenario={scenario}
@@ -939,14 +941,6 @@ export default function DashboardPage() {
                     onToggleLayer={handleToggleLayer}
                     regionCentroids={regionCentroids}
                   />
-                )}
-
-                {!selectedRegion && (
-                  <div className="pointer-events-none absolute top-4 left-1/2 z-20 -translate-x-1/2">
-                    <div className="rounded-xl bg-white/90 px-4 py-2 text-sm text-gray-700 shadow backdrop-blur">
-                      Tampilan default: Indonesia
-                    </div>
-                  </div>
                 )}
 
                 {loadingLayer && (
@@ -1039,6 +1033,20 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {downloadError && (
+        <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-lg">
+          <p className="text-sm text-red-700">{downloadError}</p>
+          <button
+            type="button"
+            onClick={() => setDownloadError(null)}
+            className="flex-shrink-0 text-red-400 hover:text-red-600"
+            aria-label="Tutup"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
     </>

@@ -103,7 +103,7 @@ export default function DashboardMapOverlay({
 
       {/* ── Selected region card ─────────────────────────────────────────── */}
       {selectedFeature && props ? (
-        <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-[500] sm:right-auto sm:w-80">
+        <div className="pointer-events-none absolute bottom-20 left-4 right-4 z-[500] sm:bottom-4 sm:right-auto sm:w-80">
           <div className="pointer-events-auto card card-accent-primary bg-white/95 p-4 backdrop-blur">
 
             {/* Header */}

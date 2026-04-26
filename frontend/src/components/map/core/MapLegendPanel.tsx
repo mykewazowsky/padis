@@ -57,9 +57,9 @@ export default function MapLegendPanel({
           aria-label={collapsed ? "Buka legenda" : "Tutup legenda"}
         >
           {collapsed ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
             <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
           )}
         </button>
       </div>

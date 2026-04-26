@@ -14,8 +14,7 @@ nixPkgs = ["python311", "python311Packages.pip"]
 cmds = [
   "python -m venv /app/.venv",
   ". /app/.venv/bin/activate",
-  "pip install -r backend/requirements.txt",
-  "playwright install chromium"
+  "pip install -r backend/requirements.txt"
 ]
 
 [start]

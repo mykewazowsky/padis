@@ -53,16 +53,20 @@ Browser
 ### Admin Pipeline Flow
 
 ```
-1. Admin uploads raster/shapefile via POST /api/admin/upload
-2. Admin triggers pipeline via POST /api/admin/run-pipeline
-3. Flask spawns subprocess: python scripts/main.py --mode <mode> --hazard <type>
-4. Pipeline stages:
-   preprocess → zonal → analysis → etl
-5. ETL writes results to: losses, aal, zonal_kabupaten, production tables
-6. Admin polls GET /api/admin/status for progress
-7. New run_id becomes available via GET /api/runs/latest
-8. Frontend refetches all layers with new run_id
+1. Operator menempatkan file data di folder raw/ (manual, bukan upload)
+2. Admin UI mengirim POST /api/admin/start-pipeline (mode, hazard, operator)
+3. Flask men-spawn subprocess Python (fire-and-forget, stdout/stderr discarded):
+     python scripts/main.py --mode <mode> --hazard <hazard> --operator <name>
+4. Subprocess menulis progress ke tabel `runs` di database
+5. Pipeline stages:
+     preprocess → zonal → analysis → etl
+6. ETL menulis hasil ke: losses, aal, zonal_kabupaten, production
+7. Admin memantau progress via GET /api/admin/run-status (read dari tabel runs)
+8. Run baru tersedia via GET /api/runs/latest
+9. Frontend refetch semua layer dengan run_id baru
 ```
+
+**Catatan blocking:** Flask memeriksa apakah ada run dengan `status='running'` di tabel `runs` sebelum men-spawn subprocess. Run yang lebih dari 2 jam dianggap stale (proses crash) dan tidak memblokir run baru.
 
 ## Backend Architecture
 
@@ -114,7 +118,14 @@ src/app/
 │   └── metodologi/      # Methodology page
 ├── (admin)/             # Route group — admin layout
 │   ├── layout.tsx       # Admin shell wrapper
-│   └── admin/           # Admin dashboard
+│   └── admin/
+│       ├── page.tsx              # Overview dashboard
+│       ├── data-management/      # Cek ketersediaan file data
+│       ├── process-control/      # Trigger pipeline
+│       ├── pipeline-monitor/     # Monitor progress via DB
+│       ├── outputs/              # Preview & download hasil
+│       ├── users/                # Kelola akun pengguna
+│       └── guide/                # Panduan operator
 └── (auth)/              # Route group — auth layout
     ├── login/
     ├── register/

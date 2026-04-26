@@ -62,6 +62,8 @@ type PreviewData =
       message: string;
     };
 
+const GEOJSON_PREVIEW_LIMIT = 10 * 1024 * 1024; // 10 MB — skip preview fetch above this size
+
 const FILTER_OPTIONS: { key: FilterKey; label: string; desc: string }[] = [
   { key: "all", label: "Semua", desc: "Tampilkan semua hasil." },
   { key: "flood", label: "Flood", desc: "Hasil untuk analisis flood." },
@@ -279,7 +281,19 @@ export default function AdminOutputPage() {
     }
   }
 
-  async function handlePreview(filename: string) {
+  function setTooBigPreview(filename: string, sizeBytes: number) {
+    setPreviewMap((prev) => ({
+      ...prev,
+      [filename]: {
+        type: "unsupported" as const,
+        filename,
+        message: `File terlalu besar untuk preview (${formatBytes(sizeBytes)}). Gunakan tombol Download untuk mengunduh file.`,
+      },
+    }));
+    setExpandedFile(filename);
+  }
+
+  async function handlePreview(filename: string, sizeBytes = 0) {
     if (expandedFile === filename) {
       setExpandedFile(null);
       return;
@@ -290,6 +304,13 @@ export default function AdminOutputPage() {
       return;
     }
 
+    const isGeoJson = filename.toLowerCase().endsWith(".geojson");
+
+    if (isGeoJson && sizeBytes > GEOJSON_PREVIEW_LIMIT) {
+      setTooBigPreview(filename, sizeBytes);
+      return;
+    }
+
     try {
       setPreviewingFile(filename);
       setError("");
@@ -297,6 +318,12 @@ export default function AdminOutputPage() {
       const res = await fetchWithAuth(
         `/api/admin/outputs/preview?filename=${encodeURIComponent(filename)}`
       );
+
+      if (res.status === 413) {
+        setTooBigPreview(filename, sizeBytes);
+        return;
+      }
+
       const json = await res.json();
 
       if (!res.ok) {
@@ -308,10 +335,7 @@ export default function AdminOutputPage() {
         [filename]: json,
       }));
 
-      const isGeoJsonFile =
-        filename.toLowerCase().endsWith(".geojson") && json.type === "geojson";
-
-      if (isGeoJsonFile) {
+      if (isGeoJson && json.type === "geojson" && sizeBytes <= GEOJSON_PREVIEW_LIMIT) {
         const token = getToken();
 
         const fileRes = await fetch(
@@ -585,7 +609,7 @@ export default function AdminOutputPage() {
                           <div className="flex gap-2">
                             <button
                               type="button"
-                              onClick={() => handlePreview(item.filename)}
+                              onClick={() => handlePreview(item.filename, item.size_bytes)}
                               className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                             >
                               <Eye className="h-4 w-4" />

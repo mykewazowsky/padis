@@ -48,16 +48,12 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/about", label: "Tentang Kami" },
 ];
 
-const ADMIN_NAV_ITEMS: NavItem[] = [{ href: "/admin", label: "Admin" }];
-
 function isActivePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function getVisibleNavItems(user: UserInfo | null, isAuthenticated: boolean) {
-  if (!isAuthenticated) return NAV_ITEMS;
-  if (user?.role === "admin") return [...NAV_ITEMS, ...ADMIN_NAV_ITEMS];
+function getVisibleNavItems(_user: UserInfo | null, _isAuthenticated: boolean) {
   return NAV_ITEMS;
 }
 

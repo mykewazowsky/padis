@@ -23,14 +23,20 @@
 
 ```
 (main)/
-  page.tsx             ← Landing page
-  dashboard/page.tsx   ← Main GIS dashboard (all state lives here)
+  page.tsx                       ← Landing page
+  dashboard/page.tsx             ← Main GIS dashboard (semua state ada di sini)
   about/page.tsx
   cara-kerja/page.tsx
   metodologi/page.tsx
 
-(admin)/
-  admin/page.tsx       ← Admin dashboard (JWT-protected)
+(admin)/                         ← Seluruh grup ini membutuhkan JWT role=admin
+  admin/page.tsx                 ← Overview dashboard
+  admin/data-management/         ← Cek ketersediaan file data input
+  admin/process-control/         ← Trigger pipeline, pilih hazard dan mode
+  admin/pipeline-monitor/        ← Monitor progress pipeline via DB
+  admin/outputs/                 ← Preview dan download hasil pipeline
+  admin/users/                   ← Kelola akun pengguna
+  admin/guide/                   ← Panduan operator
 
 (auth)/
   login/page.tsx

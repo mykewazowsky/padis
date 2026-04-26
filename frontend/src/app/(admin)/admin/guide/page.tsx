@@ -47,8 +47,6 @@ const guideNavItems: GuideNavItem[] = [
   { id: "overview", label: "Overview", icon: BookOpen },
   { id: "upload-standard", label: "Standar Data", icon: FolderTree },
   { id: "attribute-standard", label: "Standar Atribut", icon: TableProperties },
-  { id: "process-flow", label: "Alur Proses", icon: Workflow },
-  { id: "output-reference", label: "Referensi Output", icon: FileOutput },
   { id: "menu-guide", label: "Panduan Menu Admin", icon: ShieldCheck },
   { id: "usage-flow", label: "Alur Kerja Admin", icon: ChevronRight },
   { id: "troubleshooting", label: "Troubleshooting", icon: AlertTriangle },
@@ -178,25 +176,6 @@ const attributeRules: AttributeRule[] = [
   },
 ];
 
-const processModes = [
-  {
-    title: "Full",
-    desc: "Menjalankan seluruh tahapan proses dari awal sampai hasil akhir.",
-  },
-  {
-    title: "Preprocess",
-    desc: "Menjalankan tahap persiapan data awal seperti reprojection dan pembersihan data.",
-  },
-  {
-    title: "Analysis",
-    desc: "Menjalankan analisis utama seperti zonal statistics, loss, AAL, dan agregasi.",
-  },
-  {
-    title: "Web",
-    desc: "Menyiapkan layer akhir yang dipakai untuk dashboard dan WebGIS.",
-  },
-];
-
 const adminMenuGuides = [
   {
     title: "Overview",
@@ -232,33 +211,6 @@ const adminMenuGuides = [
     title: "Admin Guide",
     icon: ShieldCheck,
     desc: "Dokumentasi operasional panel admin, format data, atribut wajib, dan panduan penggunaan sistem.",
-  },
-];
-
-const outputReferences = [
-  {
-    name: "kabkota_flood_aal_v2.csv",
-    meaning: "Output AAL final untuk hazard flood.",
-  },
-  {
-    name: "kabkota_drought_aal_v2.csv",
-    meaning: "Output AAL final untuk hazard drought.",
-  },
-  {
-    name: "kabkota_multihazard_aal_v2.csv",
-    meaning: "Output AAL final untuk multi-hazard.",
-  },
-  {
-    name: "web_flood_*_v2.geojson",
-    meaning: "Layer web flood yang dipakai di dashboard frontend.",
-  },
-  {
-    name: "web_drought_*_v2.geojson",
-    meaning: "Layer web drought yang dipakai di dashboard frontend.",
-  },
-  {
-    name: "web_multi_*_v2.geojson",
-    meaning: "Layer web multi-hazard yang dipakai di dashboard frontend.",
   },
 ];
 
@@ -558,56 +510,6 @@ export default function AdminGuidePage() {
         </div>
       </GuideSection>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <GuideSection id="process-flow">
-          <SectionHeader
-            eyebrow="ALUR PROSES"
-            title="Mode Proses"
-            desc="Pilih mode proses sesuai kebutuhan agar analisis berjalan efisien dan sesuai data yang tersedia."
-          />
-
-          <div className="space-y-3">
-            {processModes.map((mode) => (
-              <div
-                key={mode.title}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <p className="text-sm font-semibold text-slate-900">
-                  {mode.title}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                  {mode.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </GuideSection>
-
-        <GuideSection id="output-reference">
-          <SectionHeader
-            eyebrow="REFERENSI OUTPUT"
-            title="Referensi Hasil Utama"
-            desc="File berikut adalah hasil yang paling penting untuk analisis, monitoring admin, dan dashboard frontend."
-          />
-
-          <div className="space-y-3">
-            {outputReferences.map((item) => (
-              <div
-                key={item.name}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <p className="break-all text-sm font-semibold text-slate-900">
-                  {item.name}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                  {item.meaning}
-                </p>
-              </div>
-            ))}
-          </div>
-        </GuideSection>
-      </div>
-
       <GuideSection id="menu-guide">
         <SectionHeader
           eyebrow="PANDUAN MENU ADMIN"
@@ -685,7 +587,7 @@ export default function AdminGuidePage() {
           <div className="space-y-3 text-sm">
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <Database className="mt-0.5 h-4 w-4 text-blue-600" />
-              <p className="text-slate-600">Standar data dan aturan upload</p>
+              <p className="text-slate-600">Standar penempatan file dan atribut minimum</p>
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <Layers3 className="mt-0.5 h-4 w-4 text-emerald-600" />

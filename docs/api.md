@@ -233,37 +233,121 @@ Generates a PDF report using ReportLab.
 
 ## Admin (JWT required, admin role)
 
-All admin endpoints require `Authorization: Bearer <token>` where the token was issued for a user with `role = "admin"`.
+Semua endpoint admin membutuhkan `Authorization: Bearer <token>` dengan token yang diterbitkan untuk user ber-role `admin`.
 
-### GET /api/admin/runs
-List all pipeline run records.
+> **Catatan arsitektur:** Pipeline tidak dijalankan via HTTP request ke Flask. `POST /api/admin/start-pipeline` men-spawn subprocess Python secara fire-and-forget. Progress pipeline dibaca dari tabel `runs` di database, bukan dari state in-memory Flask.
 
-### GET /api/admin/status
-Get the current pipeline execution status.
+### GET /api/admin/run-status
+Status pipeline terbaru (read dari tabel `runs`).
 
 **Response:**
 ```json
-{ "status": "running" | "idle" | "error", "current_step": "zonal", "run_id": 42 }
+{
+  "run": {
+    "id": 5,
+    "run_name": "multi_full_20250427_operator",
+    "created_at": "2025-04-27T08:30:00+00:00",
+    "status": "running",
+    "is_active": true,
+    "step": "zonal",
+    "progress": 42,
+    "message": "Zonal statistics flood selesai",
+    "operator_name": "operator",
+    "source": "local"
+  }
+}
 ```
 
-### POST /api/admin/run-pipeline
-Trigger a new pipeline run.
+`run: null` jika belum ada run.
+
+### GET /api/admin/process-status
+Status pipeline dalam format lama (backward compat). Shape berbeda dari `run-status`.
+
+**Response:**
+```json
+{
+  "status": "running" | "success" | "failed" | "idle",
+  "message": "...",
+  "progress_percent": 42,
+  "current_script": "zonal",
+  "hazard": "multi"
+}
+```
+
+### GET /api/admin/runs
+Daftar monitoring run terbaru (hanya `source='local'`).
+
+**Query params:**
+
+| Param | Default | Deskripsi |
+|---|---|---|
+| `limit` | `10` | Jumlah run (max 50) |
+| `operator_name` | — | Filter exact match |
+| `hazard` | — | Filter: `flood`, `drought`, `multi` |
+
+**Response:**
+```json
+{ "runs": [...], "count": 5, "limit": 10 }
+```
+
+### POST /api/admin/start-pipeline
+Jalankan pipeline sebagai subprocess lokal (fire-and-forget).
 
 **Request body:**
 ```json
 {
   "mode": "full" | "preprocess" | "analysis" | "web",
-  "hazard": "flood" | "drought" | "multi"
+  "hazard": "flood" | "drought" | "multi",
+  "operator": "nama_operator"
 }
 ```
 
-### POST /api/admin/upload
-Upload raster or shapefile data.
+**Response:**
+- `202` — pipeline berhasil di-spawn, berisi `pid`, `mode`, `hazard`, `operator`
+- `409` — ada pipeline yang sedang berjalan (belum stale), berisi `active_run`
+- `400` — parameter tidak valid
+- `500` — gagal spawn subprocess
 
-**Request:** `multipart/form-data` with file field.
+### GET /api/admin/dependencies
+Cek ketersediaan file output per hazard.
+
+**Query params:** `hazard` (`flood`, `drought`, `multi`)
+
+**Response:**
+```json
+{
+  "hazard": "multi",
+  "all_ok": true,
+  "checks": [
+    { "type": "output", "label": "Flood AAL", "exists": true },
+    ...
+  ]
+}
+```
+
+### GET /api/admin/outputs
+Daftar file di folder output pipeline.
+
+### GET /api/admin/outputs/preview
+Preview isi file output (GeoJSON atau CSV).
+
+**Query params:** `filename`
+
+### GET /api/admin/outputs/download
+Download file output.
+
+**Query params:** `filename`
+
+### GET /api/admin/data
+Ringkasan data untuk admin dashboard.
 
 ### GET /api/admin/users
-List all registered users.
+Daftar semua user terdaftar.
 
-### DELETE /api/admin/users/{id}
-Delete a user account.
+### PATCH /api/admin/users/{id}
+Update role atau status user.
+
+### ~~POST /api/admin/run-analysis~~ (410 Gone)
+### ~~POST /api/admin/finish-analysis~~ (410 Gone)
+
+Kedua endpoint ini sudah dihapus. Gunakan `start-pipeline` dan baca status via `run-status`.

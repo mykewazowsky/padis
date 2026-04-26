@@ -1,6 +1,8 @@
 # Geospatial Analysis Pipeline
 
-The pipeline processes raw raster/vector data into risk metrics stored in the database. It is triggered from the Admin dashboard via `POST /api/admin/run-pipeline`.
+Pipeline memproses data raster/vector mentah menjadi metrik risiko yang disimpan di database. Pipeline dijalankan sebagai subprocess Python lokal oleh operator melalui Admin UI (`POST /api/admin/start-pipeline`) atau langsung via CLI.
+
+> Pipeline tidak dijalankan di dalam proses Flask. Subprocess berjalan secara fire-and-forget; progress dilaporkan ke tabel `runs` di database.
 
 ## Pipeline Modes
 
@@ -8,8 +10,10 @@ The pipeline processes raw raster/vector data into risk metrics stored in the da
 |---|---|---|
 | `full` | preprocess → zonal → analysis → etl | Full rerun from raw data |
 | `preprocess` | preprocess only | Normalize new raster inputs |
-| `analysis` | analysis → etl | Recompute risk from existing zonal stats |
+| `analysis` | analysis only | Recompute risk from existing zonal stats (does not write to DB) |
 | `web` | etl only | Re-push existing results to DB |
+
+> **Catatan `full + multi`:** Mode `full` dengan hazard `multi` melewati tahap preprocess dan zonal — ia menggunakan output flood dan drought yang sudah ada. Jalankan `full flood` dan `full drought` terlebih dahulu sebelum `full multi`.
 
 ## Hazard Types
 
@@ -21,11 +25,11 @@ The pipeline processes raw raster/vector data into risk metrics stored in the da
 
 ## Entry Point
 
-```
-backend/scripts/main.py --mode <mode> --hazard <type>
+```bash
+python backend/scripts/main.py --mode <mode> --hazard <hazard> --operator <name>
 ```
 
-Flask spawns this as a subprocess. Progress is tracked in a shared status object polled by `GET /api/admin/status`.
+Flask men-spawn ini sebagai subprocess. Progress dilaporkan langsung ke tabel `runs` di database dan dapat dipantau via `GET /api/admin/run-status`.
 
 ## Script Chain
 
@@ -54,8 +58,6 @@ Calls `scripts/core/zonal_engine.py`.
 
 For each kabupaten polygon, computes statistics from the preprocessed hazard raster:
 - `mean_value` — mean pixel value within polygon
-- `max_value` — max pixel value
-- `min_value` — min pixel value
 
 Uses Rasterio's `mask` module for pixel extraction. Results written to `data/zonal/`.
 
@@ -104,15 +106,22 @@ Pipeline parameters are in `scripts/config/`:
 
 ```
 backend/data/
-├── raw/           # Uploaded raster inputs (GeoTIFF)
-├── processed/     # Normalized rasters, reprojected vectors
-├── zonal/         # Zonal statistics outputs (CSV/JSON)
-└── analysis/      # Risk analysis outputs (CSV/JSON)
+├── raw/
+│   ├── administrasi/   # regions.gpkg
+│   ├── exposure/       # sawah_selected.gpkg, totalproduksipadi.csv
+│   └── hazard/         # flood_r*.tif, drought_r*.tif (16 file total)
+├── processed/          # Raster ternormalisasi, vector terproyeksi ulang
+├── zonal/              # Output zonal statistics (CSV/JSON)
+└── output/
+    └── analysis/       # Output pipeline final (GPKG, CSV) — dibaca Admin UI Outputs
 ```
 
-## Adding New Data
+Lihat `docs/data-requirements.md` untuk daftar lengkap nama file dan format yang dibutuhkan.
 
-1. Upload raster via Admin → Upload (`POST /api/admin/upload`)
-2. Trigger pipeline from Admin dashboard
-3. New `run_id` appears in `GET /api/runs/latest`
-4. Frontend auto-fetches new data when `run_id` changes
+## Menjalankan Pipeline
+
+1. Tempatkan semua file data input di folder `raw/` sesuai standar
+2. Buka Admin UI → Process Control → pilih hazard dan mode → klik Jalankan
+3. Pantau progress di Admin UI → Pipeline Monitor
+4. Hasil tersedia di Admin UI → Outputs setelah ETL selesai
+5. `run_id` baru muncul via `GET /api/runs/latest`; frontend otomatis refetch data

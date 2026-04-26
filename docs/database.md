@@ -44,15 +44,22 @@ Lookup: nonclimate=1, climate=2.
 Lookup: 25→1, 50→2, 100→3, 250→4.
 
 ### runs
-Pipeline execution records.
+Rekaman eksekusi pipeline.
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | `integer` PK (serial) | Run ID |
-| `hazard_id` | `integer` FK | References hazards |
-| `created_at` | `timestamp` | When the pipeline ran |
-| `mode` | `varchar` | `full`, `preprocess`, `analysis`, `web` |
-| `status` | `varchar` | `completed`, `failed` |
+| `run_name` | `varchar` | Nama run, e.g. `multi_full_20250427_operator` |
+| `created_at` | `timestamp with time zone` | Waktu pipeline dimulai |
+| `status` | `varchar` | `running`, `success`, `failed` |
+| `is_active` | `boolean` | Apakah run sedang aktif |
+| `step` | `varchar` | Tahap saat ini: `preprocess`, `zonal`, `analysis`, `etl` |
+| `progress` | `integer` | Persentase kemajuan (0–100) |
+| `message` | `text` | Pesan status terakhir dari pipeline |
+| `operator_name` | `varchar` | Nama operator yang menjalankan |
+| `source` | `varchar` | `local` untuk monitoring run, `NULL` untuk ETL run |
+
+Filter `source = 'local'` digunakan untuk memisahkan monitoring run dari ETL run internal.
 
 ### losses
 Economic loss per kabupaten per scenario.

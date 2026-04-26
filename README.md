@@ -37,7 +37,7 @@ Web-GIS platform for spatial risk analysis of natural hazards (flood, drought, m
 │  ├── /api/tiles         — MVT vector tiles              │
 │  ├── /api/analytics     — summary statistics            │
 │  ├── /api/report        — PDF report generation         │
-│  └── /api/admin         — pipeline trigger + data mgmt  │
+│  └── /api/admin         — pipeline spawn + status + data │
 └────────────────────┬────────────────────────────────────┘
                      │ SQLAlchemy + psycopg2
 ┌────────────────────▼────────────────────────────────────┐
@@ -107,7 +107,7 @@ NEXT_PUBLIC_API_BASE_URL=https://your-backend.railway.app
 
 - **Interactive Map Dashboard** — multi-layer toggle for flood/drought intensity, economic loss, Annual Average Loss (AAL), and rice production areas
 - **MVT Tiles** — vector tiles served via PostGIS `ST_AsMVTGeom`, cached in-memory for 1 hour
-- **Spatial Analysis Pipeline** — admin-triggered pipeline: preprocessing → zonal statistics → risk analysis → ETL to database
+- **Spatial Analysis Pipeline** — pipeline dijalankan sebagai subprocess lokal oleh operator: preprocessing → zonal statistics → risk analysis → ETL to database
 - **Region Selection** — click a kabupaten/kota on the map or select from dropdown; map animates to centroid
 - **PDF Report Generation** — ReportLab-based tabular reports with risk statistics per region
 - **CSV Export** — filtered data download from analytics endpoint
@@ -165,12 +165,14 @@ PADIS/
 
 | Doc | Description |
 |---|---|
-| [Architecture](docs/architecture.md) | System design, data flow, component hierarchy |
-| [API Reference](docs/api.md) | All endpoints with parameters and response shapes |
-| [Database Schema](docs/database.md) | Table definitions, indexes, spatial columns |
-| [Analysis Pipeline](docs/pipeline.md) | Geospatial processing steps and script chain |
-| [Deployment](docs/deployment.md) | Railway setup, environment config, Gunicorn |
-| [Frontend](docs/frontend.md) | Component structure, state management, map layers |
+| [Architecture](docs/architecture.md) | Desain sistem, alur data, hierarki komponen |
+| [API Reference](docs/api.md) | Semua endpoint dengan parameter dan response shape |
+| [Database Schema](docs/database.md) | Definisi tabel, indeks, kolom spasial |
+| [Analysis Pipeline](docs/pipeline.md) | Tahapan pemrosesan geospasial dan rantai script |
+| [Pipeline Operation](docs/pipeline-operation.md) | Panduan operator menjalankan pipeline |
+| [Data Requirements](docs/data-requirements.md) | Standar folder, nama file, dan format data input |
+| [Deployment](docs/deployment.md) | Railway setup, konfigurasi environment, Gunicorn |
+| [Frontend](docs/frontend.md) | Struktur komponen, state management, map layers |
 
 ## License
 

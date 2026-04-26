@@ -270,8 +270,7 @@ export default function DashboardPage() {
     setLoadingRegions(true);
     setErrorRegions(null);
 
-    // Fetch region list once from the static production values endpoint (no geometry).
-    // All kabupaten are present regardless of hazard/scenario/climate filter.
+    // Endpoint ini mencakup semua kabupaten terlepas dari filter hazard/skenario.
     fetchJson(`/api/layers/values/production`)
       .then((json: any) => {
         const items = (json.data || []) as {
@@ -349,11 +348,9 @@ export default function DashboardPage() {
       .finally(() => setLoadingRegionAAL(false));
   }, [hazard, selectedRegion, runId]);
 
-  // Fetch all layer values (geometry-free) whenever filter or runId changes.
-  // Uses lightweight values endpoints (~30 KB total) instead of full GeoJSON (~20 MB).
-  // Actual map rendering uses MVT tiles fetched on demand by Leaflet.
+  // Endpoint ringan (~30 KB); rendering peta via MVT tiles dari Leaflet.
   useEffect(() => {
-    if (runId === null) return; // wait until latest run_id is loaded
+    if (runId === null) return;
     async function fetchLayerData() {
       try {
         setLoadingLayer(true);

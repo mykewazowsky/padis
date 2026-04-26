@@ -6,9 +6,6 @@ import MapCanvas from "./core/MapCanvas";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 import type { DataBounds, GeoJsonData } from "@/types/map";
 
-// =========================
-// TYPES (FINAL)
-// =========================
 type Props = {
   scenario: string;
   hazard: string;
@@ -34,9 +31,6 @@ type Props = {
   regionCentroids?: Record<string, [number, number]>;
 };
 
-// =========================
-// FORMAT RUPIAH
-// =========================
 function formatCompactRupiah(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "Rp 0";
 
@@ -52,14 +46,8 @@ function formatCompactRupiah(value: number | null | undefined) {
   return `Rp ${value}`;
 }
 
-// =========================
-// PALETTE (unified: green=low risk, red=high risk)
-// =========================
+// green=low risk, red=high risk
 const RISK_PALETTE = ["#1a9850", "#91cf60", "#fee08b", "#fc8d59", "#d73027"];
-
-// =========================
-// KLASIFIKASI
-// =========================
 
 // Quantile — untuk data yang distribusinya merata (production)
 function quantileBreaks(values: number[], k = 5): number[] {
@@ -93,9 +81,6 @@ function logQuantileBreaks(values: number[], k = 5): number[] {
   return logBreaks.map((b) => +(Math.pow(10, b) - 1).toFixed(2));
 }
 
-// =========================
-// COLOR
-// =========================
 function getColor(
   value: number | null | undefined,
   breaks: number[],
@@ -108,9 +93,6 @@ function getColor(
   return RISK_PALETTE[RISK_PALETTE.length - 1];
 }
 
-// =========================
-// COMPONENT
-// =========================
 export default function MapViewClient({
   scenario,
   hazard,
@@ -129,9 +111,7 @@ export default function MapViewClient({
   const mapRef = useRef<LeafletMap | null>(null);
   const featureLayersRef = useRef<Record<string, Layer>>({});
 
-  // =========================
-  // ACTIVE LAYER VALUES (untuk skala warna yang akurat per layer)
-  // =========================
+  // Nilai per layer aktif, dipakai untuk skala warna yang akurat.
   const activeValues = useMemo(() => {
     if (activeLayers.hazard && layers?.hazard?.features?.length) {
       return layers.hazard.features.map(

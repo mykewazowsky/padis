@@ -1,17 +1,16 @@
 """
-Pipeline status routes — Phase 3 refactor.
+Pipeline status routes.
 
-Pipeline execution via subprocess/threading telah dihapus dari Flask.
-Pipeline sekarang dijalankan secara lokal/Docker oleh operator menggunakan:
-    docker run padis-pipeline --mode <mode> --hazard <hazard> --operator <name>
+Pipeline dijalankan sebagai subprocess lokal oleh operator; Flask tidak terlibat
+dalam eksekusi. Progress dilaporkan langsung ke tabel `runs` di database.
 
-Endpoint yang tersedia:
-    GET  /api/admin/run-status      (BARU) status pipeline dari tabel `runs`
-    POST /api/admin/start-pipeline  (BARU) jalankan pipeline CLI lokal
-    GET  /api/admin/process-status  (LAMA, backward compat) sama, shape lama
-    GET  /api/admin/dependencies    (LAMA, disederhanakan) cek output files
-    POST /api/admin/run-analysis    (DEPRECATED) returns 410 Gone
-    POST /api/admin/finish-analysis (DEPRECATED) returns 410 Gone
+Endpoint:
+    GET  /api/admin/run-status      — status pipeline dari tabel `runs`
+    POST /api/admin/start-pipeline  — spawn pipeline CLI sebagai subprocess
+    GET  /api/admin/process-status  — backward compat, shape lama
+    GET  /api/admin/dependencies    — cek ketersediaan file output
+    POST /api/admin/run-analysis    — 410 Gone
+    POST /api/admin/finish-analysis — 410 Gone
 """
 
 import os
@@ -115,16 +114,12 @@ def _get_blocking_run(session):
 
 
 # =============================================================================
-# GET /api/admin/run-status  (BARU — clean DB-based endpoint)
+# GET /api/admin/run-status
 # =============================================================================
 
 @admin_process_bp.route("/api/admin/run-status", methods=["GET"])
 @admin_required
 def admin_run_status():
-    """
-    Mengembalikan status pipeline terbaru langsung dari tabel `runs`.
-    Cocok digunakan oleh pipeline-monitor page.
-    """
     try:
         with SessionLocal() as session:
             row = _fetch_latest_run(session)
@@ -150,17 +145,12 @@ def admin_run_status():
 
 
 # =============================================================================
-# GET /api/admin/process-status  (LAMA — backward compat, shape tidak berubah)
+# GET /api/admin/process-status  (backward compat)
 # =============================================================================
 
 @admin_process_bp.route("/api/admin/process-status", methods=["GET"])
 @admin_required
 def admin_process_status():
-    """
-    Mengembalikan status pipeline dalam format lama (PROCESS_STATE shape).
-    Dipertahankan untuk backward compatibility dengan admin panel yang ada.
-    Data sekarang dibaca dari tabel `runs`, bukan in-memory PROCESS_STATE.
-    """
     try:
         with SessionLocal() as session:
             row = _fetch_latest_run(session)
@@ -170,7 +160,7 @@ def admin_process_status():
     if row is None:
         return jsonify(_idle_state())
 
-    db_status = row.status  # one of: "running", "success", "failed", or None
+    db_status = row.status
 
     hazard = None
     if row.run_name:
@@ -195,16 +185,12 @@ def admin_process_status():
 
 
 # =============================================================================
-# GET /api/admin/dependencies  (LAMA — disederhanakan, cek output saja)
+# GET /api/admin/dependencies
 # =============================================================================
 
 @admin_process_bp.route("/api/admin/dependencies", methods=["GET"])
 @admin_required
 def admin_dependencies():
-    """
-    Cek keberadaan file output yang diperlukan per hazard.
-    Script pipeline tidak lagi dicek di sini (pipeline berjalan via Docker).
-    """
     hazard = request.args.get("hazard", "multi")
     if hazard not in {"flood", "drought", "multi"}:
         return jsonify({"error": "Hazard tidak valid"}), 400
@@ -311,7 +297,7 @@ def admin_list_runs():
 
 
 # =============================================================================
-# POST /api/admin/start-pipeline  (BARU — spawn CLI pipeline lokal)
+# POST /api/admin/start-pipeline
 # =============================================================================
 
 _VALID_MODES   = {"full", "preprocess", "analysis", "web"}
@@ -408,17 +394,12 @@ def admin_start_pipeline():
 
 
 # =============================================================================
-# POST /api/admin/run-analysis  (DEPRECATED — 410 Gone)
+# POST /api/admin/run-analysis  (410 Gone)
 # =============================================================================
 
 @admin_process_bp.route("/api/admin/run-analysis", methods=["POST"])
 @admin_required
 def admin_run_analysis():
-    """
-    DEPRECATED: Pipeline tidak lagi dijalankan dari Flask.
-    Gunakan Docker CLI:
-        docker run padis-pipeline --mode <mode> --hazard <hazard> --operator <name>
-    """
     return jsonify({
         "error": "Endpoint ini tidak lagi tersedia.",
         "message": (
@@ -430,15 +411,12 @@ def admin_run_analysis():
 
 
 # =============================================================================
-# POST /api/admin/finish-analysis  (DEPRECATED — 410 Gone)
+# POST /api/admin/finish-analysis  (410 Gone)
 # =============================================================================
 
 @admin_process_bp.route("/api/admin/finish-analysis", methods=["POST"])
 @admin_required
 def admin_finish_analysis():
-    """
-    DEPRECATED: Pipeline state sekarang dikelola langsung di tabel `runs`.
-    """
     return jsonify({
         "error": "Endpoint ini tidak lagi tersedia.",
         "message": (

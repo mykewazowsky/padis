@@ -23,10 +23,6 @@ import type {
 import type { DataBounds, FeatureProps, GeoJsonData } from "../../../types/map";
 import { buildTileUrl, BASE_URL } from "@/services/fetchLayers";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type StyleConfig = {
   border: string;
   hoverBorder: string;
@@ -84,10 +80,6 @@ type FeatureWithOptionalCentroidProps = FeatureProps & {
   centroid?: [number, number] | { lat: number; lng: number };
 };
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const DEFAULT_CENTER: [number, number] = [-2.5, 118.0];
 const DEFAULT_ZOOM = 5;
 const LABEL_MIN_ZOOM = 7;
@@ -117,10 +109,6 @@ const BASEMAP_OPTIONS: Record<BasemapKey, { url: string; attribution: string }> 
     attribution: "&copy; OpenStreetMap contributors &copy; CartoDB",
   },
 };
-
-// ---------------------------------------------------------------------------
-// Utility
-// ---------------------------------------------------------------------------
 
 function normalizeRegionKey(value: string | null | undefined) {
   return (value ?? "").toLowerCase().trim();
@@ -219,10 +207,6 @@ function getFeatureLabelPosition(
   return point ? [point[1], point[0]] : null;
 }
 
-// ---------------------------------------------------------------------------
-// Vector tile style function
-// ---------------------------------------------------------------------------
-
 function getVtStyle(
   props: Record<string, unknown>,
   activeLayers: Record<LayerKey, boolean>,
@@ -277,10 +261,7 @@ function getVtStyle(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Layer-aware value formatter (synced between tooltip and legend)
-// ---------------------------------------------------------------------------
-
+// Formatter dipakai di tooltip dan legenda — harus sinkron.
 function formatLayerValue(
   value: number | null | undefined,
   activeLayers: Record<LayerKey, boolean>,
@@ -292,10 +273,6 @@ function formatLayerValue(
   if (activeLayers.production) return `${value.toLocaleString("id-ID")} ton`;
   return formatCompactRupiah(value);
 }
-
-// ---------------------------------------------------------------------------
-// Tooltip HTML
-// ---------------------------------------------------------------------------
 
 function getValueLabel(activeLayers: Record<LayerKey, boolean>): string {
   if (activeLayers.hazard) return "Indeks Bahaya";
@@ -397,16 +374,12 @@ function createTooltipHtml(params: {
   `;
 }
 
-// ---------------------------------------------------------------------------
-// Inner React sub-components
-// ---------------------------------------------------------------------------
-
 function FitBounds({ selectedRegion }: { selectedRegion: string }) {
   const map = useMap();
   const hasFittedRef = useRef(false);
 
   useEffect(() => {
-    if (hasFittedRef.current) return; // initial fit only — ResetViewController handles subsequent resets
+    if (hasFittedRef.current) return; // ResetViewController menangani reset berikutnya
     if (selectedRegion) return;
     hasFittedRef.current = true;
     const timer = window.setTimeout(() => {
@@ -495,11 +468,7 @@ function LabelZoomWatcher({
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// ZoomToRegion — zooms to a selected region's centroid when selection comes
-// from the dropdown (not from a map click, which already handles its own flyTo)
-// ---------------------------------------------------------------------------
-
+// Zoom dari dropdown saja — klik peta langsung flyTo sendiri.
 function ZoomToRegion({
   selectedRegion,
   regionCentroids,
@@ -524,10 +493,6 @@ function ZoomToRegion({
 
   return null;
 }
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
 
 export default function MapCanvas({
   data,
@@ -580,7 +545,7 @@ export default function MapCanvas({
 
   const accentColors = useMemo(() => getAccentColors(hazard), [hazard]);
 
-  // Opacity for the analysis layer only (production is handled in its own VT layer)
+  // Production punya VT layer sendiri dengan opacity terpisah.
   const activeLayerOpacity = useMemo(() => {
     if (activeLayers.hazard) return layerOpacityMap.hazard;
     if (activeLayers.loss) return layerOpacityMap.loss;
@@ -588,7 +553,6 @@ export default function MapCanvas({
     return 1;
   }, [activeLayers, layerOpacityMap]);
 
-  // ── Vector tile layer management ──────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!isMapReady) return;
@@ -601,13 +565,11 @@ export default function MapCanvas({
       await import("leaflet.vectorgrid");
       if (cancelled) return;
 
-    // Remove all existing VT layers
     Object.values(vtLayersRef.current).forEach((layer) => {
       if (layer && map.hasLayer(layer)) map.removeLayer(layer);
     });
     vtLayersRef.current = {};
 
-    // Reusable popup
     if (!popupRef.current) {
       popupRef.current = L.popup({
         closeButton: false,
@@ -624,7 +586,7 @@ export default function MapCanvas({
       };
     };
 
-    // ── Analysis layer (hazard / loss / aal) — rendered first (bottom) ──────
+    // Analysis layer dirender lebih dulu (di bawah production overlay).
     const analysisKey: LayerKey | null = activeLayers.hazard
       ? "hazard"
       : activeLayers.loss
@@ -673,7 +635,7 @@ export default function MapCanvas({
       vtLayersRef.current.thematic = vtLayer;
     }
 
-    // ── Production overlay — always rendered on top of analysis ──────────────
+    // Production dirender di atas analysis layer.
     if (activeLayers.production && hasRequiredFilters) {
       const prodOpacity = layerOpacityMap.production;
       const prodUrl = buildTileUrl("production", hazard, scenario, climate, runId ?? 0);
@@ -720,7 +682,7 @@ export default function MapCanvas({
       vtLayersRef.current.production = prodLayer;
     }
 
-    // ── Regions boundary overlay ───────────────────────────────────────────
+    // Batas administrasi — outline only, non-interactive.
     if (activeLayers.regions) {
       const regionUrl = `${BASE_URL}/api/tiles/regions/{z}/{x}/{y}`;
 
@@ -764,7 +726,6 @@ export default function MapCanvas({
     layerOpacityMap.production,
   ]);
 
-  // ── Legend items ──────────────────────────────────────────────────────────
   const legendItems = useMemo(() => {
     if (!jenksBreaks.length) return [];
     return jenksBreaks.map((upper, index) => {
@@ -787,8 +748,7 @@ export default function MapCanvas({
 
   const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;
 
-  // ── Region labels ─────────────────────────────────────────────────────────
-  // Name lookup from production features (always contains full region list)
+  // Nama dari production features — mencakup semua kabupaten.
   const regionNameMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const f of (layers?.production?.features ?? [])) {
@@ -798,7 +758,6 @@ export default function MapCanvas({
     return map;
   }, [layers?.production]);
 
-  // Show when analysis tile layer is active OR when the regions boundary layer is active
   const showLabels =
     (currentZoom >= LABEL_MIN_ZOOM && hasActiveTileLayer) ||
     (currentZoom >= 8 && activeLayers.regions);
@@ -812,7 +771,6 @@ export default function MapCanvas({
     }));
   }, [showLabels, regionCentroids, regionNameMap]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="relative h-full w-full overflow-hidden">
       <MapContainer

@@ -65,7 +65,6 @@ export default function DashboardMapOverlay({
 
   return (
     <>
-      {/* ── Top-right action buttons ─────────────────────────────────────── */}
       <div className="pointer-events-none absolute right-4 top-4 z-[500] flex flex-col gap-2">
         <div className="pointer-events-auto flex flex-col gap-2">
           <button
@@ -101,12 +100,10 @@ export default function DashboardMapOverlay({
         </div>
       </div>
 
-      {/* ── Selected region card ─────────────────────────────────────────── */}
       {selectedFeature && props ? (
         <div className="pointer-events-none absolute bottom-20 left-4 right-4 z-[500] sm:bottom-4 sm:right-auto sm:w-80">
           <div className="pointer-events-auto card card-accent-primary bg-white/95 p-4 backdrop-blur">
 
-            {/* Header */}
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="section-eyebrow text-[10px]">Wilayah Terpilih</p>
@@ -138,7 +135,6 @@ export default function DashboardMapOverlay({
               </div>
             </div>
 
-            {/* Data rows */}
             <div className="mt-3 space-y-2">
               {activeLayers.loss && (
                 <div className="surface-soft rounded-lg px-3 py-2">

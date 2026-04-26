@@ -124,9 +124,6 @@ def run_padis_pipeline(
     results = {}
     zonal_results: list[dict] = []
 
-    # =========================================================================
-    # RUN TRACKING
-    # =========================================================================
     manager = PipelineRunManager(
         operator_name=operator_name,
         hazard=hazard,
@@ -135,9 +132,6 @@ def run_padis_pipeline(
     manager.start()
 
     try:
-        # =====================================================================
-        # STEP 1 — PREPROCESS
-        # =====================================================================
         if run_preprocess_step:
             manager.update("preprocess", 5, "Preprocess dimulai")
             try:

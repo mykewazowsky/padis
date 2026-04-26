@@ -18,8 +18,6 @@ async function fetchJson(path: string) {
   return res.json();
 }
 
-// ─── Value-only types (no geometry) ──────────────────────────────────────────
-
 export type LayerItem = {
   id_kabkota: string;
   kab_kota: string;
@@ -28,28 +26,19 @@ export type LayerItem = {
   aal?: number | null;
   mean_value?: number | null;
   total_prod?: number | null;
-  /** false when this region has no data for the current filter combination */
+  /** null ketika tidak ada data untuk kombinasi filter aktif */
   has_data?: boolean;
-  /** centroid coordinates — present only on production endpoint */
+  /** hanya ada di endpoint production */
   centroid_lng?: number | null;
   centroid_lat?: number | null;
 };
 
-// ─── Latest run_id ────────────────────────────────────────────────────────────
-
-/** Fetches the most recent run_id from the backend. */
 export async function fetchLatestRunId(): Promise<number> {
   const json = await fetchJson("/api/runs/latest");
   return json.run_id as number;
 }
 
-// ─── Tile URL builder ─────────────────────────────────────────────────────────
-
-/**
- * Builds the Leaflet tile URL template for a given layer + filter params.
- * The {z}/{x}/{y} tokens are filled by Leaflet at render time.
- * runId is required — always pass the value from /api/runs/latest.
- */
+// runId wajib; template {z}/{x}/{y} diisi Leaflet saat render.
 export function buildTileUrl(
   layer: string,
   hazard: string,
@@ -67,8 +56,6 @@ export function buildTileUrl(
   console.log("FINAL TILE URL:", `${BASE_URL}/api/tiles/${layer}`);
   return `${BASE_URL}/api/tiles/${layer}/{z}/{x}/{y}?${params}`;
 }
-
-// ─── Lightweight fetch — values only (no geometry) ────────────────────────────
 
 type FeatureCollection = {
   type: "FeatureCollection";
@@ -88,15 +75,7 @@ function toFC(items: LayerItem[], bounds: DataBounds | null = null): FeatureColl
   };
 }
 
-/**
- * Fetches geometry-free attribute values for all analytical layers in parallel.
- *
- * Returns FeatureCollections that include:
- *   - `has_data` per feature: false when no data for current filter combo
- *   - `data_bounds`: the spatial extent of data-bearing regions (for map fitBounds)
- *
- * Actual rendering is done via vector tiles (/api/tiles/…) fetched by Leaflet.
- */
+// Endpoint ringan; rendering peta via MVT tiles (/api/tiles/…) oleh Leaflet.
 export async function fetchAllLayers({
   hazard,
   scenario,

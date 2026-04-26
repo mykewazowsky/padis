@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
 import {
@@ -634,17 +635,27 @@ export default function AdminDataPage() {
                   ) : (
                     <XCircle className="h-4 w-4 text-red-600" />
                   )}
-                  <p
-                    className={
-                      checkResult.all_ok
-                        ? "text-sm font-semibold text-green-700"
-                        : "text-sm font-semibold text-red-700"
-                    }
-                  >
-                    {checkResult.all_ok
-                      ? "Semua file tersedia. Pipeline siap dijalankan."
-                      : "Beberapa file belum tersedia. Periksa daftar di bawah."}
-                  </p>
+                  <div className="flex-1">
+                    <p
+                      className={
+                        checkResult.all_ok
+                          ? "text-sm font-semibold text-green-700"
+                          : "text-sm font-semibold text-red-700"
+                      }
+                    >
+                      {checkResult.all_ok
+                        ? "Semua file tersedia. Pipeline siap dijalankan."
+                        : "Beberapa file belum tersedia. Periksa daftar di bawah."}
+                    </p>
+                    {checkResult.all_ok && (
+                      <Link
+                        href="/admin/process-control"
+                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-green-700 underline hover:text-green-900"
+                      >
+                        Buka Process Control →
+                      </Link>
+                    )}
+                  </div>
                 </div>
 
                 {checkResult.groups.map((group) => (

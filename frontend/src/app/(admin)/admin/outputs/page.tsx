@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -515,7 +516,19 @@ export default function AdminOutputPage() {
           </div>
         ) : groupedOutputs.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
-            Tidak ada file hasil pada kategori ini.
+            {outputs.length === 0 ? (
+              <span>
+                Belum ada output. Jalankan pipeline terlebih dahulu.{" "}
+                <Link
+                  href="/admin/process-control"
+                  className="font-medium text-gray-800 underline hover:text-gray-900"
+                >
+                  Buka Process Control →
+                </Link>
+              </span>
+            ) : (
+              "Tidak ada file hasil pada kategori ini."
+            )}
           </div>
         ) : (
           <div className="space-y-6">

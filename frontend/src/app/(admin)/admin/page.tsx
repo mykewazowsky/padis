@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertCircle,
-  ArrowRight,
   BookOpen,
   Clock3,
   Database,
@@ -40,15 +39,10 @@ type AdminOutputItem = {
 
 type AdminProcessStatus = {
   status?: string;
-  last_result?: string;
   message?: string;
   hazard?: string;
-  mode?: string;
   current_script?: string | null;
-  current_step?: number;
-  total_steps?: number;
   progress_percent?: number;
-  updated_outputs?: string[] | AdminOutputItem[];
   started_at?: string | null;
 };
 
@@ -291,7 +285,7 @@ export default function AdminOverviewPage() {
       };
     }
 
-    if (processStatus.last_result === "success") {
+    if (processStatus.status === "success") {
       return {
         label: "Idle (OK)",
         desc:
@@ -301,7 +295,7 @@ export default function AdminOverviewPage() {
       };
     }
 
-    if (processStatus.last_result === "failed") {
+    if (processStatus.status === "failed") {
       return {
         label: "Idle (Failed)",
         desc:
@@ -408,7 +402,7 @@ export default function AdminOverviewPage() {
       });
     }
 
-    if (processStatus?.last_result === "failed") {
+    if (processStatus?.status === "failed") {
       list.push({
         title: "Proses terakhir gagal",
         desc:
@@ -438,16 +432,6 @@ export default function AdminOverviewPage() {
       });
     }
 
-    if ((dataSummary.raw_count ?? 0) > (dataSummary.processed_count ?? 0)) {
-      list.push({
-        title: "Sebagian data belum diproses",
-        desc: `Raw data: ${dataSummary.raw_count ?? 0}, processed data: ${
-          dataSummary.processed_count ?? 0
-        }.`,
-        tone: "amber",
-      });
-    }
-
     if (totalInactiveUsers > 0) {
       list.push({
         title: "Ada akun yang tidak aktif",
@@ -457,14 +441,7 @@ export default function AdminOverviewPage() {
     }
 
     return list.slice(0, 5);
-  }, [
-    loadError,
-    processStatus,
-    outputReadyCount,
-    dataSummary.raw_count,
-    dataSummary.processed_count,
-    totalInactiveUsers,
-  ]);
+  }, [loadError, processStatus, outputReadyCount, totalInactiveUsers]);
 
   const recentOutputs = useMemo(() => {
     return [...outputs]
@@ -489,15 +466,13 @@ export default function AdminOverviewPage() {
         title: "Proses sedang berjalan",
         desc:
           processStatus.message ||
-          `Langkah ${processStatus.current_step ?? 0} dari ${
-            processStatus.total_steps ?? 0
-          }.`,
+          `Progress ${processStatus.progress_percent ?? 0}%.`,
         time: formatDateTime(processStatus.started_at),
         tone: "amber",
       });
     }
 
-    if (processStatus?.last_result === "success") {
+    if (processStatus?.status === "success") {
       items.push({
         title: "Proses terakhir berhasil",
         desc:
@@ -507,7 +482,7 @@ export default function AdminOverviewPage() {
       });
     }
 
-    if (processStatus?.last_result === "failed") {
+    if (processStatus?.status === "failed") {
       items.push({
         title: "Proses terakhir gagal",
         desc:
@@ -614,18 +589,10 @@ export default function AdminOverviewPage() {
               key={item.href}
               className={`rounded-3xl border p-5 ${item.accentClass}`}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
                 <div className={`rounded-2xl p-3 shadow-sm ${item.iconWrapClass}`}>
                   <Icon className={`h-5 w-5 ${item.iconClass}`} />
                 </div>
-
-                <Link
-                  href={item.href}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 transition hover:text-slate-900"
-                >
-                  Buka
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
               </div>
 
               <h3 className="mt-4 text-lg font-bold text-slate-900">
@@ -678,15 +645,6 @@ export default function AdminOverviewPage() {
           </div>
 
           <div className="flex flex-wrap items-start gap-3">
-            <div className="rounded-2xl border border-[var(--color-secondary)] bg-[var(--color-secondary-soft)] px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary-dark)]">
-                Environment
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
-                Development Mode
-              </p>
-            </div>
-
             <button
               type="button"
               onClick={() => loadOverview(true)}

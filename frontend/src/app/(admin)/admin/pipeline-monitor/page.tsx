@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -428,6 +429,26 @@ export default function AdminPipelineMonitorPage() {
                 {currentRun.message || "Tidak ada pesan."}
               </p>
             </div>
+
+            {(currentRun.status === "success" || currentRun.status === "failed") && (
+              <div
+                className={`rounded-2xl border px-4 py-3 text-sm ${
+                  currentRun.status === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {currentRun.status === "success"
+                  ? "Pipeline selesai. "
+                  : "Pipeline gagal. "}
+                <Link
+                  href="/admin/outputs"
+                  className="font-medium underline hover:opacity-80"
+                >
+                  Lihat Output →
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </section>

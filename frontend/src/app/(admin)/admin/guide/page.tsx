@@ -45,7 +45,7 @@ type GuideNavItem = {
 
 const guideNavItems: GuideNavItem[] = [
   { id: "overview", label: "Overview", icon: BookOpen },
-  { id: "upload-standard", label: "Standar Upload", icon: FolderTree },
+  { id: "upload-standard", label: "Standar Data", icon: FolderTree },
   { id: "attribute-standard", label: "Standar Atribut", icon: TableProperties },
   { id: "process-flow", label: "Alur Proses", icon: Workflow },
   { id: "output-reference", label: "Referensi Output", icon: FileOutput },
@@ -57,9 +57,9 @@ const guideNavItems: GuideNavItem[] = [
 const uploadRules: UploadRule[] = [
   {
     name: "Admin Boundary",
-    format: ".shp, .dbf, .shx, .prj, .geojson, .gpkg",
-    filename: "batas_adm_kabkota.*",
-    destination: "data/raw",
+    format: ".gpkg",
+    filename: "regions.gpkg",
+    destination: "raw/administrasi/",
     notes: [
       "Dipakai sebagai batas wilayah utama untuk agregasi kabupaten/kota.",
       "Disarankan memiliki field id_kabkota, kab_kota, dan prov.",
@@ -68,9 +68,9 @@ const uploadRules: UploadRule[] = [
   },
   {
     name: "Sawah Layer",
-    format: ".shp, .dbf, .shx, .prj, .geojson, .gpkg",
-    filename: "lulc_sawah.*",
-    destination: "data/raw",
+    format: ".gpkg",
+    filename: "sawah_selected.gpkg",
+    destination: "raw/exposure/",
     notes: [
       "Dipakai sebagai layer sawah utama untuk overlay dan analisis.",
       "Pastikan layer benar-benar merepresentasikan area sawah.",
@@ -80,8 +80,8 @@ const uploadRules: UploadRule[] = [
   {
     name: "Total Produksi Padi",
     format: ".csv",
-    filename: "total_prod_padi.csv",
-    destination: "data/raw",
+    filename: "totalproduksipadi.csv",
+    destination: "raw/exposure/",
     notes: [
       "Dipakai untuk menghitung nilai kerugian ekonomi.",
       "Gunakan encoding CSV yang aman dibaca, seperti UTF-8 atau UTF-8-SIG.",
@@ -90,24 +90,23 @@ const uploadRules: UploadRule[] = [
   },
   {
     name: "Flood Raster Set",
-    format: ".tif / .tiff",
-    filename: "R25, R50, R100, R250, RC25, RC50, RC100, RC250",
-    destination: "data/raw",
+    format: ".tif",
+    filename: "flood_r25.tif, flood_r50.tif, flood_r100.tif, flood_r250.tif, flood_rc25.tif, flood_rc50.tif, flood_rc100.tif, flood_rc250.tif",
+    destination: "raw/hazard/",
     notes: [
-      "Nama file harus sesuai standar agar lolos validasi upload.",
-      "Set flood ideal mencakup current dan climate scenario.",
-      "Pastikan raster bisa diproses dan memiliki extent/CRS yang valid.",
+      "Nama file harus persis sesuai standar agar pipeline dapat membacanya.",
+      "Set flood mencakup skenario current (r*) dan climate (rc*).",
+      "Pastikan raster memiliki extent dan CRS yang valid.",
     ],
   },
   {
     name: "Drought Raster Set",
-    format: ".tif / .tiff",
-    filename:
-      "mme_rp25, mme_rp50, mme_rp100, mme_rp250, gpm_rp25, gpm_rp50, gpm_rp100, gpm_rp250",
-    destination: "data/raw",
+    format: ".tif",
+    filename: "drought_r25.tif, drought_r50.tif, drought_r100.tif, drought_r250.tif, drought_rc25.tif, drought_rc50.tif, drought_rc100.tif, drought_rc250.tif",
+    destination: "raw/hazard/",
     notes: [
-      "Nama file harus sesuai standar validasi upload.",
-      "Set drought ideal mencakup seluruh scenario MME dan GPM.",
+      "Nama file harus persis sesuai standar agar pipeline dapat membacanya.",
+      "Set drought mencakup skenario current (r*) dan climate (rc*).",
       "Pastikan raster dapat dibaca dengan baik oleh sistem.",
     ],
   },
@@ -207,7 +206,7 @@ const adminMenuGuides = [
   {
     title: "Data Management",
     icon: Database,
-    desc: "Dipakai untuk upload data, melihat preview, menghapus file tertentu, dan memilih active source.",
+    desc: "Dipakai untuk melihat preview file data, memeriksa ketersediaan file, dan memilih active source.",
   },
   {
     title: "Process Control",
@@ -264,9 +263,8 @@ const outputReferences = [
 ];
 
 const troubleshooting = [
-  "Jika upload gagal, periksa nama file, ekstensi, dan struktur data.",
-  "Jika preview kosong, cek apakah file benar-benar tersimpan di folder target.",
-  "Jika proses gagal, periksa data input, dependency script, dan log proses terakhir.",
+  "Jika preview kosong, cek apakah file sudah ditempatkan di folder yang benar dengan nama yang sesuai standar.",
+  "Jika proses gagal, periksa data input dan pastikan semua file yang dibutuhkan tersedia.",
   "Jika hasil tidak muncul di dashboard, cek apakah file final yang aktif adalah versi yang benar.",
   "Jika pengguna tidak bisa akses admin, pastikan role adalah admin dan status akun active.",
 ];
@@ -436,7 +434,7 @@ export default function AdminGuidePage() {
                 Ringkasan Isi Panduan
               </p>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Halaman ini menjelaskan standar upload data, atribut minimum,
+                Halaman ini menjelaskan standar penempatan file data, atribut minimum,
                 mode proses, referensi hasil, fungsi setiap menu admin, urutan
                 kerja yang disarankan, dan troubleshooting dasar.
               </p>
@@ -447,9 +445,9 @@ export default function AdminGuidePage() {
 
       <GuideSection id="upload-standard">
         <SectionHeader
-          eyebrow="STANDAR UPLOAD"
-          title="Format Data yang Didukung"
-          desc="Gunakan format, nama file, dan lokasi penyimpanan sesuai standar agar data dapat dibaca dan diproses oleh sistem."
+          eyebrow="STANDAR DATA"
+          title="Penempatan File Data"
+          desc="Tempatkan file dengan nama dan lokasi sesuai standar agar pipeline dapat membaca dan memproses data secara otomatis."
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -494,7 +492,7 @@ export default function AdminGuidePage() {
         <SectionHeader
           eyebrow="STANDAR ATRIBUT"
           title="Atribut Wajib dan Disarankan"
-          desc="Pastikan data yang diunggah memiliki field minimum yang dibutuhkan untuk agregasi, join, analisis, dan tampilan dashboard."
+          desc="Pastikan data yang disiapkan memiliki field minimum yang dibutuhkan untuk agregasi, join, analisis, dan tampilan dashboard."
         />
 
         <div className="space-y-5">

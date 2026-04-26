@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -318,7 +319,13 @@ export default function AdminProcessPage() {
 
       {successMessage && (
         <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {successMessage}
+          {successMessage}{" "}
+          <Link
+            href="/admin/pipeline-monitor"
+            className="font-medium underline hover:text-green-900"
+          >
+            Pantau Pipeline →
+          </Link>
         </div>
       )}
 

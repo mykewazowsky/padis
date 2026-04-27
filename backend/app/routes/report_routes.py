@@ -147,11 +147,15 @@ def download_csv():
         if not run_id:
             return jsonify({"error": "No runs found"}), 404
 
-        rows = _query_data(db, hazard_id, scenario_id, rp_id, run_id)
+        all_rows = _query_data(db, hazard_id, scenario_id, rp_id, run_id)
 
-        if region:
-            rows = [r for r in rows
-                    if r.kab_kota.strip().lower() == region.lower()]
+        # Compute national total BEFORE filtering so share % reflects national context
+        total_loss = sum(r.loss or 0 for r in all_rows)
+
+        rows = (
+            [r for r in all_rows if r.kab_kota.strip().lower() == region.lower()]
+            if region else all_rows
+        )
 
         if not rows:
             return jsonify({"error": "Tidak ada data untuk filter yang dipilih."}), 404
@@ -166,19 +170,23 @@ def download_csv():
             f"AAL (Rp) — {hazard.upper()} {climate}",
             "Hazard Index (0–1)",
             "Total Produksi (ton)",
+            "Persentase Kontribusi (%)",
         ])
         for r in rows:
+            loss = r.loss or 0
+            share = round((loss / total_loss) * 100, 2) if total_loss else 0.00
             writer.writerow([
                 r.id_kabkota,
                 r.kab_kota,
                 r.prov,
-                round(r.loss, 2),
-                round(r.aal, 2),
+                f"{loss:.2f}",
+                f"{(r.aal or 0):.2f}",
                 round(r.hazard_index, 6),
                 round(r.total_prod, 2),
+                f"{share:.2f}",
             ])
 
-        buf = BytesIO(out.getvalue().encode("utf-8-sig"))  # BOM for Excel
+        buf = BytesIO(out.getvalue().encode("utf-8-sig"))  # UTF-8 BOM for Excel
         region_slug = make_region_slug(region)
         return send_file(
             buf,

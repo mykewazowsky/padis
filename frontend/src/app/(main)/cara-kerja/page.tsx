@@ -9,6 +9,8 @@ import {
   Wheat,
   PlayCircle,
   ArrowRight,
+  ShieldAlert,
+  Target,
 } from "lucide-react";
 
 const analyticalPipeline = [
@@ -65,14 +67,17 @@ const previewFeatures = [
 const useCases = [
   {
     title: "Risiko Wilayah",
+    icon: MapPinned,
     desc: "Membaca pola kerugian padi per kabupaten/kota untuk banjir, kekeringan, dan multi-hazard.",
   },
   {
     title: "Perbandingan",
+    icon: ShieldAlert,
     desc: "Membandingkan kondisi climate dan non-climate untuk melihat perubahan risiko secara lebih sistematis.",
   },
   {
     title: "Prioritas",
+    icon: Target,
     desc: "Menentukan wilayah prioritas berbasis loss dan Average Annual Loss (AAL).",
   },
 ];
@@ -184,6 +189,7 @@ export default function CaraKerjaPage() {
                     title="Video Petunjuk Penggunaan PADIS"
                     allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -201,16 +207,16 @@ export default function CaraKerjaPage() {
             desc="PADIS mengolah data hazard menjadi estimasi kerugian dan output dashboard melalui tahapan analisis yang terstruktur."
           />
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-5">
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {analyticalPipeline.map((item, index) => {
               const isLast = index === analyticalPipeline.length - 1;
 
               return (
-                <div key={item.step} className="relative">
-                  
+                <article key={item.step} className="relative group">
+
                   {/* CARD */}
                   <div
-                    className={`h-full rounded-3xl border p-5 transition duration-200 hover:-translate-y-1 hover:shadow-md
+                    className={`h-full rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg
                     ${
                       isLast
                         ? "border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)]/20"
@@ -218,12 +224,12 @@ export default function CaraKerjaPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="badge badge-primary h-10 w-10 rounded-full p-0 text-sm">
+                      <span className="badge badge-primary h-10 w-10 rounded-full p-0 text-sm transition-all duration-300 group-hover:scale-110">
                         {item.step}
                       </span>
                     </div>
 
-                    <h3 className="mt-4 text-base font-semibold text-gray-900 md:text-lg">
+                    <h3 className="mt-4 text-base font-semibold text-gray-900 transition-colors duration-300 group-hover:text-[var(--color-primary)] md:text-lg">
                       {item.title}
                     </h3>
 
@@ -234,14 +240,13 @@ export default function CaraKerjaPage() {
 
                   {/* CONNECTOR (desktop only) */}
                   {index < analyticalPipeline.length - 1 && (
-                    <div className="hidden lg:block">
-                      <div className="absolute left-[calc(100%-0.3rem)] top-1/2 flex w-10 -translate-y-1/2 items-center">
-                        <div className="h-px flex-1 bg-[var(--color-border)]" />
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                    <div className="absolute -right-6 top-1/2 z-10 hidden -translate-y-1/2 lg:block">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-md">
+                        <ArrowRight className="h-3 w-3 text-gray-400" />
                       </div>
                     </div>
                   )}
-                </div>
+                </article>
               );
             })}
           </div>
@@ -281,7 +286,7 @@ export default function CaraKerjaPage() {
                   return (
                     <div
                       key={item.title}
-                      className={`flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-2xl border px-5 py-5 text-center transition duration-200 hover:-translate-y-1 hover:shadow-md
+                      className={`flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-2xl border px-5 py-5 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-lg
                       ${
                         isPrimary
                           ? "border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)]/20"
@@ -331,11 +336,45 @@ export default function CaraKerjaPage() {
         </div>
       </section>
 
+      {/* Kasus Penggunaan */}
+      <section className="section-shell section-soft text-gray-900">
+        <div className="section-container">
+          <SectionHeader
+            title="Kasus Penggunaan"
+            desc="Bagaimana PADIS dapat mendukung analisis dan pengambilan keputusan berbasis risiko padi."
+          />
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {useCases.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.title}
+                  className="group flex flex-col gap-4 rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)]/30 transition-all duration-300 group-hover:bg-[var(--color-primary)]/10">
+                    <Icon className="h-6 w-6 text-[var(--color-primary)] transition-all duration-300 group-hover:scale-110" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="section-shell bg-white">
         <div className="section-container">
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary-soft)]/40 via-white to-[var(--color-secondary-soft)]/30 p-10 text-center shadow-[var(--shadow-lg)]">
-            
+
             {/* subtle glow */}
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
@@ -361,7 +400,7 @@ export default function CaraKerjaPage() {
                 {/* Primary CTA */}
                 <Link
                   href="/dashboard"
-                  className="btn-primary px-6 py-3 text-base font-semibold"
+                  className="btn-primary px-6 py-3 text-base font-semibold transition-all duration-300 hover:scale-[1.03] hover:shadow-lg"
                 >
                   Buka Dashboard
                 </Link>
@@ -369,7 +408,7 @@ export default function CaraKerjaPage() {
                 {/* Secondary CTA */}
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 text-sm text-[var(--color-gray)] hover:text-[var(--color-text)]"
+                  className="inline-flex items-center gap-2 text-sm text-[var(--color-gray)] transition-all duration-300 hover:gap-3 hover:text-[var(--color-text)]"
                 >
                   Kembali ke Beranda <ArrowRight className="h-4 w-4" />
                 </Link>

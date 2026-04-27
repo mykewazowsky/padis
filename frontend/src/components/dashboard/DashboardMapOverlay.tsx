@@ -63,7 +63,6 @@ export default function DashboardMapOverlay({
   onGenerateReport,
 }: Props) {
   const [exportingCsv, setExportingCsv] = useState(false);
-  const [exportingReport, setExportingReport] = useState(false);
 
   function handleCsv() {
     if (!onDownloadCsv || exportingCsv) return;
@@ -73,10 +72,7 @@ export default function DashboardMapOverlay({
   }
 
   function handleReport() {
-    if (!onGenerateReport || exportingReport) return;
-    setExportingReport(true);
-    onGenerateReport();
-    setTimeout(() => setExportingReport(false), 6000);
+    onGenerateReport?.();
   }
 
   const props = selectedFeature?.properties;
@@ -114,14 +110,10 @@ export default function DashboardMapOverlay({
           <button
             type="button"
             onClick={handleReport}
-            disabled={exportingReport}
-            className="btn-primary text-xs font-medium shadow-sm transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary text-xs font-medium shadow-sm transition-opacity"
           >
-            {exportingReport
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <FileText className="h-4 w-4" />
-            }
-            <span className="hidden sm:inline">{exportingReport ? "Memuat..." : "Buat Laporan"}</span>
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Buat Laporan</span>
           </button>
         </div>
       </div>

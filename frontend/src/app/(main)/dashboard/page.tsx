@@ -933,17 +933,6 @@ export default function DashboardPage() {
                     Klik area peta untuk melihat detail dan indikator wilayah.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handlePreviewReport}
-                  disabled={runId === null}
-                  className="flex shrink-0 items-center gap-2 rounded-xl border border-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Preview Laporan
-                </button>
               </div>
 
               <div className="relative h-[50vh] w-full sm:h-[65vh] md:h-[70vh] xl:h-[75vh]">
@@ -957,7 +946,7 @@ export default function DashboardPage() {
                     onRegionSelect={handleRegionChange}
                     onResetView={handleResetView}
                     onDownloadCsv={handleDownloadCsv}
-                    onGenerateReport={handleGenerateReport}
+                    onGenerateReport={handlePreviewReport}
 
                     layers={layers}
 
@@ -1030,6 +1019,7 @@ export default function DashboardPage() {
           runId={runId}
           selectedRegion={selectedRegion}
           onClose={() => setShowReportPreview(false)}
+          onDownloadServerPdf={handleGenerateReport}
         />
       )}
 

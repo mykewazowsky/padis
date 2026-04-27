@@ -11,12 +11,43 @@ analytics_bp = Blueprint("analytics_bp", __name__)
 
 @analytics_bp.route("/runs/latest", methods=["GET"])
 def get_latest_run():
-    """Returns the most recent run_id from the runs table."""
+    """Return the most recent run_id that contains data for the given hazard.
+
+    Query param:
+        hazard  str  flood | drought | multi | multihazard  (optional)
+                     When provided, the search is scoped to runs that have
+                     actual rows in the aal table for that hazard so an empty
+                     map is never shown.  Omitting the param returns the
+                     absolute latest successful run (backward-compatible).
+    """
+    raw = request.args.get("hazard", "").strip().lower()
+    db_hazard = "multihazard" if raw in ("multi", "multihazard") else raw
+
     db = SessionLocal()
     try:
-        row = db.execute(
-            text("SELECT id AS run_id FROM runs ORDER BY id DESC LIMIT 1")
-        ).fetchone()
+        if db_hazard in ("flood", "drought", "multihazard"):
+            row = db.execute(
+                text("""
+                    SELECT a.run_id
+                    FROM   aal a
+                    JOIN   hazards h ON a.hazard_id = h.id
+                    WHERE  h.name = :hazard
+                    ORDER  BY a.run_id DESC
+                    LIMIT  1
+                """),
+                {"hazard": db_hazard},
+            ).fetchone()
+        else:
+            row = db.execute(
+                text("""
+                    SELECT id AS run_id
+                    FROM   runs
+                    WHERE  status = 'success'
+                    ORDER  BY id DESC
+                    LIMIT  1
+                """),
+            ).fetchone()
+
         if not row:
             return jsonify({"error": "No runs found"}), 404
         return jsonify({"run_id": int(row.run_id)})

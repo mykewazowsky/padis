@@ -33,8 +33,9 @@ export type LayerItem = {
   centroid_lat?: number | null;
 };
 
-export async function fetchLatestRunId(): Promise<number> {
-  const json = await fetchJson("/api/runs/latest");
+export async function fetchLatestRunId(hazard?: string): Promise<number> {
+  const qs = hazard ? `?hazard=${encodeURIComponent(hazard)}` : "";
+  const json = await fetchJson(`/api/runs/latest${qs}`);
   return json.run_id as number;
 }
 

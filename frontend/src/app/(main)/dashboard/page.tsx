@@ -259,12 +259,13 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    fetchLatestRunId()
+    setRunId(null);
+    fetchLatestRunId(hazard)
       .then(setRunId)
       .catch((err) => {
         console.error("Failed to fetch latest run_id:", err);
       });
-  }, []);
+  }, [hazard]);
 
   useEffect(() => {
     setLoadingRegions(true);
@@ -310,11 +311,11 @@ export default function DashboardPage() {
   }, [regions, selectedRegion]);
 
   useEffect(() => {
+    if (runId === null) return;
     setLoadingAAL(true);
     setErrorAAL(null);
 
-    const qs = `hazard=${hazard}${runId != null ? `&run_id=${runId}` : ""}`;
-    fetchJson<AalSummary>(`/api/aal-summary?${qs}`)
+    fetchJson<AalSummary>(`/api/aal-summary?hazard=${hazard}&run_id=${runId}`)
       .then((json) => setAalSummary(json))
       .catch((err) => {
         console.error("AAL summary fetch error:", err);
@@ -325,7 +326,7 @@ export default function DashboardPage() {
   }, [hazard, runId]);
 
   useEffect(() => {
-    if (!selectedRegion.trim()) {
+    if (!selectedRegion.trim() || runId === null) {
       setRegionAalSummary(null);
       setErrorRegionAAL(null);
       setLoadingRegionAAL(false);
@@ -335,8 +336,7 @@ export default function DashboardPage() {
     setLoadingRegionAAL(true);
     setErrorRegionAAL(null);
 
-    const params = new URLSearchParams({ hazard, region: selectedRegion.trim() });
-    if (runId != null) params.set("run_id", String(runId));
+    const params = new URLSearchParams({ hazard, region: selectedRegion.trim(), run_id: String(runId) });
 
     fetchJson<AalSummary>(`/api/aal-summary?${params.toString()}`)
       .then((json) => setRegionAalSummary(json))

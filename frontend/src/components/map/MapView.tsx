@@ -29,6 +29,7 @@ type Props = {
   onResetView?: () => void;
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
+  isMapTransitioning?: boolean;
 
   layers: {
     regions: GeoJsonData | null;
@@ -56,6 +57,7 @@ export default function MapView({
   onResetView,
   onDownloadCsv,
   onGenerateReport,
+  isMapTransitioning,
   resetViewSignal,
   activeLayers,
   onToggleLayer,
@@ -220,6 +222,7 @@ export default function MapView({
         onClearRegion={onRegionSelect ? () => onRegionSelect("") : undefined}
         onDownloadCsv={onDownloadCsv}
         onGenerateReport={onGenerateReport}
+        isMapTransitioning={isMapTransitioning}
       />
     </div>
   );

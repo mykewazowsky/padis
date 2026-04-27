@@ -27,6 +27,7 @@ type Props = {
   onClearRegion?: () => void;
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
+  isMapTransitioning?: boolean;
 };
 
 function formatCurrency(value: number | null | undefined): string {
@@ -61,6 +62,7 @@ export default function DashboardMapOverlay({
   onClearRegion,
   onDownloadCsv,
   onGenerateReport,
+  isMapTransitioning = false,
 }: Props) {
   const [exportingCsv, setExportingCsv] = useState(false);
 
@@ -79,6 +81,19 @@ export default function DashboardMapOverlay({
 
   return (
     <>
+      {/* ── Map transition overlay ────────────────────────────────────────── */}
+      <div
+        className={`absolute inset-0 z-[460] flex flex-col items-center justify-center gap-3 backdrop-blur-md transition-opacity duration-300 ${
+          isMapTransitioning ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        style={{ backgroundColor: "rgba(13, 33, 55, 0.52)" }}
+      >
+        <Loader2 className="h-9 w-9 animate-spin text-white drop-shadow-lg" />
+        <p className="text-sm font-semibold tracking-wide text-white drop-shadow-lg">
+          Memuat Data Spasial...
+        </p>
+      </div>
+
       <div className="pointer-events-none absolute right-4 top-4 z-[500] flex flex-col gap-2">
         <div className="pointer-events-auto flex flex-col gap-2">
           <button

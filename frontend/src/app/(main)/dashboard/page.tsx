@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Select from "react-select";
 import { Filter, ShieldAlert, X } from "lucide-react";
@@ -250,6 +250,8 @@ export default function DashboardPage() {
   const [regionCentroids, setRegionCentroids] = useState<Record<string, [number, number]>>({});
 
   const [showReportPreview, setShowReportPreview] = useState(false);
+  const [isMapTransitioning, setIsMapTransitioning] = useState(false);
+  const prevLoadingRegionAAL = useRef(false);
   const [showLoginNotice, setShowLoginNotice] = useState(false);
   const [loginNoticeMessage, setLoginNoticeMessage] = useState(
     "Silakan login terlebih dahulu."
@@ -354,6 +356,19 @@ export default function DashboardPage() {
       .finally(() => setLoadingRegionAAL(false));
   }, [hazard, selectedRegion, runId]);
 
+  // Clear transition overlay when region is deselected via any path (reset, clear button, etc.)
+  useEffect(() => {
+    if (!selectedRegion) setIsMapTransitioning(false);
+  }, [selectedRegion]);
+
+  // Clear transition overlay when region data fetch completes (loadingRegionAAL: true → false)
+  useEffect(() => {
+    if (prevLoadingRegionAAL.current && !loadingRegionAAL) {
+      setIsMapTransitioning(false);
+    }
+    prevLoadingRegionAAL.current = loadingRegionAAL;
+  }, [loadingRegionAAL]);
+
   // Endpoint ringan (~30 KB); rendering peta via MVT tiles dari Leaflet.
   useEffect(() => {
     if (runId === null) return;
@@ -420,6 +435,7 @@ export default function DashboardPage() {
   function handleRegionChange(region: string | null) {
     const nextRegion = region?.trim() ?? "";
     setSelectedRegion(nextRegion);
+    if (nextRegion) setIsMapTransitioning(true);
   }
 
   function handleResetView() {
@@ -947,6 +963,7 @@ export default function DashboardPage() {
                     onResetView={handleResetView}
                     onDownloadCsv={handleDownloadCsv}
                     onGenerateReport={handlePreviewReport}
+                    isMapTransitioning={isMapTransitioning}
 
                     layers={layers}
 

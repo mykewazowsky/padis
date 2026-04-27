@@ -82,3 +82,11 @@ docs/alur_pipeline.md
 
 # Debug Scripts
 backend/scripts/debug/
+
+# Python global
+__pycache__/
+*.py[cod]
+
+# Editor temp
+*.swp
+*.swo

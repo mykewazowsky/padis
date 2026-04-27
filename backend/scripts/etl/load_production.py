@@ -32,7 +32,7 @@ def format_id_kabkota(val):
 # ===============================
 # MAIN
 # ===============================
-def run(run_id=None):
+def run():
     log.info("PROD", "Memuat data produksi...")
 
     conn = get_conn()

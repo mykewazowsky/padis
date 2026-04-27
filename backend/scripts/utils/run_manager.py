@@ -32,6 +32,10 @@ class PipelineRunManager:
     # PUBLIC API
     # -------------------------------------------------------------------------
 
+    @property
+    def run_id(self) -> "int | None":
+        return self._run_id
+
     def start(self) -> None:
         """Open DB connection and insert a monitoring run record."""
         try:

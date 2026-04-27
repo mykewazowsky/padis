@@ -23,7 +23,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import text
 
 from ..auth.auth_utils import admin_required
-from .admin_utils import OUTPUT_DIR, PROJECT_ROOT, SCRIPTS_DIR
+from .admin_utils import BACKEND_DIR, OUTPUT_DIR, PROJECT_ROOT, SCRIPTS_DIR
 from ...db.session import SessionLocal
 
 admin_process_bp = Blueprint("admin_process_bp", __name__)
@@ -31,6 +31,34 @@ admin_process_bp = Blueprint("admin_process_bp", __name__)
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _get_pipeline_python() -> str:
+    """
+    Resolve Python executable for the pipeline subprocess.
+
+    Priority:
+      1. PIPELINE_PYTHON env var (explicit override)
+      2. venv inside backend/ or project root (standard locations)
+      3. sys.executable (fallback — same Python running Flask)
+    """
+    from_env = os.getenv("PIPELINE_PYTHON", "").strip()
+    if from_env and os.path.isfile(from_env):
+        return from_env
+
+    candidates = [
+        os.path.join(BACKEND_DIR,   "venv", "Scripts", "python.exe"),  # Windows, backend/venv
+        os.path.join(BACKEND_DIR,   "venv", "bin",     "python"),       # Unix,    backend/venv
+        os.path.join(PROJECT_ROOT,  "venv", "Scripts", "python.exe"),   # Windows, root/venv
+        os.path.join(PROJECT_ROOT,  "venv", "bin",     "python"),       # Unix,    root/venv
+        os.path.join(PROJECT_ROOT,  ".venv","Scripts", "python.exe"),   # Windows, root/.venv
+        os.path.join(PROJECT_ROOT,  ".venv","bin",     "python"),       # Unix,    root/.venv
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+
+    return sys.executable
 
 
 def _fetch_latest_run(session):
@@ -362,9 +390,10 @@ def admin_start_pipeline():
             },
         }), 409
 
-    # Spawn CLI as a detached subprocess (output discarded — progress tracked via DB)
+    # Spawn CLI as a detached subprocess — progress tracked via DB, errors via log file
     script_path = os.path.join(SCRIPTS_DIR, "main.py")
-    cmd = [sys.executable, script_path,
+    python_exe  = _get_pipeline_python()
+    cmd = [python_exe, script_path,
            "--mode", mode, "--hazard", hazard, "--operator", operator]
 
     spawn_kwargs = (
@@ -373,14 +402,29 @@ def admin_start_pipeline():
         else {"start_new_session": True}
     )
 
+    log_dir  = os.path.join(BACKEND_DIR, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "subprocess.log")
+
     try:
-        proc = subprocess.Popen(
-            cmd,
-            cwd=PROJECT_ROOT,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            **spawn_kwargs,
-        )
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            header = (
+                f"\n{'='*60}\n"
+                f"[{_now_iso()}] python={python_exe}\n"
+                f"mode={mode}  hazard={hazard}  operator={operator}\n"
+                f"cwd={BACKEND_DIR}\n"
+                f"{'='*60}\n"
+            )
+            log_file.write(header)
+
+            proc = subprocess.Popen(
+                cmd,
+                cwd=BACKEND_DIR,
+                stdout=log_file,
+                stderr=log_file,
+                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+                **spawn_kwargs,
+            )
     except Exception as e:
         return jsonify({"error": "Gagal menjalankan pipeline", "detail": str(e)}), 500
 

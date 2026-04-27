@@ -26,7 +26,7 @@ OUTPUT_VECTOR = os.path.join(
 # ===============================
 # PIPELINE
 # ===============================
-def run_preprocess() -> dict:
+def run_preprocess(hazard: str = "multi") -> dict:
     log.header("PREPROCESS PADIS")
 
     os.makedirs(PROCESSED_HAZARD_FOLDER, exist_ok=True)
@@ -34,11 +34,16 @@ def run_preprocess() -> dict:
 
     results = {}
 
-    for hazard in HAZARDS:
-        name = hazard["name"]
+    for h in HAZARDS:
+        name = h["name"]
 
-        if hazard.get("derived", False):
+        if h.get("derived", False):
             log.info(name.upper(), "Dilewati (derived)")
+            results[name] = "skipped"
+            continue
+
+        if hazard != "multi" and name != hazard:
+            log.info(name.upper(), f"Dilewati (hazard={hazard})")
             results[name] = "skipped"
             continue
 
@@ -48,15 +53,15 @@ def run_preprocess() -> dict:
             run_reproject_batch(
                 input_folder=RAW_HAZARD_FOLDER,
                 output_folder=PROCESSED_HAZARD_FOLDER,
-                prefix=hazard["prefix"]
+                prefix=h["prefix"]
             )
 
-            if hazard.get("normalize", False):
+            if h.get("normalize", False):
                 log.info(name.upper(), "Normalisasi...")
                 run_normalize_batch(
                     input_folder=PROCESSED_HAZARD_FOLDER,
                     output_folder=PROCESSED_HAZARD_FOLDER,
-                    prefix=hazard["prefix"]
+                    prefix=h["prefix"]
                 )
 
             results[name] = "success"
@@ -66,15 +71,12 @@ def run_preprocess() -> dict:
             raise
 
     log.info("VEKTOR", "Interseksi sawah-administrasi...")
-
     intersect_sawah_admin(
         regions_path=REGIONS_PATH,
         sawah_path=SAWAH_PATH,
         output_path=OUTPUT_VECTOR
     )
-
     results["vector"] = OUTPUT_VECTOR
 
     log.ok("PREPROCESS", "Selesai")
-
     return results

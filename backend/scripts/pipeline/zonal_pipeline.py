@@ -33,7 +33,7 @@ OUTPUT_FOLDER = os.path.join(
 # ===============================
 # PIPELINE
 # ===============================
-def run_zonal_all() -> list[dict]:
+def run_zonal_all(hazard: str = "multi") -> list[dict]:
     log.header("ZONAL PIPELINE")
 
     if not os.path.exists(VECTOR_PATH):
@@ -44,11 +44,16 @@ def run_zonal_all() -> list[dict]:
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    results = []
-    total = len(RASTER_HAZARDS)
+    if hazard == "multi":
+        hazards_to_run = RASTER_HAZARDS
+    else:
+        hazards_to_run = [h for h in RASTER_HAZARDS if h["name"] == hazard]
 
-    for i, hazard in enumerate(RASTER_HAZARDS, start=1):
-        name = hazard["name"]
+    results = []
+    total = len(hazards_to_run)
+
+    for i, h in enumerate(hazards_to_run, start=1):
+        name = h["name"]
 
         log.progress(i, total, f"Zonal {name.upper()}")
 
@@ -58,8 +63,8 @@ def run_zonal_all() -> list[dict]:
             result = run_zonal(
                 vector_path=VECTOR_PATH,
                 raster_folder=RASTER_FOLDER,
-                raster_prefix=hazard["prefix"],
-                raster_suffix=hazard.get("suffix", "_reproj.tif"),
+                raster_prefix=h["prefix"],
+                raster_suffix=h.get("suffix", "_reproj.tif"),
                 output_path=output_path,
                 chunk_size=ZONAL_CHUNK_SIZE,
                 overwrite=True,
@@ -76,5 +81,4 @@ def run_zonal_all() -> list[dict]:
             raise
 
     log.ok("ZONAL", "Semua zonal selesai")
-
     return results

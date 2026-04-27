@@ -135,7 +135,7 @@ def run_padis_pipeline(
         if run_preprocess_step:
             manager.update("preprocess", 5, "Preprocess dimulai")
             try:
-                preprocess_result = run_preprocess()
+                preprocess_result = run_preprocess(hazard)
                 results["preprocess"] = preprocess_result
                 manager.update("preprocess", 25, "Preprocess selesai")
             except Exception as e:
@@ -145,7 +145,7 @@ def run_padis_pipeline(
         if run_zonal_step:
             manager.update("zonal", 30, "Zonal statistics dimulai")
             try:
-                zonal_results = run_zonal_all()
+                zonal_results = run_zonal_all(hazard)
                 results["zonal"] = zonal_results
                 manager.update("zonal", 50, "Zonal statistics selesai")
             except Exception as e:
@@ -166,7 +166,7 @@ def run_padis_pipeline(
             manager.update("etl", 80, "ETL dimulai")
             try:
                 from backend.scripts.etl.run_all import run as _run_etl
-                _run_etl()
+                _run_etl(hazard, run_id=manager.run_id)
                 results["etl"] = "success"
                 manager.update("etl", 95, "ETL selesai")
             except Exception as e:

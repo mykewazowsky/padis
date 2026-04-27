@@ -1,16 +1,16 @@
 "use client";
 
-import { Printer, X, FileText, Download } from "lucide-react";
+import { Printer, X, FileText, FileSpreadsheet } from "lucide-react";
 import type { ReportDocumentProps } from "./ReportDocument";
 import ReportDocument from "./ReportDocument";
 
 type Props = ReportDocumentProps & {
   onClose: () => void;
-  /** Optional: triggers the server-side PDF download (different format / auth-gated). */
-  onDownloadServerPdf?: () => void;
+  /** Optional: triggers the server-side XLSX download (structured data, auth-gated). */
+  onDownloadExcel?: () => void;
 };
 
-export default function ReportPreviewModal({ onClose, onDownloadServerPdf, ...docProps }: Props) {
+export default function ReportPreviewModal({ onClose, onDownloadExcel, ...docProps }: Props) {
   function handlePrint() {
     window.print();
   }
@@ -33,16 +33,16 @@ export default function ReportPreviewModal({ onClose, onDownloadServerPdf, ...do
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Secondary: server-side data PDF (auth-gated, different format) */}
-          {onDownloadServerPdf && (
+          {/* Secondary: server-side XLSX (structured data, 3 sheets, auth-gated) */}
+          {onDownloadExcel && (
             <button
               type="button"
-              onClick={onDownloadServerPdf}
-              title="Unduh PDF ringkas yang dibuat di server (memerlukan login)"
+              onClick={onDownloadExcel}
+              title="Unduh data terstruktur (.xlsx) — 3 sheet: Ringkasan, Top 10 Wilayah, Semua Data. Memerlukan login."
               className="flex items-center gap-2 rounded-xl border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700"
             >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Unduh PDF Data</span>
+              <FileSpreadsheet className="h-4 w-4" />
+              <span className="hidden sm:inline">Unduh Excel (.xlsx)</span>
             </button>
           )}
 

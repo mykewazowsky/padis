@@ -248,14 +248,18 @@ export default function ReportDocument({
   }
 
   // Derived values
-  const top3        = topRegions.slice(0, 3);
-  const top10Chart  = topRegions.slice(0, 10);
-  const totalLoss   = allRegions.reduce((s, r) => s + (r.loss ?? 0), 0);
-  const aalNc       = aalSummary?.total_aal_nonclimate ?? 0;
-  const aalC        = aalSummary?.total_aal_climate    ?? 0;
-  const aalDelta    = aalNc > 0 ? ((aalC - aalNc) / aalNc) * 100 : null;
-  const aalDeltaLbl = aalDelta != null ? `${aalDelta >= 0 ? "+" : ""}${aalDelta.toFixed(1)}%` : "N/A";
-  const dataCount   = allRegions.length;
+  const top3         = topRegions.slice(0, 3);
+  const top10Chart   = topRegions.slice(0, 10);
+  const totalLoss    = allRegions.reduce((s, r) => s + (r.loss ?? 0), 0);
+  const aalNc        = aalSummary?.total_aal_nonclimate ?? 0;
+  const aalC         = aalSummary?.total_aal_climate    ?? 0;
+  const aalDelta     = aalNc > 0 ? ((aalC - aalNc) / aalNc) * 100 : null;
+  const aalDeltaLbl  = aalDelta != null ? `${aalDelta >= 0 ? "+" : ""}${aalDelta.toFixed(1)}%` : "N/A";
+  const dataCount    = allRegions.length;
+  const validCount   = allRegions.filter(r => (r.loss ?? 0) > 0).length;
+  const top3Loss     = top3.reduce((s, r) => s + r.loss, 0);
+  const top3Share    = totalLoss > 0 ? (top3Loss / totalLoss) * 100 : 0;
+  const topLossShare = totalLoss > 0 && top3[0] ? (top3[0].loss / totalLoss) * 100 : 0;
   const regionDisplay = selectedRegion?.trim() || "Seluruh Indonesia";
 
   const aalCompareData = [
@@ -367,7 +371,7 @@ export default function ReportDocument({
                 ["Skenario Iklim",        climateLabel(climate)],
                 ["Periode Ulang",         scenarioLabel(scenario)],
                 ["Wilayah Analisis",      regionDisplay],
-                ["Jumlah Kabupaten/Kota", `${dataCount} wilayah`],
+                ["Jumlah Kabupaten/Kota", `${validCount} terdampak · ${dataCount} total`],
                 ["Sumber Analisis",       "Pipeline Spasial PADIS"],
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k} className="bg-white px-4 py-2.5">
@@ -387,7 +391,7 @@ export default function ReportDocument({
               <KpiCard
                 label="Total Kerugian"
                 value={fmtCompact(totalLoss)}
-                sub={`${dataCount} wilayah teranalisis`}
+                sub={`${validCount} terdampak · ${dataCount} total`}
                 accent={NAVY}
               />
               <KpiCard
@@ -459,13 +463,17 @@ export default function ReportDocument({
               <em>{hazardLabel(hazard)}</em>, skenario{" "}
               <em>{climateLabel(climate)}</em>, dan periode ulang{" "}
               <em>{scenarioLabel(scenario)}</em>, total estimasi kerugian produksi padi
-              mencapai <strong>{fmtCompact(totalLoss)}</strong> untuk {dataCount} wilayah
-              teranalisis. Wilayah prioritas utama adalah{" "}
+              mencapai <strong>{fmtCompact(totalLoss)}</strong> dari <strong>{validCount}</strong> kabupaten/kota
+              terdampak (dari {dataCount} wilayah teranalisis). Wilayah prioritas utama adalah{" "}
               <strong>{top3[0]?.name ?? "—"}</strong>
               {top3[1] ? `, ${top3[1].name}` : ""}
               {top3[2] ? `, dan ${top3[2].name}` : ""}.
+              {topLossShare > 0 &&
+                ` Wilayah tertinggi menyumbang ${topLossShare.toFixed(1)}% dari total kerugian.`}
+              {top3Share > 0 && top3.length >= 2 &&
+                ` Tiga wilayah teratas secara kolektif menyumbang ${top3Share.toFixed(1)}% dari total kerugian.`}
               {aalDelta != null &&
-                ` Skenario perubahan iklim memproyeksikan perubahan rata-rata kerugian tahunan (AAL) sebesar ${aalDeltaLbl} terhadap kondisi baseline.`}
+                ` Skenario perubahan iklim memproyeksikan perubahan AAL sebesar ${aalDeltaLbl} terhadap kondisi baseline.`}
             </div>
           </div>
 
@@ -613,7 +621,7 @@ export default function ReportDocument({
               <table className="w-full border-collapse" style={{ fontSize: 8 }}>
                 <thead>
                   <tr style={{ backgroundColor: NAVY }}>
-                    {["No", "Kabupaten / Kota", "Provinsi", "Kerugian (Rp)", "AAL (Rp)", "Indeks Bahaya", "Produksi"].map((h) => (
+                    {["No", "Kabupaten / Kota", "Provinsi", "Kerugian (Rp)", "AAL (Rp)", "Indeks Bahaya", "Produksi", "Share"].map((h) => (
                       <th
                         key={h}
                         className="px-2 py-2 text-left font-semibold uppercase tracking-wide text-white"
@@ -645,11 +653,16 @@ export default function ReportDocument({
                       <td className="px-2 py-1.5 text-right text-gray-700">
                         {fmtTon(row.total_prod)}
                       </td>
+                      <td className="px-2 py-1.5 text-center font-medium" style={{ color: (row.loss ?? 0) > 0 ? "#1e3a5c" : "#9ca3af" }}>
+                        {totalLoss > 0 && (row.loss ?? 0) > 0
+                          ? `${(((row.loss ?? 0) / totalLoss) * 100).toFixed(1)}%`
+                          : "—"}
+                      </td>
                     </tr>
                   ))}
                   {allRegions.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-[10px] text-gray-400">
+                      <td colSpan={8} className="py-10 text-center text-[10px] text-gray-400">
                         Tidak ada data tersedia untuk kombinasi filter ini.
                       </td>
                     </tr>
@@ -668,7 +681,10 @@ export default function ReportDocument({
                       <td className="px-2 py-2 text-right font-bold text-gray-900">{fmtFull(totalLoss)}</td>
                       <td className="px-2 py-2 text-right font-bold text-gray-900">{fmtFull(aalNc)}</td>
                       <td className="px-2 py-2 text-center text-gray-400">—</td>
-                      <td className="px-2 py-2 text-gray-400">—</td>
+                      <td className="px-2 py-2 text-right text-gray-400">—</td>
+                      <td className="px-2 py-2 text-center font-bold text-gray-900">
+                        {totalLoss > 0 ? "100.0%" : "—"}
+                      </td>
                     </tr>
                   </tfoot>
                 )}

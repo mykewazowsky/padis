@@ -1019,7 +1019,7 @@ export default function DashboardPage() {
           runId={runId}
           selectedRegion={selectedRegion}
           onClose={() => setShowReportPreview(false)}
-          onDownloadServerPdf={handleGenerateReport}
+          onDownloadExcel={handleGenerateReport}
         />
       )}
 

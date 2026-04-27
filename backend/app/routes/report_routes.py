@@ -4,15 +4,9 @@ from datetime import datetime
 
 from flask import Blueprint, request, send_file, jsonify
 from sqlalchemy import text
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable, PageBreak,
-)
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 from .auth.auth_utils import login_required
 from ..db.session import SessionLocal
@@ -115,7 +109,7 @@ def _aal_total(db, hazard_id, scenario_id, run_id):
 
 
 def _fmt(v):
-    """Compact Rupiah formatter."""
+    """Compact Rupiah formatter for summary cells."""
     try:
         v = float(v)
     except Exception:
@@ -130,7 +124,7 @@ def _fmt(v):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# CSV DOWNLOAD
+# CSV DOWNLOAD  (unchanged)
 # ══════════════════════════════════════════════════════════════════════════════
 
 @report_bp.route("/api/download-csv")
@@ -197,347 +191,334 @@ def download_csv():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PDF REPORT  (ReportLab — no browser dependency)
+# XLSX BUILDER — openpyxl
 # ══════════════════════════════════════════════════════════════════════════════
 
-# ── ReportLab palette ─────────────────────────────────────────────────────────
-_C_PRIMARY    = colors.HexColor("#0F4C81")
-_C_DARK_BLUE  = colors.HexColor("#1E40AF")
-_C_ACCENT     = colors.HexColor("#10B981")
-_C_DANGER     = colors.HexColor("#EF4444")
-_C_LIGHT_BLUE = colors.HexColor("#EFF6FF")
-_C_BORDER     = colors.HexColor("#E2E8F0")
-_C_TEXT       = colors.HexColor("#1F2937")
-_C_MUTED      = colors.HexColor("#6B7280")
-_C_ROW_ALT    = colors.HexColor("#F8FAFC")
-_C_TH_BG      = colors.HexColor("#1E40AF")
+# ── Style primitives ──────────────────────────────────────────────────────────
+
+def _fill(hex6: str) -> PatternFill:
+    return PatternFill(fill_type="solid", fgColor=hex6.lstrip("#"))
+
+def _font(bold=False, size=10, color="1F2937", italic=False) -> Font:
+    return Font(bold=bold, size=size, color=color.lstrip("#"), italic=italic)
+
+def _border(style="thin", color="D1D5DB") -> Border:
+    s = Side(style=style, color=color.lstrip("#"))
+    return Border(left=s, right=s, top=s, bottom=s)
+
+def _thin_bottom(color="D1D5DB") -> Border:
+    s = Side(style="thin", color=color.lstrip("#"))
+    return Border(bottom=s)
+
+_FILL_NAVY    = _fill("0D2137")
+_FILL_GOLD    = _fill("C9A227")
+_FILL_BLUE    = _fill("1E63B5")
+_FILL_LIGHT   = _fill("EFF6FF")
+_FILL_ALT     = _fill("F9FAFB")
+_FILL_WHITE   = _fill("FFFFFF")
+_FILL_TOTAL   = _fill("F3F4F6")
+
+_FONT_WHITE_B = _font(bold=True, color="FFFFFF")
+_FONT_WHITE   = _font(color="FFFFFF")
+_FONT_NAVY_B  = _font(bold=True, color="0D2137", size=9)
+_FONT_DARK_B  = _font(bold=True, color="1F2937", size=9)
+_FONT_DARK    = _font(color="1F2937", size=9)
+_FONT_MUTED   = _font(color="6B7280", size=8, italic=True)
+_FONT_LABEL   = _font(bold=True, color="6B7280", size=8)
+
+_ALIGN_C  = Alignment(horizontal="center", vertical="center")
+_ALIGN_R  = Alignment(horizontal="right",  vertical="center")
+_ALIGN_L  = Alignment(horizontal="left",   vertical="center")
+_ALIGN_LW = Alignment(horizontal="left",   vertical="top", wrap_text=True)
+
+_BORDER_ALL  = _border()
+_BORDER_NONE = Border()
+
+_FMT_IDR  = '#,##0'     # raw integer, thousands-separated
+_FMT_DEC  = '0.0000'    # 4-decimal for hazard index
+_FMT_TON  = '#,##0'
+_FMT_PCT  = '0.0"%"'    # e.g. 12.3%
 
 
-def _ps(name, **kw):
-    return ParagraphStyle(name, **kw)
+def _set(ws, row, col, value, font=None, fill=None, align=None, border=None, num_fmt=None):
+    """Write a cell with optional styling."""
+    cell = ws.cell(row=row, column=col, value=value)
+    if font:    cell.font      = font
+    if fill:    cell.fill      = fill
+    if align:   cell.alignment = align
+    if border:  cell.border    = border
+    if num_fmt: cell.number_format = num_fmt
+    return cell
 
 
-def _build_pdf(buf, ctx):
-    """Render the PADIS risk report into *buf* using ReportLab PLATYPUS."""
-    PAGE_W, PAGE_H = A4
-    margin     = 15 * mm
-    content_w  = PAGE_W - 2 * margin
+def _merge_row(ws, row, col_start, col_end, value, font=None, fill=None, align=None):
+    """Merge cells across a row and write styled value."""
+    ws.merge_cells(start_row=row, start_column=col_start,
+                   end_row=row,   end_column=col_end)
+    cell = ws.cell(row=row, column=col_start, value=value)
+    if font:   cell.font      = font
+    if fill:   cell.fill      = fill
+    if align:  cell.alignment = align
+    # Apply fill to all merged cells (openpyxl only styles the top-left)
+    for c in range(col_start, col_end + 1):
+        ws.cell(row=row, column=c).fill = fill or _FILL_WHITE
+    return cell
 
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=margin,
-        rightMargin=margin,
-        topMargin=margin,
-        bottomMargin=15 * mm,
-    )
 
-    # ── Paragraph styles ──────────────────────────────────────────────────────
-    ST_TITLE  = _ps("st_title",  fontName="Helvetica-Bold",    fontSize=18,
-                    textColor=colors.white,                    leading=22, alignment=TA_LEFT)
-    ST_SUB    = _ps("st_sub",    fontName="Helvetica",          fontSize=9,
-                    textColor=colors.HexColor("#BFDBFE"),      leading=12)
-    ST_DATE   = _ps("st_date",   fontName="Helvetica",          fontSize=8,
-                    textColor=colors.HexColor("#BFDBFE"),      leading=10, alignment=TA_RIGHT)
-    ST_H2     = _ps("st_h2",     fontName="Helvetica-Bold",    fontSize=10,
-                    textColor=_C_PRIMARY,                      leading=13, spaceAfter=3)
-    ST_KPI_V  = _ps("st_kpiv",   fontName="Helvetica-Bold",    fontSize=13,
-                    textColor=_C_PRIMARY,                      leading=16, alignment=TA_CENTER)
-    ST_KPI_L  = _ps("st_kpil",   fontName="Helvetica",          fontSize=7,
-                    textColor=_C_MUTED,                        leading=9,  alignment=TA_CENTER)
-    ST_BODY   = _ps("st_body",   fontName="Helvetica",          fontSize=8,
-                    textColor=_C_TEXT,                         leading=11)
-    ST_CELL   = _ps("st_cell",   fontName="Helvetica",          fontSize=7.5,
-                    textColor=_C_TEXT,                         leading=9)
-    ST_CELL_R = _ps("st_cellr",  fontName="Helvetica",          fontSize=7.5,
-                    textColor=_C_TEXT,                         leading=9,  alignment=TA_RIGHT)
-    ST_TH     = _ps("st_th",     fontName="Helvetica-Bold",    fontSize=7.5,
-                    textColor=colors.white,                    leading=9,  alignment=TA_CENTER)
-    ST_NOTE   = _ps("st_note",   fontName="Helvetica-Oblique", fontSize=7,
-                    textColor=_C_MUTED,                        leading=10)
-    ST_FOOTER = _ps("st_footer", fontName="Helvetica",          fontSize=7,
-                    textColor=_C_MUTED,                        leading=9,  alignment=TA_CENTER)
+def _col_widths(ws, widths: dict):
+    for col_letter, w in widths.items():
+        ws.column_dimensions[col_letter].width = w
 
-    story = []
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # PAGE 1 — HEADER
-    # ══════════════════════════════════════════════════════════════════════════
-    report_title = (
-        f"Laporan Risiko — {ctx['region']}"
-        if ctx["is_regional"]
-        else "Laporan Risiko Nasional — PADIS"
-    )
-    subtitle = (
-        f"Bahaya: {ctx['hazard_label']}  |  Skenario: {ctx['scenario_label']}"
-        f"  |  Iklim: {ctx['climate_label']}"
-    )
+# ── Sheet 1: Ringkasan ────────────────────────────────────────────────────────
 
-    # Title bar
-    hdr = Table(
-        [[Paragraph(report_title, ST_TITLE), Paragraph(ctx["generated_at"], ST_DATE)]],
-        colWidths=[content_w * 0.72, content_w * 0.28],
-    )
-    hdr.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), _C_PRIMARY),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING",   (0, 0), (0,  0),  10),
-        ("RIGHTPADDING",  (1, 0), (1,  0),  10),
-        ("TOPPADDING",    (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]))
-    story.append(hdr)
+def _sheet_ringkasan(ws, ctx, all_rows):
+    """Summary sheet: metadata, KPIs, top-3 highlights, insight narrative."""
+    ws.sheet_view.showGridLines = False
 
-    # Subtitle bar
-    sub = Table(
-        [[Paragraph(subtitle, ST_SUB)]],
-        colWidths=[content_w],
-    )
-    sub.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), _C_DARK_BLUE),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ]))
-    story.append(sub)
-    story.append(Spacer(1, 5 * mm))
+    _col_widths(ws, {"A": 24, "B": 26, "C": 22, "D": 26, "E": 16, "F": 16})
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # KPI CARDS  (4 metrics in one row)
-    # ══════════════════════════════════════════════════════════════════════════
-    kpi_cw = content_w / 4
-    kpi = Table(
-        [
-            [
-                Paragraph(ctx["total_loss"],     ST_KPI_V),
-                Paragraph(ctx["top_loss"],        ST_KPI_V),
-                Paragraph(ctx["aal_nonclimate"],  ST_KPI_V),
-                Paragraph(str(ctx["data_count"]), ST_KPI_V),
-            ],
-            [
-                Paragraph("Total Kerugian",       ST_KPI_L),
-                Paragraph("Kerugian Tertinggi",   ST_KPI_L),
-                Paragraph("AAL Non-Iklim",        ST_KPI_L),
-                Paragraph("Wilayah Terdampak",    ST_KPI_L),
-            ],
-        ],
-        colWidths=[kpi_cw] * 4,
-        rowHeights=[18, 12],
-    )
-    kpi.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), _C_LIGHT_BLUE),
-        ("BOX",           (0, 0), (0, -1),  0.5, _C_BORDER),
-        ("BOX",           (1, 0), (1, -1),  0.5, _C_BORDER),
-        ("BOX",           (2, 0), (2, -1),  0.5, _C_BORDER),
-        ("BOX",           (3, 0), (3, -1),  0.5, _C_BORDER),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",    (0, 0), (-1, 0),  6),
-        ("BOTTOMPADDING", (0, 0), (-1, 0),  2),
-        ("TOPPADDING",    (0, 1), (-1, 1),  2),
-        ("BOTTOMPADDING", (0, 1), (-1, 1),  6),
-    ]))
-    story.append(kpi)
-    story.append(Spacer(1, 3 * mm))
+    r = 1
 
-    # ── AAL comparison row ────────────────────────────────────────────────────
-    aal_up    = ctx["aal_pct_up"]
-    d_color   = "#EF4444" if aal_up else "#10B981"
-    arrow     = "▲" if aal_up else "▼"
+    # ── Title banner ──────────────────────────────────────────────────────────
+    _merge_row(ws, r, 1, 6,
+               "PADIS — Laporan Analisis Risiko Bencana Pertanian",
+               font=_font(bold=True, size=14, color="FFFFFF"),
+               fill=_FILL_NAVY, align=_ALIGN_C)
+    ws.row_dimensions[r].height = 28
+    r += 1
 
-    aal_row = Table(
-        [[
-            Paragraph(
-                f'<b>AAL Tanpa Perubahan Iklim:</b>  {ctx["aal_nonclimate"]}',
-                ST_BODY,
-            ),
-            Paragraph(
-                f'<b>AAL Dengan Perubahan Iklim:</b>  {ctx["aal_climate"]}',
-                ST_BODY,
-            ),
-            Paragraph(
-                f'<font color="{d_color}"><b>{arrow} {ctx["aal_delta"]}  ({ctx["aal_pct"]})</b></font>',
-                ST_BODY,
-            ),
-        ]],
-        colWidths=[content_w * 0.34, content_w * 0.34, content_w * 0.32],
-    )
-    aal_row.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#F0F9FF")),
-        ("BOX",           (0, 0), (-1, -1), 0.5, _C_BORDER),
-        ("LINEAFTER",     (0, 0), (1, 0),   0.5, _C_BORDER),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",    (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-    ]))
-    story.append(aal_row)
-    story.append(Spacer(1, 4 * mm))
+    _merge_row(ws, r, 1, 6,
+               "Paddy Disaster Information System · Teknik Geodesi dan Geomatika",
+               font=_font(size=9, color="BFDBFE"),
+               fill=_FILL_NAVY, align=_ALIGN_C)
+    ws.row_dimensions[r].height = 16
+    r += 1
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # TOP REGIONS TABLE
-    # ══════════════════════════════════════════════════════════════════════════
-    table_title = (
-        f"Data Wilayah: {ctx['region']}"
-        if ctx["is_regional"]
-        else "10 Kabupaten/Kota dengan Kerugian Tertinggi"
-    )
-    story.append(Paragraph(table_title, ST_H2))
+    # Gold stripe row
+    for c in range(1, 7):
+        ws.cell(row=r, column=c).fill = _FILL_GOLD
+    ws.row_dimensions[r].height = 3
+    r += 1
 
-    # Column widths must sum to content_w (≈ 181 mm for A4 with 15 mm margins)
-    col_ws = [8*mm, 38*mm, 28*mm, 28*mm, 26*mm, 18*mm, 23*mm, 12*mm]
+    r += 1  # spacer
 
-    tbl_data = [[
-        Paragraph("No",           ST_TH),
-        Paragraph("Kabupaten/Kota", ST_TH),
-        Paragraph("Provinsi",     ST_TH),
-        Paragraph("Loss (Rp)",    ST_TH),
-        Paragraph("AAL (Rp)",     ST_TH),
-        Paragraph("H-Index",      ST_TH),
-        Paragraph("Produksi (t)", ST_TH),
-        Paragraph("Share",        ST_TH),
-    ]]
+    # ── Metadata section ──────────────────────────────────────────────────────
+    _merge_row(ws, r, 1, 6, "IDENTITAS LAPORAN",
+               font=_font(bold=True, size=9, color="FFFFFF"),
+               fill=_FILL_BLUE, align=_ALIGN_L)
+    ws.row_dimensions[r].height = 18
+    r += 1
 
-    for row in ctx["top_regions"]:
-        tbl_data.append([
-            Paragraph(str(row["rank"]),        ST_CELL),
-            Paragraph(row["kab_kota"],         ST_CELL),
-            Paragraph(row["prov"],             ST_CELL),
-            Paragraph(row["loss_fmt"],         ST_CELL_R),
-            Paragraph(row["aal_fmt"],          ST_CELL_R),
-            Paragraph(row["hidx"],             ST_CELL_R),
-            Paragraph(row["prod_fmt"],         ST_CELL_R),
-            Paragraph(f'{row["share_pct"]}%',  ST_CELL_R),
-        ])
-
-    row_styles = [
-        ("BACKGROUND",    (0, 0), (-1, 0),  _C_TH_BG),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID",          (0, 0), (-1, -1), 0.3, _C_BORDER),
-        ("TOPPADDING",    (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
+    meta_pairs = [
+        ("Jenis Bahaya",    ctx["hazard_label"],    "Skenario Iklim",  ctx["climate_label"]),
+        ("Periode Ulang",   ctx["scenario_label"],  "Wilayah",         ctx["region"] or "Seluruh Indonesia"),
+        ("Tanggal Dibuat",  ctx["generated_at"],    "Run ID",          f"#{ctx['run_id']}"),
     ]
-    for i in range(1, len(tbl_data)):
-        bg = _C_ROW_ALT if i % 2 == 0 else colors.white
-        row_styles.append(("BACKGROUND", (0, i), (-1, i), bg))
+    for label1, val1, label2, val2 in meta_pairs:
+        _set(ws, r, 1, label1, font=_FONT_LABEL, fill=_FILL_LIGHT, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 2, val1,   font=_FONT_DARK_B, fill=_FILL_WHITE, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 3, label2, font=_FONT_LABEL, fill=_FILL_LIGHT, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 4, val2,   font=_FONT_DARK_B, fill=_FILL_WHITE, align=_ALIGN_L, border=_BORDER_ALL)
+        ws.cell(row=r, column=5).fill = _FILL_WHITE
+        ws.cell(row=r, column=6).fill = _FILL_WHITE
+        ws.row_dimensions[r].height = 16
+        r += 1
 
-    data_tbl = Table(tbl_data, colWidths=col_ws, repeatRows=1)
-    data_tbl.setStyle(TableStyle(row_styles))
-    story.append(data_tbl)
-    story.append(Spacer(1, 4 * mm))
+    r += 1  # spacer
+
+    # ── KPI section ───────────────────────────────────────────────────────────
+    _merge_row(ws, r, 1, 6, "INDIKATOR UTAMA (KEY PERFORMANCE INDICATORS)",
+               font=_font(bold=True, size=9, color="FFFFFF"),
+               fill=_FILL_NAVY, align=_ALIGN_L)
+    ws.row_dimensions[r].height = 18
+    r += 1
+
+    kpis = [
+        ("Total Kerugian",       ctx["total_loss"],       "Kerugian Tertinggi",    ctx["top_loss"]),
+        ("AAL Non-Climate",      ctx["aal_nonclimate"],   "AAL Climate",           ctx["aal_climate"]),
+        ("Δ AAL (abs)",          ctx["aal_delta"],        "% Perubahan AAL",       ctx["aal_pct"]),
+        ("Wilayah Terdampak",    ctx["valid_count"],      "Total Wilayah",         ctx["data_count"]),
+        ("Top-3 Share (%)",      ctx["top3_share_label"], "Wilayah #1 Share (%)",  ctx["top1_share_label"]),
+    ]
+    for label1, val1, label2, val2 in kpis:
+        _set(ws, r, 1, label1, font=_FONT_LABEL, fill=_FILL_LIGHT, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 2, val1,   font=_FONT_NAVY_B, fill=_FILL_WHITE, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 3, label2, font=_FONT_LABEL, fill=_FILL_LIGHT, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 4, val2,   font=_FONT_NAVY_B, fill=_FILL_WHITE, align=_ALIGN_L, border=_BORDER_ALL)
+        ws.cell(row=r, column=5).fill = _FILL_WHITE
+        ws.cell(row=r, column=6).fill = _FILL_WHITE
+        ws.row_dimensions[r].height = 16
+        r += 1
+
+    r += 1
+
+    # ── Top 3 highlights ──────────────────────────────────────────────────────
+    _merge_row(ws, r, 1, 6, "TIGA WILAYAH PRIORITAS RISIKO TERTINGGI",
+               font=_font(bold=True, size=9, color="FFFFFF"),
+               fill=_FILL_NAVY, align=_ALIGN_L)
+    ws.row_dimensions[r].height = 18
+    r += 1
+
+    # Sub-header
+    for col, (hdr, w) in enumerate(zip(
+        ["No", "Kabupaten / Kota", "Provinsi", "Kerugian (Rp)", "Share (%)"],
+        [4, 28, 20, 20, 10]
+    ), start=1):
+        _set(ws, r, col, hdr, font=_FONT_WHITE_B, fill=_FILL_BLUE,
+             align=_ALIGN_C, border=_BORDER_ALL)
+    ws.row_dimensions[r].height = 15
+    r += 1
+
+    top3 = ctx["top_regions"][:3]
+    for i, row_data in enumerate(top3):
+        fill = _FILL_ALT if i % 2 == 0 else _FILL_WHITE
+        _set(ws, r, 1, i + 1,               font=_FONT_DARK,   fill=fill, align=_ALIGN_C, border=_BORDER_ALL)
+        _set(ws, r, 2, row_data["kab_kota"],font=_FONT_DARK_B, fill=fill, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 3, row_data["prov"],     font=_FONT_DARK,   fill=fill, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 4, row_data["loss_fmt"], font=_FONT_DARK,   fill=fill, align=_ALIGN_R, border=_BORDER_ALL)
+        _set(ws, r, 5, f'{row_data["share_pct"]}%', font=_FONT_DARK, fill=fill, align=_ALIGN_C, border=_BORDER_ALL)
+        ws.row_dimensions[r].height = 14
+        r += 1
+
+    r += 1
 
     # ── Insight narrative ─────────────────────────────────────────────────────
-    if not ctx["empty_state"]:
-        top_share  = ctx["top_loss_share"]
-        top3_share = ctx["top3_share"]
-        insight = (
-            f"Berdasarkan analisis skenario <b>{ctx['scenario_label']}</b> "
-            f"({ctx['climate_label']}), total kerugian padi mencapai "
-            f"<b>{ctx['total_loss']}</b> dari <b>{ctx['data_count']}</b> kabupaten/kota. "
-            f"Wilayah tertinggi adalah <b>{ctx['top_region']}</b> "
-            f"({top_share:.1f}% dari total loss). "
-            f"Tiga wilayah teratas menyumbang {top3_share:.1f}% dari keseluruhan kerugian. "
-        )
-        if aal_up:
-            insight += (
-                f"Proyeksi AAL meningkat <b>{ctx['aal_delta']} ({ctx['aal_pct']})</b> "
-                f"pada skenario perubahan iklim, mengindikasikan risiko masa depan yang lebih tinggi."
-            )
-        else:
-            insight += (
-                f"Proyeksi AAL menurun <b>{ctx['aal_delta']} ({ctx['aal_pct']})</b> "
-                f"pada skenario perubahan iklim."
-            )
-        story.append(Paragraph(insight, ST_BODY))
+    _merge_row(ws, r, 1, 6, "ANALISIS RINGKAS",
+               font=_font(bold=True, size=9, color="FFFFFF"),
+               fill=_FILL_NAVY, align=_ALIGN_L)
+    ws.row_dimensions[r].height = 18
+    r += 1
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # PAGE 2 — DEFINISI & METADATA
-    # ══════════════════════════════════════════════════════════════════════════
-    story.append(PageBreak())
-    story.append(Paragraph("Definisi Variabel & Catatan Metodologi", ST_H2))
-    story.append(HRFlowable(width=content_w, thickness=0.5, color=_C_BORDER, spaceAfter=4))
+    insight = ctx.get("insight", "")
+    _merge_row(ws, r, 1, 6, insight,
+               font=_font(size=9, color="1F2937"),
+               fill=_FILL_LIGHT, align=_ALIGN_LW)
+    ws.row_dimensions[r].height = 48
+    r += 1
 
-    defs = [
-        ("Loss (Kerugian)",
-         "Estimasi kerugian produksi padi akibat bencana pada skenario return period "
-         "tertentu, dinyatakan dalam Rupiah."),
-        ("AAL (Annual Average Loss)",
-         "Ekspektasi kerugian tahunan rata-rata berdasarkan probabilitas kejadian, "
-         "dinyatakan dalam Rupiah."),
-        ("Hazard Index",
-         "Indeks bahaya normalisasi (0–1) yang menggambarkan intensitas ancaman bencana. "
-         "Nilai lebih tinggi berarti ancaman lebih besar."),
-        ("Produksi Padi",
-         "Total produksi padi tahunan di kabupaten/kota (dalam ton), "
-         "berdasarkan data pertanian terkini."),
-        ("Return Period",
-         "RP25 = 1 kali per 25 tahun, RP50 = 1 kali per 50 tahun, "
-         "RP100 = 1 kali per 100 tahun, RP250 = 1 kali per 250 tahun."),
-        ("Skenario Iklim",
-         "Non-Climate = kondisi iklim historis/saat ini. "
-         "Climate = proyeksi dengan dampak perubahan iklim masa depan."),
-    ]
+    r += 1
 
-    def_data = [
-        [Paragraph(f"<b>{term}</b>", ST_CELL), Paragraph(defn, ST_NOTE)]
-        for term, defn in defs
-    ]
-    def_tbl = Table(def_data, colWidths=[45*mm, content_w - 45*mm])
-    def_tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, -1),  _C_LIGHT_BLUE),
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-        ("GRID",          (0, 0), (-1, -1), 0.3, _C_BORDER),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-    ]))
-    story.append(def_tbl)
-    story.append(Spacer(1, 6 * mm))
+    # ── Navigation note ───────────────────────────────────────────────────────
+    note = ("File ini berisi 3 sheet:  "
+            "[1] Ringkasan — metadata & KPI  |  "
+            "[2] 10 Wilayah Teratas — top 10 kabupaten/kota  |  "
+            "[3] Semua Data — seluruh wilayah teranalisis")
+    _merge_row(ws, r, 1, 6, note,
+               font=_font(size=8, color="6B7280", italic=True),
+               fill=_FILL_WHITE, align=_ALIGN_LW)
+    ws.row_dimensions[r].height = 28
 
-    # Metadata
-    story.append(Paragraph("Metadata Laporan", ST_H2))
-    story.append(HRFlowable(width=content_w, thickness=0.5, color=_C_BORDER, spaceAfter=4))
 
-    meta_rows = [
-        ("Jenis Bahaya",    ctx["hazard_label"]),
-        ("Skenario",        ctx["scenario_label"]),
-        ("Kondisi Iklim",   ctx["climate_label"]),
-        ("Waktu Dibuat",    ctx["generated_at"]),
-        ("Cakupan Wilayah", ctx["region"] or "Seluruh Indonesia"),
-        ("Sumber Data",     "PADIS — Paddy Loss and Damage Information System"),
-    ]
-    meta_data = [
-        [Paragraph(f"<b>{k}</b>", ST_CELL), Paragraph(v, ST_CELL)]
-        for k, v in meta_rows
-    ]
-    meta_tbl = Table(meta_data, colWidths=[45*mm, content_w - 45*mm])
-    meta_tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, -1),  _C_LIGHT_BLUE),
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-        ("GRID",          (0, 0), (-1, -1), 0.3, _C_BORDER),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-    ]))
-    story.append(meta_tbl)
-    story.append(Spacer(1, 8 * mm))
+# ── Sheet 2 & 3: Data tables ──────────────────────────────────────────────────
 
-    # Footer
-    story.append(HRFlowable(width=content_w, thickness=0.5, color=_C_BORDER, spaceAfter=4))
-    story.append(Paragraph(
-        "Laporan ini dibuat otomatis oleh PADIS (Paddy Loss and Damage Information System). "
-        "Data dan analisis bersifat indikatif untuk keperluan perencanaan.",
-        ST_FOOTER,
-    ))
+_DATA_HEADERS = [
+    ("No",              5),
+    ("ID Kabkota",      13),
+    ("Kabupaten / Kota",32),
+    ("Provinsi",        22),
+    ("Loss (Rp)",       20),
+    ("AAL (Rp)",        20),
+    ("Hazard Index",    14),
+    ("Produksi (ton)",  18),
+    ("Share (%)",       11),
+]
 
-    doc.build(story)
+
+def _fill_data_sheet(ws, rows, total_loss, sheet_title):
+    """Render a styled data table onto ws."""
+    ws.sheet_view.showGridLines = False
+
+    # Column widths
+    for col, (_, w) in enumerate(_DATA_HEADERS, start=1):
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    r = 1
+
+    # Banner
+    _merge_row(ws, r, 1, len(_DATA_HEADERS), sheet_title,
+               font=_font(bold=True, size=12, color="FFFFFF"),
+               fill=_FILL_NAVY, align=_ALIGN_C)
+    ws.row_dimensions[r].height = 22
+    r += 1
+
+    # Gold stripe
+    for c in range(1, len(_DATA_HEADERS) + 1):
+        ws.cell(row=r, column=c).fill = _FILL_GOLD
+    ws.row_dimensions[r].height = 3
+    r += 1
+
+    # Column headers
+    for col, (hdr, _) in enumerate(_DATA_HEADERS, start=1):
+        _set(ws, r, col, hdr, font=_FONT_WHITE_B, fill=_FILL_BLUE,
+             align=_ALIGN_C, border=_BORDER_ALL)
+    ws.row_dimensions[r].height = 16
+    r += 1
+
+    # Data rows
+    for i, row_data in enumerate(rows):
+        fill = _FILL_ALT if i % 2 == 0 else _FILL_WHITE
+        share = (row_data.loss / total_loss * 100) if total_loss and row_data.loss else 0.0
+
+        _set(ws, r, 1, i + 1,               font=_FONT_MUTED,  fill=fill, align=_ALIGN_C, border=_BORDER_ALL)
+        _set(ws, r, 2, row_data.id_kabkota,  font=_FONT_DARK,   fill=fill, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 3, row_data.kab_kota,    font=_FONT_DARK_B, fill=fill, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 4, row_data.prov,        font=_FONT_DARK,   fill=fill, align=_ALIGN_L, border=_BORDER_ALL)
+        _set(ws, r, 5, row_data.loss,        font=_FONT_DARK,   fill=fill, align=_ALIGN_R, border=_BORDER_ALL, num_fmt=_FMT_IDR)
+        _set(ws, r, 6, row_data.aal,         font=_FONT_DARK,   fill=fill, align=_ALIGN_R, border=_BORDER_ALL, num_fmt=_FMT_IDR)
+        _set(ws, r, 7, row_data.hazard_index,font=_FONT_DARK,   fill=fill, align=_ALIGN_C, border=_BORDER_ALL, num_fmt=_FMT_DEC)
+        _set(ws, r, 8, row_data.total_prod,  font=_FONT_DARK,   fill=fill, align=_ALIGN_R, border=_BORDER_ALL, num_fmt=_FMT_TON)
+        _set(ws, r, 9, round(share, 2),      font=_FONT_DARK,   fill=fill, align=_ALIGN_C, border=_BORDER_ALL, num_fmt=_FMT_PCT)
+        ws.row_dimensions[r].height = 13
+        r += 1
+
+    # Total footer row
+    total_share = 100.0 if total_loss else 0.0
+    _set(ws, r, 1, "",         fill=_FILL_TOTAL, border=_BORDER_ALL)
+    _set(ws, r, 2, "",         fill=_FILL_TOTAL, border=_BORDER_ALL)
+    _set(ws, r, 3, "TOTAL",    font=_font(bold=True, size=9, color="0D2137"), fill=_FILL_TOTAL, align=_ALIGN_L, border=_BORDER_ALL)
+    _set(ws, r, 4, "",         fill=_FILL_TOTAL, border=_BORDER_ALL)
+    _set(ws, r, 5, total_loss, font=_font(bold=True, size=9, color="0D2137"), fill=_FILL_TOTAL, align=_ALIGN_R, border=_BORDER_ALL, num_fmt=_FMT_IDR)
+    _set(ws, r, 6, "",         fill=_FILL_TOTAL, border=_BORDER_ALL)
+    _set(ws, r, 7, "",         fill=_FILL_TOTAL, border=_BORDER_ALL)
+    _set(ws, r, 8, "",         fill=_FILL_TOTAL, border=_BORDER_ALL)
+    _set(ws, r, 9, round(total_share, 1), font=_font(bold=True, size=9, color="0D2137"), fill=_FILL_TOTAL, align=_ALIGN_C, border=_BORDER_ALL, num_fmt=_FMT_PCT)
+    ws.row_dimensions[r].height = 15
+
+    # Freeze header rows
+    ws.freeze_panes = ws.cell(row=4, column=1)
+
+
+def _build_xlsx(buf, ctx, all_rows):
+    """Render multi-sheet XLSX into buf."""
+    wb = Workbook()
+
+    # Sheet 1 — Ringkasan
+    ws_sum = wb.active
+    ws_sum.title = "Ringkasan"
+    _sheet_ringkasan(ws_sum, ctx, all_rows)
+
+    # Sheet 2 — Top 10 Wilayah
+    ws_top = wb.create_sheet("10 Wilayah Teratas")
+    top10 = [r for r in all_rows if r.loss > 0][:10]
+    total_loss = sum(r.loss for r in all_rows if r.loss)
+    _fill_data_sheet(
+        ws_top, top10, total_loss,
+        f"10 Wilayah Kerugian Tertinggi — {ctx['hazard_label']} · {ctx['scenario_label']} · {ctx['climate_label']}"
+    )
+
+    # Sheet 3 — Semua Data
+    ws_all = wb.create_sheet("Semua Data")
+    _fill_data_sheet(
+        ws_all, all_rows, total_loss,
+        f"Semua Data Wilayah — {ctx['hazard_label']} · {ctx['scenario_label']} · {ctx['climate_label']}"
+    )
+
+    wb.save(buf)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# REPORT ENDPOINT
+# XLSX REPORT ENDPOINT
 # ══════════════════════════════════════════════════════════════════════════════
 
 @report_bp.route("/api/generate-report-v2")
@@ -567,10 +548,11 @@ def generate_report_v2():
                     if r.kab_kota.strip().lower() == region.lower()]
 
         # ── Statistics ────────────────────────────────────────────────────────
-        valid      = [r for r in rows if r.loss > 0]
-        data_count = len(valid)
-        total_loss = sum(r.loss for r in valid)
-        top_rows   = valid[:10]
+        valid       = [r for r in rows if r.loss > 0]
+        data_count  = len(rows)
+        valid_count = len(valid)
+        total_loss  = sum(r.loss for r in valid)
+        top_rows    = valid[:10]
 
         aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"], run_id)
         aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"],    run_id)
@@ -581,7 +563,8 @@ def generate_report_v2():
         top_name       = f"{top_row.kab_kota}, {top_row.prov}" if top_row else "-"
         top_loss_v     = top_row.loss if top_row else 0.0
         top_loss_share = (top_loss_v / total_loss * 100.0) if total_loss else 0.0
-        top3_share     = (sum(r.loss for r in valid[:3]) / total_loss * 100.0) if total_loss else 0.0
+        top3_loss      = sum(r.loss for r in valid[:3])
+        top3_share     = (top3_loss / total_loss * 100.0) if total_loss else 0.0
 
         formatted_top = [
             {
@@ -597,41 +580,67 @@ def generate_report_v2():
             for i, r in enumerate(top_rows)
         ]
 
+        # Narrative insight for Summary sheet
+        insight_parts = [
+            f"Berdasarkan analisis {_HAZARD_LABEL.get(db_hazard, db_hazard)} skenario "
+            f"{'Climate Change' if climate == 'climate' else 'Non-Climate'} "
+            f"periode ulang {scenario.upper()}, total kerugian produksi padi mencapai "
+            f"{_fmt(total_loss)} dari {valid_count} kabupaten/kota terdampak "
+            f"(dari {data_count} wilayah teranalisis)."
+        ]
+        if top_row:
+            insight_parts.append(
+                f"Wilayah tertinggi adalah {top_name} ({top_loss_share:.1f}% dari total)."
+            )
+        if len(valid) >= 3:
+            insight_parts.append(
+                f"Tiga wilayah teratas menyumbang {top3_share:.1f}% dari total kerugian."
+            )
+        if aal_nc:
+            arrow = "meningkat" if aal_delta >= 0 else "menurun"
+            insight_parts.append(
+                f"Proyeksi AAL {arrow} {abs(aal_pct):.1f}% pada skenario perubahan iklim "
+                f"({_fmt(aal_nc)} → {_fmt(aal_cc)})."
+            )
+
         ctx = {
-            "hazard_label":   _HAZARD_LABEL.get(db_hazard, db_hazard),
-            "climate_label":  "Climate" if climate == "climate" else "Non-Climate",
-            "scenario_label": scenario.upper(),
-            "generated_at":   datetime.now().strftime("%d %B %Y, %H:%M WIB"),
-            "region":         region,
-            "is_regional":    bool(region),
-            "data_count":     data_count,
+            "hazard_label":      _HAZARD_LABEL.get(db_hazard, db_hazard),
+            "climate_label":     "Climate Change" if climate == "climate" else "Non-Climate (Baseline)",
+            "scenario_label":    scenario.upper(),
+            "generated_at":      datetime.now().strftime("%d %B %Y, %H:%M WIB"),
+            "region":            region,
+            "is_regional":       bool(region),
+            "run_id":            run_id,
 
-            "total_loss":     _fmt(total_loss),
-            "top_region":     top_name,
-            "top_loss":       _fmt(top_loss_v),
-            "top_loss_share": round(top_loss_share, 1),
-            "top3_share":     round(top3_share, 1),
+            "data_count":        data_count,
+            "valid_count":       valid_count,
+            "total_loss":        _fmt(total_loss),
+            "top_region":        top_name,
+            "top_loss":          _fmt(top_loss_v),
+            "top1_share_label":  f"{top_loss_share:.1f}%",
+            "top3_share_label":  f"{top3_share:.1f}%",
 
-            "aal_nonclimate": _fmt(aal_nc),
-            "aal_climate":    _fmt(aal_cc),
-            "aal_delta":      _fmt(abs(aal_delta)),
-            "aal_pct":        f"{aal_pct:+.1f}%",
-            "aal_pct_up":     aal_delta >= 0,
+            "aal_nonclimate":    _fmt(aal_nc),
+            "aal_climate":       _fmt(aal_cc),
+            "aal_delta":         _fmt(abs(aal_delta)),
+            "aal_pct":           f"{aal_pct:+.1f}%",
+            "aal_pct_up":        aal_delta >= 0,
 
-            "top_regions":    formatted_top,
-            "empty_state":    data_count == 0,
+            "top_regions":       formatted_top,
+            "empty_state":       valid_count == 0,
+            "insight":           " ".join(insight_parts),
         }
     finally:
         db.close()
 
     buf = BytesIO()
-    _build_pdf(buf, ctx)
+    _build_xlsx(buf, ctx, rows)
     buf.seek(0)
 
     region_slug = make_region_slug(region)
     return send_file(
         buf,
-        mimetype="application/pdf",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"padis_report_{hazard}_{climate}_{scenario}_{region_slug}.pdf",
+        download_name=f"padis_data_{hazard}_{climate}_{scenario}_{region_slug}.xlsx",
     )

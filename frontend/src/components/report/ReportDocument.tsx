@@ -72,16 +72,6 @@ function fmtCompact(v: number | null | undefined): string {
   return IDR.format(n);
 }
 
-function fmtTon(v: number | null | undefined): string {
-  if (v == null || isNaN(Number(v))) return "—";
-  return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Number(v)) + " ton";
-}
-
-function fmtIdx(v: number | null | undefined): string {
-  if (v == null || isNaN(Number(v))) return "—";
-  return Number(v).toFixed(4);
-}
-
 function fmtChartTick(v: number): string {
   if (v >= 1e9) return `${(v / 1e9).toFixed(0)} M`;
   if (v >= 1e6) return `${(v / 1e6).toFixed(0)} Jt`;
@@ -204,22 +194,12 @@ export default function ReportDocument({
       fetchJson(
         `/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`
       ),
-      fetchJson(
-        `/api/layers/values/aal?hazard=${h}&climate=${c}&run_id=${runId}`
-      ),
     ])
-      .then(([topJson, aalJson, lossJson, aalLayerJson]) => {
+      .then(([topJson, aalJson, lossJson]) => {
         setTopRegions(topJson as TopRegion[]);
         setAalSummary(aalJson);
 
-        const aalMap = new Map<string, number | null>(
-          ((aalLayerJson.data ?? []) as RegionRow[]).map((r) => [
-            r.id_kabkota ?? "", r.aal ?? null,
-          ])
-        );
-
         const rows = ((lossJson.data ?? []) as RegionRow[])
-          .map((r) => ({ ...r, aal: aalMap.get(r.id_kabkota ?? "") ?? r.aal ?? null }))
           .sort((a, b) => (b.loss ?? 0) - (a.loss ?? 0));
 
         setAllRegions(rows);
@@ -613,83 +593,75 @@ export default function ReportDocument({
 
         <div className="px-10 pt-5 pb-4 space-y-5">
 
-          {/* ── Section III: Full data table ── */}
-          <div>
-            <SectionHead num="III" title="Tabel Rinci Kerugian per Wilayah" />
+          {/* ── Section III: Top 10 table ── */}
+          <div className="avoid-break">
+            <SectionHead num="III" title="10 Wilayah Terdampak Tertinggi" />
 
             <div className="overflow-hidden rounded-sm" style={{ border: `1px solid #e5e7eb` }}>
               <table className="w-full border-collapse" style={{ fontSize: 8 }}>
                 <thead>
                   <tr style={{ backgroundColor: NAVY }}>
-                    {["No", "Kabupaten / Kota", "Provinsi", "Kerugian (Rp)", "AAL (Rp)", "Indeks Bahaya", "Produksi", "Share"].map((h) => (
+                    {["No.", "Wilayah", "Kerugian (Rp)", "Share (%)"].map((col) => (
                       <th
-                        key={h}
-                        className="px-2 py-2 text-left font-semibold uppercase tracking-wide text-white"
+                        key={col}
+                        className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-white"
                         style={{ fontSize: 7, letterSpacing: "0.06em" }}
                       >
-                        {h}
+                        {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {allRegions.map((row, i) => (
+                  {topRegions.slice(0, 10).map((row, i) => (
                     <tr
-                      key={row.id_kabkota ?? i}
+                      key={row.name}
                       style={{ backgroundColor: i % 2 === 0 ? "#ffffff" : "#f9fafb" }}
                     >
-                      <td className="px-2 py-1.5 text-gray-400" style={{ fontSize: 7.5 }}>{i + 1}</td>
-                      <td className="px-2 py-1.5 font-medium text-gray-900">{row.kab_kota}</td>
-                      <td className="px-2 py-1.5 text-gray-600">{row.prov}</td>
-                      <td className="px-2 py-1.5 text-right font-semibold text-gray-900">
-                        {fmtFull(row.loss)}
-                      </td>
-                      <td className="px-2 py-1.5 text-right text-gray-700">
-                        {fmtFull(row.aal)}
-                      </td>
-                      <td className="px-2 py-1.5 text-center text-gray-700">
-                        {fmtIdx(row.mean_value)}
-                      </td>
-                      <td className="px-2 py-1.5 text-right text-gray-700">
-                        {fmtTon(row.total_prod)}
-                      </td>
-                      <td className="px-2 py-1.5 text-center font-medium" style={{ color: (row.loss ?? 0) > 0 ? "#1e3a5c" : "#9ca3af" }}>
-                        {totalLoss > 0 && (row.loss ?? 0) > 0
-                          ? `${(((row.loss ?? 0) / totalLoss) * 100).toFixed(1)}%`
+                      <td className="px-3 py-1.5 text-gray-400" style={{ fontSize: 7.5 }}>{i + 1}</td>
+                      <td className="px-3 py-1.5 font-medium text-gray-900">{row.name}</td>
+                      <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{fmtFull(row.loss)}</td>
+                      <td className="px-3 py-1.5 text-right font-medium" style={{ color: "#1e3a5c" }}>
+                        {totalLoss > 0 && row.loss > 0
+                          ? `${((row.loss / totalLoss) * 100).toFixed(1)}%`
                           : "—"}
                       </td>
                     </tr>
                   ))}
-                  {allRegions.length === 0 && (
+                  {topRegions.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="py-10 text-center text-[10px] text-gray-400">
+                      <td colSpan={4} className="py-8 text-center text-[10px] text-gray-400">
                         Tidak ada data tersedia untuk kombinasi filter ini.
                       </td>
                     </tr>
                   )}
                 </tbody>
-                {allRegions.length > 0 && (
-                  <tfoot>
-                    <tr style={{ backgroundColor: "#f3f4f6", borderTop: `2px solid ${NAVY}` }}>
-                      <td
-                        colSpan={3}
-                        className="px-2 py-2 font-bold uppercase tracking-wider text-gray-700"
-                        style={{ fontSize: 7 }}
-                      >
-                        Total
-                      </td>
-                      <td className="px-2 py-2 text-right font-bold text-gray-900">{fmtFull(totalLoss)}</td>
-                      <td className="px-2 py-2 text-right font-bold text-gray-900">{fmtFull(aalNc)}</td>
-                      <td className="px-2 py-2 text-center text-gray-400">—</td>
-                      <td className="px-2 py-2 text-right text-gray-400">—</td>
-                      <td className="px-2 py-2 text-center font-bold text-gray-900">
-                        {totalLoss > 0 ? "100.0%" : "—"}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
+                {topRegions.length > 0 && (() => {
+                  const top10Loss = topRegions.slice(0, 10).reduce((s, r) => s + r.loss, 0);
+                  return (
+                    <tfoot>
+                      <tr style={{ backgroundColor: "#f3f4f6", borderTop: `2px solid ${NAVY}` }}>
+                        <td
+                          colSpan={2}
+                          className="px-3 py-2 font-bold uppercase tracking-wider text-gray-700"
+                          style={{ fontSize: 7 }}
+                        >
+                          Total (Top 10)
+                        </td>
+                        <td className="px-3 py-2 text-right font-bold text-gray-900">{fmtFull(top10Loss)}</td>
+                        <td className="px-3 py-2 text-right font-bold text-gray-900">
+                          {totalLoss > 0 ? `${((top10Loss / totalLoss) * 100).toFixed(1)}%` : "—"}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  );
+                })()}
               </table>
             </div>
+
+            <p className="mt-2 text-[8px] italic text-gray-500">
+              Catatan: Rincian data seluruh wilayah dapat dilihat melalui lampiran dokumen Excel (.xlsx).
+            </p>
           </div>
 
           {/* ── Section IV: Methodology ── */}

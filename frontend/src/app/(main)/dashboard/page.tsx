@@ -434,6 +434,7 @@ export default function DashboardPage() {
 
   function handleRegionChange(region: string | null) {
     const nextRegion = region?.trim() ?? "";
+    if (nextRegion.toLowerCase() === selectedRegion.toLowerCase().trim()) return;
     setSelectedRegion(nextRegion);
     if (nextRegion) setIsMapTransitioning(true);
   }

@@ -560,7 +560,7 @@ export default function DashboardPage() {
 
     openProtectedDownload(
       `/api/generate-report-v2?${params.toString()}`,
-      `padis_report_${hazard}_${climate}_${scenario}_${regionSlug}.pdf`
+      `padis_data_${hazard}_${climate}_${scenario}_${regionSlug}.xlsx`
     );
   }
 

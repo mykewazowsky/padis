@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer, X, FileText, FileSpreadsheet } from "lucide-react";
+import { Download, X, FileText, FileSpreadsheet } from "lucide-react";
 import type { ReportDocumentProps } from "./ReportDocument";
 import ReportDocument from "./ReportDocument";
 
@@ -27,7 +27,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, ...docPro
           <div>
             <p className="text-sm font-semibold text-white">Buat Laporan PADIS</p>
             <p className="text-xs text-gray-400">
-              Pratinjau layout A4 — gunakan tombol &ldquo;Cetak & Simpan PDF&rdquo; untuk mengunduh
+              Pratinjau layout A4 — gunakan tombol &ldquo;Unduh PDF&rdquo; untuk mengunduh
             </p>
           </div>
         </div>
@@ -53,8 +53,8 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, ...docPro
             className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "#c9a227" }}
           >
-            <Printer className="h-4 w-4" />
-            Cetak &amp; Simpan PDF
+            <Download className="h-4 w-4" />
+            Unduh PDF
           </button>
 
           <button
@@ -72,7 +72,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, ...docPro
       <div className="no-print shrink-0 bg-gray-800/60 px-6 py-1.5">
         <p className="text-center text-[11px] text-gray-500">
           <span className="font-semibold text-gray-400">Cara simpan PDF:</span>{" "}
-          Klik &ldquo;Cetak &amp; Simpan PDF&rdquo; → di dialog cetak browser pilih{" "}
+          Klik &ldquo;Unduh PDF&rdquo; → di dialog cetak browser pilih{" "}
           <span className="text-gray-300">Tujuan: Simpan sebagai PDF</span> → Simpan ·
           Dioptimalkan untuk kertas A4 portrait
         </p>

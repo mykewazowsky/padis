@@ -849,7 +849,7 @@ export default function DashboardPage() {
 
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-gray-800">
-                    Skenario Iklim
+                    Skenario Analisis
                   </label>
                   <Select
                     instanceId="climate-select"

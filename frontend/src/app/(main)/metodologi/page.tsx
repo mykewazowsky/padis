@@ -419,7 +419,117 @@ export default function MetodologiPage() {
         </div>
       </section>
 
-      {/* 3. KURVA KERENTANAN */}
+      {/* 3. SKENARIO CLIMATE DAN NON-CLIMATE */}
+      <section className="relative overflow-hidden bg-white py-20 lg:py-24 text-gray-900 border-b border-gray-200">
+        <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-10 text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                Skenario Climate dan Non-Climate
+              </h2>
+              <p className="mt-4 text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                Dalam PADIS, istilah{" "}
+                <strong className="text-gray-800">Climate</strong> dan{" "}
+                <strong className="text-gray-800">Non-Climate</strong> digunakan
+                sebagai penanda <em>skenario raster hazard</em> pada analisis
+                risiko banjir dan kekeringan — bukan perbedaan metode maupun
+                format data.
+              </p>
+            </div>
+
+            {/* Kartu perbandingan dua skenario */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Non-Climate */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Skenario
+                    </p>
+                    <h5 className="text-xl font-bold text-slate-900">
+                      Non-Climate
+                    </h5>
+                    <p className="text-sm italic text-slate-500 mt-0.5">
+                      Baseline Scenario
+                    </p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <History className="h-5 w-5 text-slate-600" />
+                  </div>
+                </div>
+                <p className="text-sm leading-relaxed text-slate-700">
+                  Merepresentasikan kondisi acuan berdasarkan kondisi dasar,
+                  historis, atau eksisting, tanpa mempertimbangkan proyeksi
+                  perubahan iklim secara eksplisit. Skenario ini berfungsi
+                  sebagai referensi untuk mengukur tingkat risiko pada kondisi
+                  baseline.
+                </p>
+              </div>
+
+              {/* Climate */}
+              <div className="rounded-2xl border border-teal-200 bg-teal-50 p-6 shadow-sm">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-teal-600 mb-1">
+                      Skenario
+                    </p>
+                    <h5 className="text-xl font-bold text-teal-900">Climate</h5>
+                    <p className="text-sm italic text-teal-600 mt-0.5">
+                      Climate Projection Scenario
+                    </p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-white shadow-sm">
+                    <TrendingUp className="h-5 w-5 text-teal-600" />
+                  </div>
+                </div>
+                <p className="text-sm leading-relaxed text-teal-800/90">
+                  Merepresentasikan kondisi hazard yang mempertimbangkan
+                  pengaruh iklim atau proyeksi perubahan iklim. Nilai raster
+                  pada skenario ini mencerminkan potensi perubahan intensitas
+                  bahaya akibat faktor iklim di masa mendatang.
+                </p>
+              </div>
+            </div>
+
+            {/* Info bersama: format raster + catatan alur risiko */}
+            <div className="mt-4 rounded-2xl border border-gray-100 bg-slate-50 p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    Format Raster Hazard (Kedua Skenario)
+                  </p>
+                  <div className="flex flex-col gap-1 text-sm text-gray-700">
+                    <span>
+                      <span className="font-medium text-blue-700">Banjir</span>{" "}
+                      — nilai kedalaman genangan (meter)
+                    </span>
+                    <span>
+                      <span className="font-medium text-orange-700">
+                        Kekeringan
+                      </span>{" "}
+                      — nilai Standardized Precipitation Index (SPI)
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Info className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" />
+                  <p className="text-sm leading-relaxed text-gray-600">
+                    Kedua skenario diproses melalui alur perhitungan risiko yang
+                    sama: ekstraksi nilai hazard, penerapan kurva kerentanan,
+                    estimasi <em>loss</em>, dan agregasi ke{" "}
+                    <strong className="text-gray-800">
+                      Annual Average Loss (AAL)
+                    </strong>{" "}
+                    tingkat kabupaten/kota.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. KURVA KERENTANAN */}
       <section className="relative overflow-hidden bg-white py-20 lg:py-24 text-gray-900 border-b border-gray-200">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader

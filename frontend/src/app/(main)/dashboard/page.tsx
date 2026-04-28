@@ -1038,6 +1038,10 @@ export default function DashboardPage() {
           selectedRegion={selectedRegion}
           onClose={() => setShowReportPreview(false)}
           onDownloadExcel={handleGenerateReport}
+          onRequireLogin={() => {
+            setLoginNoticeMessage("Silakan login terlebih dahulu untuk mengunduh laporan PDF.");
+            setShowLoginNotice(true);
+          }}
         />
       )}
 

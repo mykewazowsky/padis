@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, Loader2, LocateFixed, X } from "lucide-react";
+import { Download, FileText, Lock, Loader2, LocateFixed, X } from "lucide-react";
+import { getToken } from "@/lib/auth";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 
 type SelectedFeature = {
@@ -64,6 +65,7 @@ export default function DashboardMapOverlay({
   onGenerateReport,
   isMapTransitioning = false,
 }: Props) {
+  const isAuthenticated = !!getToken();
   const [exportingCsv, setExportingCsv] = useState(false);
 
   function handleCsv() {
@@ -113,11 +115,14 @@ export default function DashboardMapOverlay({
             type="button"
             onClick={handleCsv}
             disabled={exportingCsv}
+            title={isAuthenticated ? undefined : "Login diperlukan untuk mengunduh CSV."}
             className="btn-outline text-xs font-medium shadow-sm backdrop-blur transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exportingCsv
               ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Download className="h-4 w-4" />
+              : isAuthenticated
+                ? <Download className="h-4 w-4" />
+                : <Lock className="h-4 w-4 opacity-70" />
             }
             <span className="hidden sm:inline">{exportingCsv ? "Memuat..." : "Unduh CSV"}</span>
           </button>

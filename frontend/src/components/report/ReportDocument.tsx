@@ -257,7 +257,7 @@ export default function ReportDocument({
       {/* ─── Print CSS ─────────────────────────────────────────────────────── */}
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 14mm 14mm 18mm 14mm; }
+          @page { size: A4 portrait; margin: 14mm 14mm 16mm 14mm; }
 
           body * { visibility: hidden; }
           #padis-report, #padis-report * { visibility: visible; }
@@ -270,25 +270,45 @@ export default function ReportDocument({
 
           .report-page {
             width: 100%;
+            /* Remove the 297 mm floor — natural content height only */
+            min-height: 0 !important;
             box-shadow: none !important;
             margin: 0 !important;
             border-radius: 0 !important;
+            overflow: visible !important;
           }
 
-          .avoid-break { page-break-inside: avoid; }
-          .page-break  { page-break-before: always; }
+          /* Both legacy and modern page-break syntax */
+          .avoid-break {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .page-break {
+            page-break-before: always;
+            break-before: page;
+          }
 
-          .recharts-wrapper { overflow: visible !important; }
+          /* Cap chart containers to a fixed print height;
+             overflow:hidden clips any SVG that overruns */
+          .chart-wrapper {
+            height: 148px !important;
+            overflow: hidden !important;
+          }
+
+          .recharts-wrapper,
+          .recharts-responsive-container {
+            overflow: visible !important;
+          }
         }
       `}</style>
 
       {/* ═══════════════════════════════════════════════════════════════════
           PAGE 1
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="report-page mx-auto w-[210mm] min-h-[297mm] bg-white shadow-[0_4px_48px_rgba(0,0,0,0.20)]">
+      <div className="report-page mx-auto w-[210mm] min-h-[297mm] print:min-h-0 bg-white shadow-[0_4px_48px_rgba(0,0,0,0.20)]">
 
         {/* ── Letterhead ───────────────────────────────────────────────── */}
-        <div className="flex items-center gap-5 px-10 py-5" style={{ backgroundColor: NAVY }}>
+        <div className="flex items-center gap-5 px-10 py-5 print:py-3" style={{ backgroundColor: NAVY }}>
           {/* Logo */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo/padis.svg" alt="PADIS" className="h-14 w-14 shrink-0 object-contain" />
@@ -332,7 +352,7 @@ export default function ReportDocument({
         </div>
 
         {/* ── Body ────────────────────────────────────────────────────────── */}
-        <div className="px-10 pt-5 pb-4 space-y-5">
+        <div className="px-10 pt-5 pb-4 space-y-5 print:pt-3 print:pb-2 print:space-y-3">
 
           {/* ── Identity table ── */}
           <div className="avoid-break">
@@ -367,7 +387,7 @@ export default function ReportDocument({
             <SectionHead num="I" title="Ringkasan Eksekutif" />
 
             {/* KPI row */}
-            <div className="grid grid-cols-4 gap-2.5 mb-4">
+            <div className="grid grid-cols-4 gap-2.5 mb-4 print:mb-2">
               <KpiCard
                 label="Total Kerugian"
                 value={fmtCompact(totalLoss)}
@@ -396,7 +416,7 @@ export default function ReportDocument({
 
             {/* Top 3 */}
             {top3.length > 0 && (
-              <div className="mb-3">
+              <div className="mb-3 print:mb-1">
                 <p className="mb-2 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
                   Tiga Wilayah Prioritas Risiko Tertinggi
                 </p>
@@ -467,8 +487,8 @@ export default function ReportDocument({
                 <p className="mb-1.5 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
                   A. 10 Wilayah Kerugian Tertinggi
                 </p>
-                <div style={{ height: 210 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="chart-wrapper" style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height={160}>
                     <BarChart
                       data={top10Chart.map((r) => ({
                         name: r.name
@@ -515,8 +535,8 @@ export default function ReportDocument({
                 <p className="mb-1.5 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
                   B. Perbandingan AAL: Non-Climate vs Climate
                 </p>
-                <div style={{ height: 210 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="chart-wrapper" style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height={160}>
                     <BarChart
                       data={aalCompareData}
                       margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
@@ -569,7 +589,7 @@ export default function ReportDocument({
       {/* ═══════════════════════════════════════════════════════════════════
           PAGE 2
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="report-page page-break mx-auto mt-6 w-[210mm] min-h-[297mm] bg-white shadow-[0_4px_48px_rgba(0,0,0,0.20)] print:mt-0">
+      <div className="report-page page-break mx-auto mt-6 w-[210mm] min-h-[297mm] print:min-h-0 bg-white shadow-[0_4px_48px_rgba(0,0,0,0.20)] print:mt-0">
 
         {/* Continuation mini-header */}
         <div
@@ -591,7 +611,7 @@ export default function ReportDocument({
           </p>
         </div>
 
-        <div className="px-10 pt-5 pb-4 space-y-5">
+        <div className="px-10 pt-5 pb-4 space-y-5 print:pt-3 print:pb-2 print:space-y-3">
 
           {/* ── Section III: Top 10 table ── */}
           <div className="avoid-break">

@@ -21,11 +21,39 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
       onRequireLogin?.();
       return;
     }
+
+    const source = document.getElementById("padis-report");
+    if (!source) {
+      window.print();
+      return;
+    }
+
+    const clone = source.cloneNode(true) as HTMLElement;
+    clone.id = "padis-report-print-clone";
+    document.body.appendChild(clone);
+    document.body.classList.add("printing-padis");
+
+    function cleanup() {
+      document.body.removeChild(clone);
+      document.body.classList.remove("printing-padis");
+      window.removeEventListener("afterprint", cleanup);
+    }
+
+    window.addEventListener("afterprint", cleanup);
     window.print();
   }
 
   return (
     <div className="no-print fixed inset-0 z-[9999] flex flex-col">
+      <style>{`
+        @media print {
+          body.printing-padis > * { display: none !important; }
+          body.printing-padis > #padis-report-print-clone {
+            display: block !important;
+            background: white;
+          }
+        }
+      `}</style>
 
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
       <div className="no-print flex shrink-0 items-center justify-between bg-gray-900 px-6 py-3 shadow-lg">

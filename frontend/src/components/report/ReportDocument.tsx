@@ -259,15 +259,6 @@ export default function ReportDocument({
         @media print {
           @page { size: A4 portrait; margin: 14mm 14mm 16mm 14mm; }
 
-          body * { visibility: hidden; }
-          #padis-report, #padis-report * { visibility: visible; }
-          #padis-report {
-            position: absolute;
-            left: 0; top: 0;
-            width: 100%;
-            background: white;
-          }
-
           .report-page {
             width: 100%;
             /* Remove the 297 mm floor — natural content height only */

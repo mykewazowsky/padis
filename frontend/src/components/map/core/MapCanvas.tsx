@@ -82,6 +82,8 @@ type FeatureWithOptionalCentroidProps = FeatureProps & {
 
 const DEFAULT_CENTER: [number, number] = [-2.5, 118.0];
 const DEFAULT_ZOOM = 5;
+const MIN_ZOOM = 4;
+const MAX_ZOOM = 15;
 const LABEL_MIN_ZOOM = 7;
 
 const FIT_BOUNDS_PADDING: L.PointExpression = [16, 16];
@@ -91,6 +93,13 @@ const RESET_DURATION = 0.6;
 const INDONESIA_BOUNDS: LatLngBoundsExpression = [
   [-11.5, 94.0],
   [6.5, 141.5],
+];
+
+// Slightly wider than INDONESIA_BOUNDS so the elastic snap never triggers
+// during normal exploration of the archipelago's edges.
+const MAX_BOUNDS: LatLngBoundsExpression = [
+  [-15.0, 88.0],
+  [12.0, 148.0],
 ];
 
 export type BasemapKey = "imagery" | "dark" | "light";
@@ -779,6 +788,10 @@ export default function MapCanvas({
       <MapContainer
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        maxBounds={MAX_BOUNDS}
+        maxBoundsViscosity={0.7}
         className="h-full w-full"
         scrollWheelZoom
         ref={mapRef as never}

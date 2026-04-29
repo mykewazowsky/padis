@@ -34,30 +34,40 @@ export default function AuthCallbackPage() {
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(async ({ data, error }) => {
         if (error || !data.session) {
+          console.error("[PADIS OAuth] exchangeCodeForSession failed:", error);
           router.replace("/login?error=oauth_failed");
           return;
         }
 
+        const { access_token } = data.session;
+        console.log("[PADIS OAuth] Session obtained. token_length:", access_token.length, "prefix:", access_token.slice(0, 50));
+
         try {
-          const token = await exchangeForPadisToken(data.session.access_token);
+          const token = await exchangeForPadisToken(access_token);
           saveToken(token);
           router.replace("/dashboard");
-        } catch {
+        } catch (e) {
+          console.error("[PADIS OAuth] Bridge call failed:", e);
           router.replace("/login?error=oauth_bridge_failed");
         }
       });
     } else {
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session) {
+          console.error("[PADIS OAuth] No session found in fallback path.");
           router.replace("/login?error=oauth_failed");
           return;
         }
 
+        const { access_token } = session;
+        console.log("[PADIS OAuth] Session obtained (fallback). token_length:", access_token.length, "prefix:", access_token.slice(0, 50));
+
         try {
-          const token = await exchangeForPadisToken(session.access_token);
+          const token = await exchangeForPadisToken(access_token);
           saveToken(token);
           router.replace("/dashboard");
-        } catch {
+        } catch (e) {
+          console.error("[PADIS OAuth] Bridge call failed (fallback):", e);
           router.replace("/login?error=oauth_bridge_failed");
         }
       });

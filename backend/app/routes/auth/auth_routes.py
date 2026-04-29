@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -161,21 +162,36 @@ def oauth_callback():
     if not access_token:
         return jsonify({"error": "access_token wajib diisi"}), 400
 
+    logging.debug(
+        "[oauth_callback] token received: len=%d prefix=%s",
+        len(access_token),
+        access_token[:50],
+    )
+
     supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+
     if not supabase_url:
-        return jsonify({"error": "OAuth tidak dikonfigurasi di server"}), 500
+        return jsonify({"error": "OAuth tidak dikonfigurasi di server (SUPABASE_URL)"}), 500
+
+    if not supabase_anon_key:
+        return jsonify({"error": "OAuth tidak dikonfigurasi di server (SUPABASE_ANON_KEY)"}), 500
 
     # Verify token by asking Supabase for the user it belongs to
     try:
         resp = _http.get(
             f"{supabase_url}/auth/v1/user",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "apikey": supabase_anon_key,
+            },
             timeout=10,
         )
     except _http.exceptions.RequestException:
         return jsonify({"error": "Gagal menghubungi penyedia OAuth"}), 502
 
     if resp.status_code != 200:
+        logging.warning("[oauth_callback] Supabase returned %s: %s", resp.status_code, resp.text)
         return jsonify({"error": "Token OAuth tidak valid atau kedaluwarsa"}), 401
 
     supabase_user = resp.json()

@@ -35,8 +35,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("error") === "oauth_failed") {
+    const err = searchParams.get("error");
+    if (err === "oauth_failed") {
       setError("Login dengan Google gagal atau dibatalkan. Silakan coba lagi.");
+    } else if (err === "oauth_bridge_failed") {
+      setError("Login Google berhasil, namun gagal membuat sesi PADIS. Silakan coba lagi.");
     }
   }, [searchParams]);
 

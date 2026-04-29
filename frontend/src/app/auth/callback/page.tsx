@@ -3,6 +3,27 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { buildApiUrl } from "@/lib/api";
+import { saveToken } from "@/lib/auth";
+
+async function exchangeForPadisToken(accessToken: string): Promise<string> {
+  const res = await fetch(buildApiUrl("/api/auth/oauth/callback"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ access_token: accessToken }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Bridge responded ${res.status}`);
+  }
+
+  const json = await res.json();
+  if (!json.token) {
+    throw new Error("No token in bridge response");
+  }
+
+  return json.token as string;
+}
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -11,12 +32,34 @@ export default function AuthCallbackPage() {
     const code = new URLSearchParams(window.location.search).get("code");
 
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        router.replace(error ? "/login?error=oauth_failed" : "/dashboard");
+      supabase.auth.exchangeCodeForSession(code).then(async ({ data, error }) => {
+        if (error || !data.session) {
+          router.replace("/login?error=oauth_failed");
+          return;
+        }
+
+        try {
+          const token = await exchangeForPadisToken(data.session.access_token);
+          saveToken(token);
+          router.replace("/dashboard");
+        } catch {
+          router.replace("/login?error=oauth_bridge_failed");
+        }
       });
     } else {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        router.replace(session ? "/dashboard" : "/login?error=oauth_failed");
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) {
+          router.replace("/login?error=oauth_failed");
+          return;
+        }
+
+        try {
+          const token = await exchangeForPadisToken(session.access_token);
+          saveToken(token);
+          router.replace("/dashboard");
+        } catch {
+          router.replace("/login?error=oauth_bridge_failed");
+        }
       });
     }
   }, [router]);

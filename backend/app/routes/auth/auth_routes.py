@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timezone
 
+import requests as _http
 from flask import Blueprint, jsonify, request, g
 
 from .auth_store import (
@@ -142,6 +143,73 @@ def me():
 @login_required
 def logout():
     return jsonify({"message": "Logout berhasil"}), 200
+
+
+# =========================
+# OAUTH BRIDGE
+# =========================
+@auth_bp.route("/auth/oauth/callback", methods=["POST"])
+def oauth_callback():
+    """Exchange a Supabase access_token for a PADIS custom JWT.
+
+    Body: { "access_token": "<supabase_access_token>" }
+    Returns: { "token": "<padis_jwt>", "user": { ... } }
+    """
+    data = _get_json()
+    access_token = str(data.get("access_token", "")).strip()
+
+    if not access_token:
+        return jsonify({"error": "access_token wajib diisi"}), 400
+
+    supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    if not supabase_url:
+        return jsonify({"error": "OAuth tidak dikonfigurasi di server"}), 500
+
+    # Verify token by asking Supabase for the user it belongs to
+    try:
+        resp = _http.get(
+            f"{supabase_url}/auth/v1/user",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+    except _http.exceptions.RequestException:
+        return jsonify({"error": "Gagal menghubungi penyedia OAuth"}), 502
+
+    if resp.status_code != 200:
+        return jsonify({"error": "Token OAuth tidak valid atau kedaluwarsa"}), 401
+
+    supabase_user = resp.json()
+    email = (supabase_user.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Email tidak ditemukan dari provider OAuth"}), 400
+
+    meta = supabase_user.get("user_metadata") or {}
+    name = (
+        meta.get("full_name")
+        or meta.get("name")
+        or email.split("@")[0]
+    ).strip()
+
+    # Find or create the user in the PADIS backend DB
+    user = find_user_by_email(email)
+    if not user:
+        user = create_user(
+            name=name,
+            email=email,
+            password_hash="",   # OAuth users have no password
+            role="user",
+            status="active",
+        )
+
+    if user.get("status") != "active":
+        return jsonify({"error": "Akun tidak aktif. Hubungi administrator."}), 403
+
+    # Update last_login_at
+    user["last_login_at"] = datetime.now(timezone.utc).isoformat()
+    update_user(user)
+
+    token = generate_access_token(user)
+    return jsonify({"token": token, "user": _serialize_user(user)}), 200
 
 
 # =========================

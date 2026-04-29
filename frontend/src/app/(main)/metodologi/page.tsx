@@ -99,14 +99,17 @@ const metadataRules = [
 function SectionHeader({
   title,
   desc,
+  label,
   centered = true,
 }: {
   title: string;
   desc?: string;
+  label?: string;
   centered?: boolean;
 }) {
   return (
     <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
+      {label && <p className="section-eyebrow mb-3">{label}</p>}
       <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
         {title}
       </h2>
@@ -223,40 +226,69 @@ export default function MetodologiPage() {
 
         <div className="section-container relative py-16 lg:py-24 text-center">
           <div className="mx-auto max-w-4xl">
-            <span className="badge badge-secondary">Pendekatan Sistem</span>
+            <span className="badge badge-secondary">Metodologi Teknis</span>
+
             <h1 className="mt-4 text-balance text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
               Metodologi Analisis Risiko Spasial
             </h1>
-            <p className="mx-auto mt-5 max-w-3xl text-base leading-relaxed text-blue-100 md:text-lg">
-              PADIS mengintegrasikan pemodelan genangan, indeks kekeringan, dan
-              analisis multihazard untuk memberikan visualisasi serta estimasi
-              risiko wilayah padi secara presisi.
+
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-blue-100 md:text-base">
+              Sistem berbasis raster yang mengintegrasikan hazard, kerentanan, dan
+              exposure untuk menghasilkan estimasi Loss dan AAL tingkat kabupaten.
             </p>
+
+            {/* Conceptual flow grid — 4 stages of the risk equation */}
+            <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-3 text-left sm:grid-cols-4">
+              {[
+                { label: "Hazard", sub: "Banjir & Kekeringan" },
+                { label: "Exposure", sub: "Sawah per Kab/Kota" },
+                { label: "Vulnerability", sub: "Kurva Kerentanan" },
+                { label: "Loss & AAL", sub: "Output Risiko" },
+              ].map((item, i) => (
+                <div
+                  key={item.label}
+                  className={`rounded-2xl border px-4 py-3 ${
+                    i === 3
+                      ? "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10"
+                      : "border-white/10 bg-white/5"
+                  }`}
+                >
+                  <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                    i === 3 ? "text-[var(--color-secondary)]" : "text-blue-200"
+                  }`}>
+                    {item.label}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-blue-100/70">
+                    {item.sub}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* 2. BASELINE DATA (BENCANA & PRODUKSI) */}
-      <section className="relative overflow-hidden bg-slate-50 py-20 lg:py-24 text-gray-900 border-b border-gray-200">
+      <section className="section-shell section-soft">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                Justifikasi Ancaman & Keterpaparan
+              <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
+                Justifikasi Ancaman &amp; Keterpaparan
               </h2>
-              <p className="mt-4 text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+              <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
                 Pemodelan PADIS didasari oleh perbandingan antara riwayat
                 tingginya frekuensi bencana{" "}
-                <span className="font-semibold text-gray-800">(Hazard)</span>{" "}
+                <span className="font-semibold text-heading">(Hazard)</span>{" "}
                 dengan wilayah-wilayah yang memiliki tingkat produksi padi
                 terbesar{" "}
-                <span className="font-semibold text-gray-800">(Exposure)</span>.
+                <span className="font-semibold text-heading">(Exposure)</span>.
               </p>
             </div>
 
-            <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+            <div className="card p-6 md:p-8">
               {isLoading ? (
-                <div className="flex h-64 flex-col items-center justify-center text-slate-500">
+                <div className="flex h-64 flex-col items-center justify-center text-muted">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-3" />
                   <p>Memuat dan memproses data CSV...</p>
                 </div>
@@ -264,11 +296,11 @@ export default function MetodologiPage() {
                 <>
                   {/* GRAFIK 1: TREN BENCANA TAHUNAN */}
                   <div className="mb-10">
-                    <h4 className="mb-4 text-lg font-bold text-gray-800 flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-gray-500" />
+                    <h4 className="mb-4 text-lg font-bold text-heading flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-muted" />
                       Tren Historis Tahunan Bencana (DIBI)
                     </h4>
-                    <div className="h-[350px] w-full rounded-xl border border-gray-100 bg-slate-50/30 p-4 pt-6">
+                    <div className="chart-shell h-[350px] w-full p-4 pt-6">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart
                           data={histData}
@@ -337,10 +369,11 @@ export default function MetodologiPage() {
                   <div className="mt-8 px-2 md:px-4">
                     <div className="mx-auto max-w-[1100px]">
                       <div className="mb-4 text-center">
-                        <h4 className="text-lg font-bold text-gray-800">
+                        <p className="section-eyebrow text-sm">Pembobotan Multihazard</p>
+                        <h4 className="mt-1 text-lg font-bold text-heading">
                           Bobot Hazard untuk Analisis Multihazard
                         </h4>
-                        <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                        <p className="mt-1 text-sm leading-relaxed text-muted">
                           Bobot berikut digunakan sebagai dasar komposisi
                           analisis multihazard berdasarkan basis historis
                           kejadian dan tingkat dampak ekonomi.
@@ -349,62 +382,58 @@ export default function MetodologiPage() {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         {/* CARD BANJIR */}
-                        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                        <div className="panel-primary rounded-2xl p-5">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-sm font-medium text-blue-700">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
                                 Hazard
                               </p>
-                              <h5 className="mt-1 text-xl font-bold text-blue-900">
+                              <h5 className="mt-1 text-xl font-bold text-heading">
                                 Banjir
                               </h5>
                             </div>
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
-                              <Droplets className="h-5 w-5 text-blue-600" />
+                              <Droplets className="h-5 w-5 text-[var(--color-primary)]" />
                             </div>
                           </div>
 
-                          <div className="mt-4 rounded-xl border border-blue-100 bg-white px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500">
-                              Final Weight
-                            </p>
-                            <p className="mt-1 text-lg font-bold text-gray-900">
+                          <div className="surface-white mt-4 px-4 py-3">
+                            <p className="section-eyebrow text-[11px]">Final Weight</p>
+                            <p className="mt-1 text-lg font-bold text-heading">
                               0.6776836021
                             </p>
                           </div>
 
-                          <p className="mt-3 text-sm leading-relaxed text-blue-800/80">
+                          <p className="mt-3 text-sm leading-relaxed text-muted">
                             Nilai ini merepresentasikan kontribusi relatif
                             banjir dalam pembentukan analisis multihazard.
                           </p>
                         </div>
 
                         {/* CARD KEKERINGAN */}
-                        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
+                        <div className="panel-secondary rounded-2xl p-5">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-sm font-medium text-orange-700">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">
                                 Hazard
                               </p>
-                              <h5 className="mt-1 text-xl font-bold text-orange-900">
+                              <h5 className="mt-1 text-xl font-bold text-heading">
                                 Kekeringan
                               </h5>
                             </div>
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
-                              <Leaf className="h-5 w-5 text-orange-600" />
+                              <Leaf className="h-5 w-5 text-[var(--color-secondary-dark)]" />
                             </div>
                           </div>
 
-                          <div className="mt-4 rounded-xl border border-orange-100 bg-white px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-500">
-                              Final Weight
-                            </p>
-                            <p className="mt-1 text-lg font-bold text-gray-900">
+                          <div className="surface-white mt-4 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">Final Weight</p>
+                            <p className="mt-1 text-lg font-bold text-heading">
                               0.3223163979
                             </p>
                           </div>
 
-                          <p className="mt-3 text-sm leading-relaxed text-orange-800/80">
+                          <p className="mt-3 text-sm leading-relaxed text-muted">
                             Nilai ini merepresentasikan kontribusi relatif
                             kekeringan dalam komposisi analisis multihazard.
                           </p>
@@ -420,17 +449,17 @@ export default function MetodologiPage() {
       </section>
 
       {/* 3. SKENARIO CLIMATE DAN NON-CLIMATE */}
-      <section className="relative overflow-hidden bg-white py-20 lg:py-24 text-gray-900 border-b border-gray-200">
+      <section className="section-shell bg-white">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
                 Skenario Climate dan Non-Climate
               </h2>
-              <p className="mt-4 text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+              <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
                 Dalam PADIS, istilah{" "}
-                <strong className="text-gray-800">Climate</strong> dan{" "}
-                <strong className="text-gray-800">Non-Climate</strong> digunakan
+                <strong className="text-heading">Climate</strong> dan{" "}
+                <strong className="text-heading">Non-Climate</strong> digunakan
                 sebagai penanda <em>skenario raster hazard</em> pada analisis
                 risiko banjir dan kekeringan — bukan perbedaan metode maupun
                 format data.
@@ -438,26 +467,24 @@ export default function MetodologiPage() {
             </div>
 
             {/* Kartu perbandingan dua skenario */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
               {/* Non-Climate */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+              <div className="card p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                      Skenario
-                    </p>
-                    <h5 className="text-xl font-bold text-slate-900">
+                    <p className="section-eyebrow text-xs mb-1">Skenario</p>
+                    <h5 className="text-xl font-bold text-heading">
                       Non-Climate
                     </h5>
-                    <p className="text-sm italic text-slate-500 mt-0.5">
+                    <p className="text-sm italic text-muted mt-0.5">
                       Baseline Scenario
                     </p>
                   </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <History className="h-5 w-5 text-slate-600" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
+                    <History className="h-5 w-5 text-[var(--color-primary)]" />
                   </div>
                 </div>
-                <p className="text-sm leading-relaxed text-slate-700">
+                <p className="text-sm leading-relaxed text-muted">
                   Merepresentasikan kondisi acuan berdasarkan kondisi dasar,
                   historis, atau eksisting, tanpa mempertimbangkan proyeksi
                   perubahan iklim secara eksplisit. Skenario ini berfungsi
@@ -466,23 +493,30 @@ export default function MetodologiPage() {
                 </p>
               </div>
 
+              {/* vs divider */}
+              <div className="hidden md:flex items-center justify-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white text-[11px] font-bold text-muted shadow-sm">
+                  vs
+                </span>
+              </div>
+
               {/* Climate */}
-              <div className="rounded-2xl border border-teal-200 bg-teal-50 p-6 shadow-sm">
+              <div className="card card-accent-secondary p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-teal-600 mb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)] mb-1">
                       Skenario
                     </p>
-                    <h5 className="text-xl font-bold text-teal-900">Climate</h5>
-                    <p className="text-sm italic text-teal-600 mt-0.5">
+                    <h5 className="text-xl font-bold text-heading">Climate</h5>
+                    <p className="text-sm italic text-[var(--color-secondary-dark)] mt-0.5">
                       Climate Projection Scenario
                     </p>
                   </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-white shadow-sm">
-                    <TrendingUp className="h-5 w-5 text-teal-600" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
+                    <TrendingUp className="h-5 w-5 text-[var(--color-secondary-dark)]" />
                   </div>
                 </div>
-                <p className="text-sm leading-relaxed text-teal-800/90">
+                <p className="text-sm leading-relaxed text-muted">
                   Merepresentasikan kondisi hazard yang mempertimbangkan
                   pengaruh iklim atau proyeksi perubahan iklim. Nilai raster
                   pada skenario ini mencerminkan potensi perubahan intensitas
@@ -492,13 +526,13 @@ export default function MetodologiPage() {
             </div>
 
             {/* Info bersama: format raster + catatan alur risiko */}
-            <div className="mt-4 rounded-2xl border border-gray-100 bg-slate-50 p-5">
+            <div className="alert-info mt-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2">
                     Format Raster Hazard (Kedua Skenario)
                   </p>
-                  <div className="flex flex-col gap-1 text-sm text-gray-700">
+                  <div className="flex flex-col gap-1 text-sm">
                     <span>
                       <span className="font-medium text-blue-700">Banjir</span>{" "}
                       — nilai kedalaman genangan (meter)
@@ -512,12 +546,12 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Info className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" />
-                  <p className="text-sm leading-relaxed text-gray-600">
+                  <Info className="h-4 w-4 shrink-0 text-muted mt-0.5" />
+                  <p className="text-sm leading-relaxed text-muted">
                     Kedua skenario diproses melalui alur perhitungan risiko yang
                     sama: ekstraksi nilai hazard, penerapan kurva kerentanan,
                     estimasi <em>loss</em>, dan agregasi ke{" "}
-                    <strong className="text-gray-800">
+                    <strong className="text-heading">
                       Annual Average Loss (AAL)
                     </strong>{" "}
                     tingkat kabupaten/kota.
@@ -530,7 +564,7 @@ export default function MetodologiPage() {
       </section>
 
       {/* 4. KURVA KERENTANAN */}
-      <section className="relative overflow-hidden bg-white py-20 lg:py-24 text-gray-900 border-b border-gray-200">
+      <section className="section-shell section-soft">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
             title="Model Kerentanan (Vulnerability Curve)"
@@ -539,21 +573,21 @@ export default function MetodologiPage() {
 
           <div className="mt-16 grid gap-8 lg:grid-cols-2">
             {/* KURVA BANJIR */}
-            <div className="flex flex-col rounded-[2rem] border border-blue-200 bg-slate-50 p-8 shadow-sm transition hover:shadow-md">
+            <div className="card card-accent-primary flex flex-col p-8">
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 shadow-sm">
-                    <Droplets className="h-7 w-7 text-blue-600" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)] shadow-sm">
+                    <Droplets className="h-7 w-7 text-[var(--color-primary)]" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">
+                    <h3 className="text-xl font-bold text-heading">
                       Kerentanan Banjir
                     </h3>
                     <a
                       href="https://www.scopus.com/pages/publications/85099980139?origin=resultslist"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-gray-500 italic hover:text-blue-600 hover:underline"
+                      className="text-sm text-muted italic hover:text-[var(--color-primary)] hover:underline"
                     >
                       Hendrawan &amp; Komori (2021)
                     </a>
@@ -561,7 +595,7 @@ export default function MetodologiPage() {
                 </div>
               </div>
 
-              <div className="mb-6 h-[320px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-inner">
+              <div className="mb-6 h-[320px] w-full overflow-hidden chart-shell p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={floodCurveData}
@@ -630,12 +664,12 @@ export default function MetodologiPage() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="mt-auto rounded-xl bg-blue-50 p-4 border border-blue-100">
-                <p className="font-medium text-blue-900 mb-2 flex items-center gap-2 text-sm">
+              <div className="alert-info mt-auto">
+                <p className="font-medium mb-2 flex items-center gap-2 text-sm">
                   <Info className="w-4 h-4" /> Formulasi Kerentanan
                 </p>
 
-                <p className="text-blue-800/90 leading-relaxed text-sm">
+                <p className="leading-relaxed text-sm">
                   Kurva ini menunjukkan hubungan antara kedalaman genangan
                   banjir dan kehilangan produktivitas padi (
                   <strong>loss of productivity</strong>). Formulasi yang
@@ -644,16 +678,16 @@ export default function MetodologiPage() {
                   PADIS.
                 </p>
 
-                <div className="mt-3 rounded-lg border border-blue-100 bg-white px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500">
+                <div className="surface-white mt-3 rounded-lg px-4 py-3">
+                  <p className="section-eyebrow text-[11px]">
                     Persamaan Loss
                   </p>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
+                  <p className="mt-1 font-mono text-sm font-medium text-heading">
                     y = 0.52 + 0.29 ln(x)
                   </p>
                 </div>
 
-                <p className="mt-3 text-blue-800/80 leading-relaxed text-sm">
+                <p className="mt-3 leading-relaxed text-sm">
                   Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
                   <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
                   <strong>x</strong> merepresentasikan kedalaman genangan banjir
@@ -663,21 +697,21 @@ export default function MetodologiPage() {
             </div>
 
             {/* KURVA KEKERINGAN */}
-            <div className="flex flex-col rounded-[2rem] border border-orange-200 bg-slate-50 p-8 shadow-sm transition hover:shadow-md">
+            <div className="card card-accent-secondary flex flex-col p-8">
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 shadow-sm">
-                    <Leaf className="h-7 w-7 text-orange-600" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-secondary-soft)] shadow-sm">
+                    <Leaf className="h-7 w-7 text-[var(--color-secondary-dark)]" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">
+                    <h3 className="text-xl font-bold text-heading">
                       Kerentanan Kekeringan
                     </h3>
                     <a
                       href="https://www.scopus.com/pages/publications/85090017371?origin=resultslist"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-gray-500 italic hover:text-orange-600 hover:underline"
+                      className="text-sm text-muted italic hover:text-[var(--color-secondary-dark)] hover:underline"
                     >
                       Guo dkk. (2021)
                     </a>
@@ -685,7 +719,7 @@ export default function MetodologiPage() {
                 </div>
               </div>
 
-              <div className="mb-6 h-[320px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-inner">
+              <div className="mb-6 h-[320px] w-full overflow-hidden chart-shell p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={droughtCurveData}
@@ -754,12 +788,12 @@ export default function MetodologiPage() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="mt-auto rounded-xl bg-orange-50 p-4 border border-orange-100">
-                <p className="font-medium text-orange-900 mb-2 flex items-center gap-2 text-sm">
+              <div className="alert-warning mt-auto">
+                <p className="font-medium mb-2 flex items-center gap-2 text-sm">
                   <Info className="w-4 h-4" /> Formulasi Kerentanan
                 </p>
 
-                <p className="text-orange-800/90 leading-relaxed text-sm">
+                <p className="leading-relaxed text-sm">
                   Kurva ini menunjukkan hubungan antara intensitas kekeringan
                   dan kehilangan produktivitas padi (
                   <strong>loss of productivity</strong>). Formulasi yang
@@ -767,16 +801,16 @@ export default function MetodologiPage() {
                   dari Guo dkk. (2021) untuk analisis PADIS.
                 </p>
 
-                <div className="mt-3 rounded-lg border border-orange-100 bg-white px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-500">
+                <div className="surface-white mt-3 rounded-lg px-4 py-3">
+                  <p className="section-eyebrow text-[11px]">
                     Persamaan Loss
                   </p>
-                  <p className="mt-1 text-sm font-medium text-gray-900 break-words">
+                  <p className="mt-1 font-mono text-sm font-medium text-heading break-words">
                     y = −0.8381x³ + 0.8967x² + 0.9064x − 0.0106
                   </p>
                 </div>
 
-                <p className="mt-3 text-orange-800/80 leading-relaxed text-sm">
+                <p className="mt-3 leading-relaxed text-sm">
                   Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
                   <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
                   <strong>x</strong> merepresentasikan indeks kekeringan yang
@@ -788,54 +822,61 @@ export default function MetodologiPage() {
         </div>
       </section>
 
-      {/* 4. METADATA SECTION */}
-      <section className="relative overflow-hidden bg-slate-50 py-16 lg:py-20 text-gray-900 border-b border-gray-200">
+      {/* 5. METADATA SECTION */}
+      <section className="section-shell bg-white">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
             title="Spesifikasi & Metadata Geospasial"
+            label="Data Sources"
             desc="Katalog sumber data utama beserta parameter teknis yang digunakan sebagai input pemodelan risiko."
           />
 
           <div className="mx-auto mt-12 max-w-5xl grid gap-4">
             {metadataRules.map((rule, index) => {
               const Icon = rule.icon;
+              const rowNum = String(index + 1).padStart(2, "0");
               return (
                 <div
                   key={index}
-                  className="group flex flex-col md:flex-row gap-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                  className="card flex flex-col md:flex-row gap-6 p-5"
                 >
                   {/* Bagian Kiri: Judul & Deskripsi */}
                   <div className="flex-1 flex gap-4">
-                    <div
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${rule.badgeColor}`}
-                    >
-                      <Icon className={`h-5 w-5 ${rule.iconColor}`} />
+                    <div className="flex shrink-0 flex-col items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border)] text-[10px] font-bold text-muted">
+                        {rowNum}
+                      </span>
+                      <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${rule.badgeColor}`}
+                      >
+                        <Icon className={`h-5 w-5 ${rule.iconColor}`} />
+                      </div>
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                        <h3 className="text-lg font-bold text-heading leading-tight">
                           {rule.name}
                         </h3>
-                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        <span className="badge badge-outline text-[11px] gap-1">
                           <Database className="h-3 w-3" />
                           {rule.source}
                         </span>
                       </div>
-                      <p className="text-sm leading-relaxed text-gray-600">
+                      <p className="text-sm leading-relaxed text-muted">
                         {rule.description}
                       </p>
                     </div>
                   </div>
 
                   {/* Bagian Kanan: Spesifikasi Teknis */}
-                  <div className="md:w-[40%] shrink-0 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="surface-soft md:w-[40%] shrink-0 rounded-xl p-4">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       {rule.specs.map((spec, idx) => (
                         <div key={idx} className="flex flex-col">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
                             {spec.label}
                           </span>
-                          <span className="text-xs font-medium text-gray-900 mt-0.5">
+                          <span className="text-xs font-medium text-heading mt-0.5">
                             {spec.value}
                           </span>
                         </div>
@@ -849,8 +890,8 @@ export default function MetodologiPage() {
         </div>
       </section>
 
-      {/* 5. CTA SECTION */}
-      <section className="relative overflow-hidden bg-white pb-20 pt-20">
+      {/* 6. CTA SECTION */}
+      <section className="section-shell bg-white">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary-soft)]/40 via-white to-[var(--color-secondary-soft)]/30 p-10 text-center shadow-[var(--shadow-lg)]">
             <div className="pointer-events-none absolute inset-0">

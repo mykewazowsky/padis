@@ -96,14 +96,17 @@ const useCases = [
 function SectionHeader({
   title,
   desc,
+  label,
   centered = true,
 }: {
   title: string;
   desc?: string;
+  label?: string;
   centered?: boolean;
 }) {
   return (
     <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
+      {label && <p className="section-eyebrow mb-3">{label}</p>}
       <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
         {title}
       </h2>
@@ -129,14 +132,30 @@ export default function CaraKerjaPage() {
             <span className="badge badge-secondary">Cara Kerja PADIS</span>
 
             <h1 className="mt-4 text-balance text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-              Cara kerja PADIS dalam menganalisis risiko padi
+              Dari data hazard ke estimasi kerugian
             </h1>
 
-            <p className="mx-auto mt-5 max-w-3xl text-base leading-relaxed text-blue-100 md:text-lg">
-              Pelajari bagaimana PADIS mengolah data bahaya menjadi estimasi
-              kerugian, Average Annual Loss (AAL), dan luaran spasial untuk
-              mendukung pemahaman risiko padi secara lebih terstruktur.
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-blue-100 md:text-base">
+              Lima tahap analisis spasial yang mengubah raster banjir dan kekeringan
+              menjadi Average Annual Loss tingkat kabupaten/kota.
             </p>
+
+            {/* Mini step preview — mirrors the full pipeline below */}
+            <div className="mx-auto mt-8 max-w-3xl overflow-x-auto">
+              <div className="flex min-w-max items-center justify-center gap-x-2 px-2">
+                {analyticalPipeline.map((item, i) => (
+                  <div key={item.step} className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
+                      <span className="font-mono text-[10px] text-white/50">{item.step}</span>
+                      {item.title}
+                    </span>
+                    {i < analyticalPipeline.length - 1 && (
+                      <span className="text-sm text-white/25">›</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
@@ -160,19 +179,20 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* Video Panduan */}
-      <section className="section-shell-tight section-soft -mt-8 rounded-t-[2rem] text-gray-900">
+      <section className="section-shell-tight section-soft -mt-8 rounded-t-[2rem]">
         <div className="section-container">
-          <section className="overflow-hidden rounded-[2rem] border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-red-300" />
-                <span className="h-3 w-3 rounded-full bg-yellow-300" />
-                <span className="h-3 w-3 rounded-full bg-green-300" />
+          <section className="overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-white shadow-[var(--shadow-soft)]">
+            <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-red-400" />
+                <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                <span className="h-3 w-3 rounded-full bg-green-400" />
               </div>
-
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
-                <PlayCircle className="h-4 w-4" />
-                <span>Video Panduan</span>
+              <div className="flex flex-1 items-center justify-center">
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <PlayCircle className="h-3 w-3 shrink-0" />
+                  Video Panduan
+                </div>
               </div>
             </div>
 
@@ -191,7 +211,7 @@ export default function CaraKerjaPage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <div className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-gray-100">
+                <div className="overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20">
                   <div className="aspect-video w-full">
                     <iframe
                       className="h-full w-full"
@@ -204,7 +224,7 @@ export default function CaraKerjaPage() {
                   </div>
                 </div>
 
-                <p className="text-center text-xs text-gray-400">
+                <p className="text-center text-xs text-muted">
                   Video tidak tampil?{" "}
                   <a
                     href="https://www.youtube.com/watch?v=sXUgzCNxeGc"
@@ -223,10 +243,11 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* Alur Analisis */}
-      <section className="section-shell bg-white text-gray-900">
+      <section className="section-shell bg-white">
         <div className="section-container">
           <SectionHeader
             title="Alur Analisis PADIS"
+            label="Tahapan Sistem"
             desc="PADIS mengolah data hazard menjadi estimasi kerugian dan output dashboard melalui tahapan analisis yang terstruktur."
           />
 
@@ -237,24 +258,41 @@ export default function CaraKerjaPage() {
               return (
                 <article key={item.step} className="relative group">
                   <div
-                    className={`h-full rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg
+                    className={`relative h-full overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg
                     ${
                       isLast
-                        ? "border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)]/20"
+                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
                         : "border-[var(--color-border)] bg-white"
                     }`}
                   >
+                    {/* Ghost number */}
+                    <span className={`pointer-events-none absolute right-3 top-2 select-none text-6xl font-black leading-none ${
+                      isLast ? "text-white/10" : "text-[var(--color-primary)]/[0.06]"
+                    }`}>
+                      {item.step}
+                    </span>
+
                     <div className="flex items-center justify-between">
-                      <span className="badge badge-primary h-10 w-10 rounded-full p-0 text-sm transition-all duration-300 group-hover:scale-110">
+                      <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 group-hover:scale-110 ${
+                        isLast
+                          ? "border border-white/30 bg-white/20 text-white"
+                          : "bg-[var(--color-primary)] text-white"
+                      }`}>
                         {item.step}
                       </span>
                     </div>
 
-                    <h3 className="mt-4 text-base font-semibold text-gray-900 transition-colors duration-300 group-hover:text-[var(--color-primary)] md:text-lg">
+                    <h3 className={`mt-4 text-base font-semibold md:text-lg ${
+                      isLast
+                        ? "text-white"
+                        : "text-heading transition-colors duration-300 group-hover:text-[var(--color-primary)]"
+                    }`}>
                       {item.title}
                     </h3>
 
-                    <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                    <p className={`mt-2 text-sm leading-relaxed ${
+                      isLast ? "text-white/80" : "text-muted"
+                    }`}>
                       {item.desc}
                     </p>
                   </div>
@@ -262,7 +300,7 @@ export default function CaraKerjaPage() {
                   {index < analyticalPipeline.length - 1 && (
                     <div className="absolute -right-6 top-1/2 z-10 hidden -translate-y-1/2 lg:block">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-md">
-                        <ArrowRight className="h-3 w-3 text-gray-400" />
+                        <ArrowRight className="h-3 w-3 text-muted" />
                       </div>
                     </div>
                   )}
@@ -272,7 +310,7 @@ export default function CaraKerjaPage() {
           </div>
 
           <div className="mx-auto mt-10 max-w-4xl">
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-gray-700">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-muted">
               Secara ringkas, PADIS mengubah{" "}
               <span className="font-semibold">data hazard</span> menjadi{" "}
               <span className="font-semibold">indikator risiko</span>,{" "}
@@ -286,7 +324,7 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* Komponen Dashboard */}
-      <section className="section-shell section-soft text-gray-900">
+      <section className="section-shell section-soft">
         <div className="section-container">
           <SectionHeader
             title="Komponen Dashboard PADIS"
@@ -294,8 +332,7 @@ export default function CaraKerjaPage() {
           />
 
           <div className="mx-auto mt-12 max-w-5xl">
-            <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {previewFeatures.map((item, index) => {
                   const Icon = item.icon;
                   const isPrimary = index === 0;
@@ -307,7 +344,7 @@ export default function CaraKerjaPage() {
                       ${
                         isPrimary
                           ? "border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)]/20"
-                          : "border-gray-200 bg-white"
+                          : "border-[var(--color-border)] bg-white"
                       }`}
                     >
                       <div
@@ -328,11 +365,11 @@ export default function CaraKerjaPage() {
                         />
                       </div>
 
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-semibold text-heading">
                         {item.title}
                       </p>
 
-                      <p className="text-xs leading-relaxed text-gray-500">
+                      <p className="text-xs leading-relaxed text-muted">
                         {item.desc}
                       </p>
                     </div>
@@ -340,15 +377,14 @@ export default function CaraKerjaPage() {
                 })}
               </div>
 
-              <div className="mx-auto mt-10 max-w-3xl">
-                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-gray-700">
-                  Dashboard PADIS mengintegrasikan{" "}
-                  <span className="font-semibold">peta interaktif</span>,{" "}
-                  <span className="font-semibold">panel informasi</span>, dan{" "}
-                  <span className="font-semibold">grafik analisis</span> dalam satu
-                  tampilan, sehingga pengguna dapat membaca pola risiko dan
-                  membandingkan skenario tanpa kehilangan konteks.
-                </div>
+            <div className="mx-auto mt-8 max-w-3xl">
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-muted">
+                Dashboard PADIS mengintegrasikan{" "}
+                <span className="font-semibold">peta interaktif</span>,{" "}
+                <span className="font-semibold">panel informasi</span>, dan{" "}
+                <span className="font-semibold">grafik analisis</span> dalam satu
+                tampilan, sehingga pengguna dapat membaca pola risiko dan
+                membandingkan skenario tanpa kehilangan konteks.
               </div>
             </div>
           </div>
@@ -356,7 +392,7 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* Kasus Penggunaan */}
-      <section className="section-shell bg-white text-gray-900">
+      <section className="section-shell bg-white">
         <div className="section-container">
           <SectionHeader
             title="Kasus Penggunaan"
@@ -371,14 +407,14 @@ export default function CaraKerjaPage() {
                   key={item.title}
                   className="group flex flex-col gap-4 rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)]/30 transition-all duration-300 group-hover:bg-[var(--color-primary)]/10">
-                    <Icon className="h-6 w-6 text-[var(--color-primary)] transition-all duration-300 group-hover:scale-110" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] transition-all duration-300 group-hover:bg-[var(--color-primary)]/10">
+                    <Icon className="h-5 w-5 text-[var(--color-primary)] transition-all duration-300 group-hover:scale-110" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-heading">
                       {item.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                    <p className="mt-2 text-sm leading-relaxed text-muted">
                       {item.desc}
                     </p>
                   </div>

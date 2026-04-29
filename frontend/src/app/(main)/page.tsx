@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
 import { Droplets, Leaf, Layers3, Globe, ArrowRight, BarChart3, TrendingUp, MapPin  } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 function SectionHeader({
   title,
@@ -21,6 +23,8 @@ function SectionHeader({
 }
 
 export default function LandingPage() {
+  const { ref: cakupanRef, inView: cakupanInView } = useInView();
+
   return (
     <>
       {/* HERO */}
@@ -56,14 +60,14 @@ export default function LandingPage() {
             </span>
 
             <div className="space-y-6">
-              <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl">
+              <h1 className="animate-fade-up text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl">
                 Analisis risiko padi berbasis{" "}
                 <span className="text-[var(--color-secondary)]">
                   bencana banjir, kekeringan, dan multi-hazard
                 </span>
               </h1>
 
-              <p className="max-w-2xl text-base leading-relaxed text-blue-100 md:text-lg">
+              <p className="animate-fade-up max-w-2xl text-base leading-relaxed text-blue-100 md:text-lg" style={{ animationDelay: "80ms" }}>
                 PADIS membantu memahami kerugian padi secara spasial melalui
                 analisis banjir, kekeringan, dan multi-hazard, serta perbandingan
                 kondisi iklim dan non-iklim untuk mendukung pengambilan keputusan
@@ -96,7 +100,7 @@ export default function LandingPage() {
           </div>
 
           {/* HERO CARD */}
-          <div className="rounded-3xl border border-white/15 bg-white/10 p-7 shadow-xl backdrop-blur-lg">
+          <div className="animate-fade-up rounded-3xl border border-white/15 bg-white/10 p-7 shadow-xl backdrop-blur-lg" style={{ animationDelay: "150ms" }}>
             <p className="text-sm text-blue-100">Ringkasan Sistem</p>
             <h3 className="mt-2 text-2xl font-bold">
               Dashboard Analisis Risiko Berbasis Geospasial
@@ -136,7 +140,7 @@ export default function LandingPage() {
             desc="PADIS mengintegrasikan berbagai model dan sumber data untuk menghasilkan analisis risiko yang lebih komprehensif."
           />
 
-          <div className="mt-16 grid gap-y-12 md:grid-cols-2 md:gap-x-10 xl:grid-cols-4 xl:gap-x-12">
+          <div ref={cakupanRef} className="mt-16 grid gap-y-12 md:grid-cols-2 md:gap-x-10 xl:grid-cols-4 xl:gap-x-12">
             {[
               {
                 icon: Droplets,
@@ -170,7 +174,11 @@ export default function LandingPage() {
               const Icon = item.icon;
 
               return (
-                <div key={i} className="group relative">
+                <div
+                  key={i}
+                  className={`group relative reveal ${cakupanInView ? "in-view" : ""}`}
+                  style={{ transitionDelay: `${i * 75}ms` }}
+                >
                   {/* subtle divider (desktop only) */}
                   {i !== 0 && (
                     <div className="pointer-events-none absolute -left-6 top-2 hidden h-[80%] w-px bg-[var(--color-border)] xl:block" />

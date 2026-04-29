@@ -247,11 +247,12 @@ export default function MetodologiPage() {
               ].map((item, i) => (
                 <div
                   key={item.label}
-                  className={`rounded-2xl border px-4 py-3 ${
+                  className={`animate-fade-up rounded-2xl border px-4 py-3 ${
                     i === 3
                       ? "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10"
                       : "border-white/10 bg-white/5"
                   }`}
+                  style={{ animationDelay: `${i * 80}ms` }}
                 >
                   <p className={`text-[10px] font-bold uppercase tracking-wider ${
                     i === 3 ? "text-[var(--color-secondary)]" : "text-blue-200"

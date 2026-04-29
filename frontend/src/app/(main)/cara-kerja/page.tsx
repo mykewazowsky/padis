@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Target,
 } from "lucide-react";
+import AnimatedPipelineSteps from "@/components/cara-kerja/AnimatedPipelineSteps";
 
 export const metadata: Metadata = {
   title: "Cara Kerja PADIS | Analisis Risiko Padi",
@@ -140,11 +141,15 @@ export default function CaraKerjaPage() {
               menjadi Average Annual Loss tingkat kabupaten/kota.
             </p>
 
-            {/* Mini step preview — mirrors the full pipeline below */}
+            {/* Mini step preview — sequential fade-in reinforces pipeline order */}
             <div className="mx-auto mt-8 max-w-3xl overflow-x-auto">
               <div className="flex min-w-max items-center justify-center gap-x-2 px-2">
                 {analyticalPipeline.map((item, i) => (
-                  <div key={item.step} className="flex items-center gap-2">
+                  <div
+                    key={item.step}
+                    className="flex items-center gap-2 animate-fade-in"
+                    style={{ animationDelay: `${i * 80}ms` }}
+                  >
                     <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
                       <span className="font-mono text-[10px] text-white/50">{item.step}</span>
                       {item.title}
@@ -251,63 +256,7 @@ export default function CaraKerjaPage() {
             desc="PADIS mengolah data hazard menjadi estimasi kerugian dan output dashboard melalui tahapan analisis yang terstruktur."
           />
 
-          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            {analyticalPipeline.map((item, index) => {
-              const isLast = index === analyticalPipeline.length - 1;
-
-              return (
-                <article key={item.step} className="relative group">
-                  <div
-                    className={`relative h-full overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg
-                    ${
-                      isLast
-                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
-                        : "border-[var(--color-border)] bg-white"
-                    }`}
-                  >
-                    {/* Ghost number */}
-                    <span className={`pointer-events-none absolute right-3 top-2 select-none text-6xl font-black leading-none ${
-                      isLast ? "text-white/10" : "text-[var(--color-primary)]/[0.06]"
-                    }`}>
-                      {item.step}
-                    </span>
-
-                    <div className="flex items-center justify-between">
-                      <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 group-hover:scale-110 ${
-                        isLast
-                          ? "border border-white/30 bg-white/20 text-white"
-                          : "bg-[var(--color-primary)] text-white"
-                      }`}>
-                        {item.step}
-                      </span>
-                    </div>
-
-                    <h3 className={`mt-4 text-base font-semibold md:text-lg ${
-                      isLast
-                        ? "text-white"
-                        : "text-heading transition-colors duration-300 group-hover:text-[var(--color-primary)]"
-                    }`}>
-                      {item.title}
-                    </h3>
-
-                    <p className={`mt-2 text-sm leading-relaxed ${
-                      isLast ? "text-white/80" : "text-muted"
-                    }`}>
-                      {item.desc}
-                    </p>
-                  </div>
-
-                  {index < analyticalPipeline.length - 1 && (
-                    <div className="absolute -right-6 top-1/2 z-10 hidden -translate-y-1/2 lg:block">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-md">
-                        <ArrowRight className="h-3 w-3 text-muted" />
-                      </div>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+          <AnimatedPipelineSteps items={analyticalPipeline} />
 
           <div className="mx-auto mt-10 max-w-4xl">
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-muted">

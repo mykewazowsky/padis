@@ -1,3 +1,4 @@
+"use client";
 import {
   Database,
   Globe2,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import CountUp from "@/components/ui/CountUp";
 
 const techStack = [
   {
@@ -118,7 +120,7 @@ export default function AboutPage() {
           <div className="mx-auto max-w-3xl text-center">
             <span className="badge badge-secondary">Tentang PADIS</span>
 
-            <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
+            <h1 className="animate-fade-up mt-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
               Analisis risiko padi
               <span className="mt-1 block text-[var(--color-secondary)]">
                 berbasis data spasial
@@ -134,12 +136,14 @@ export default function AboutPage() {
             {/* Stat strip — communicates scope */}
             <div className="mx-auto mt-10 flex max-w-sm flex-wrap items-center justify-center gap-8">
               {[
-                { num: "514", label: "Kab / Kota" },
-                { num: "4", label: "Return Period" },
-                { num: "2", label: "Hazard Utama" },
+                { num: 514, label: "Kab / Kota" },
+                { num: 4, label: "Return Period" },
+                { num: 2, label: "Hazard Utama" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
-                  <p className="text-3xl font-bold text-white">{stat.num}</p>
+                  <p className="text-3xl font-bold text-white">
+                    <CountUp to={stat.num} />
+                  </p>
                   <p className="mt-0.5 text-xs font-medium text-blue-200">{stat.label}</p>
                 </div>
               ))}

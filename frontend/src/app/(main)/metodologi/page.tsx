@@ -460,9 +460,9 @@ export default function MetodologiPage() {
               <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
                 Dalam PADIS, istilah{" "}
                 <strong className="text-heading">Climate</strong> dan{" "}
-                <strong className="text-heading">Non-Climate</strong> digunakan
-                sebagai penanda <em>skenario raster hazard</em> pada analisis
-                risiko banjir dan kekeringan — bukan perbedaan metode maupun
+                <strong className="text-heading">Non-Climate</strong> menunjukkan perbedaan
+                <em>skenario raster hazard</em> pada analisis
+                risiko banjir dan kekeringan, bukan perbedaan metode atau
                 format data.
               </p>
             </div>
@@ -536,7 +536,7 @@ export default function MetodologiPage() {
                   <div className="flex flex-col gap-1 text-sm">
                     <span>
                       <span className="font-medium text-blue-700">Banjir</span>{" "}
-                      — nilai kedalaman genangan (meter)
+                      — nilai ketinggian genangan (meter)
                     </span>
                     <span>
                       <span className="font-medium text-orange-700">

@@ -614,6 +614,7 @@ export default function MapCanvas({
         },
         interactive: true,
         maxNativeZoom: 12,
+        pane: "overlayPane",
       });
 
       vtLayer.on("mouseover", (e) => {
@@ -659,6 +660,7 @@ export default function MapCanvas({
         },
         interactive: true,
         maxNativeZoom: 12,
+        pane: "overlayPane",
       });
 
       const productionOnlyLayers: Record<LayerKey, boolean> = { regions: false, hazard: false, loss: false, aal: false, production: true };
@@ -698,6 +700,7 @@ export default function MapCanvas({
         },
         interactive: false,
         maxNativeZoom: 12,
+        pane: "overlayPane",
       });
 
       regionLayer.addTo(map);

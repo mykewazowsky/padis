@@ -10,8 +10,6 @@ if (BASE_URL.includes("127.0.0.1")) {
   throw new Error("❌ Production is using localhost! Set NEXT_PUBLIC_API_BASE_URL correctly.");
 }
 
-console.log("BASE_URL:", BASE_URL);
-
 async function fetchJson(path: string) {
   const res = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Fetch failed: ${path} (${res.status})`);
@@ -53,8 +51,6 @@ export function buildTileUrl(
     climate:  climate.toLowerCase(),
     run_id:   String(runId),
   });
-  console.log("TILE PARAMS:", { layer, hazard, climate, scenario, runId });
-  console.log("FINAL TILE URL:", `${BASE_URL}/api/tiles/${layer}`);
   return `${BASE_URL}/api/tiles/${layer}/{z}/{x}/{y}?${params}`;
 }
 

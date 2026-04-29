@@ -471,8 +471,8 @@ export default function DashboardPage() {
   }
 
   function redirectToLogin() {
-    const callbackUrl = window.location.pathname + window.location.search;
-    window.location.href = `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+    const redirect = window.location.pathname + window.location.search;
+    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
   }
 
   async function openProtectedDownload(path: string, fallbackFilename: string) {
@@ -489,15 +489,12 @@ export default function DashboardPage() {
 
     try {
       const url = buildApiUrl(path);
-      console.log("Request URL:", url);
 
       const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log("Response status:", res.status);
 
       if (res.status === 401) {
         clearToken();
@@ -517,8 +514,6 @@ export default function DashboardPage() {
 
       if (contentType && contentType.includes("application/json")) {
         const json = await res.json();
-        console.error("Server JSON:", json);
-
         throw new Error(
           json.error || json.message || "Server tidak mengirim file."
         );

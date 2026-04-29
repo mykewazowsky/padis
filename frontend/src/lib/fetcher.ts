@@ -9,8 +9,6 @@ export async function fetchJson<T = any>(
 ): Promise<T> {
   const url = buildApiUrl(path);
 
-  console.log("🌐 FETCH URL =", url);
-
   const res = await fetch(url, {
     cache: "no-store",
     headers: {

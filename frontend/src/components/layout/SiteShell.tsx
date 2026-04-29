@@ -626,9 +626,15 @@ export default function SiteShell({
           <div className="mt-12 border-t border-white/10 pt-5">
             <div className="flex flex-col gap-3 text-xs text-blue-100/80 md:flex-row md:items-center md:justify-between">
               <p>© 2026 PADIS. Hak cipta dilindungi.</p>
-              <p>
-                WebGIS untuk eksplorasi risiko kerugian padi berbasis analisis spasial.
-              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <p>WebGIS untuk eksplorasi risiko kerugian padi berbasis analisis spasial.</p>
+                <Link
+                  href="/kebijakan-privasi"
+                  className="shrink-0 transition hover:text-white hover:underline"
+                >
+                  Kebijakan Privasi
+                </Link>
+              </div>
             </div>
           </div>
         </div>

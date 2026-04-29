@@ -376,6 +376,16 @@ export default function LoginPage() {
                   Lihat Cara Kerja PADIS
                 </Link>
               </div>
+
+              <div className="mt-5 flex items-start gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                <p className="text-[11px] leading-relaxed text-gray-400">
+                  PADIS hanya menyimpan token autentikasi di browser Anda — tidak ada pelacakan atau analitik.{" "}
+                  <Link href="/kebijakan-privasi" className="text-gray-500 hover:underline">
+                    Kebijakan Privasi
+                  </Link>
+                </p>
+              </div>
             </div>
           </div>
         </section>

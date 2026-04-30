@@ -157,12 +157,20 @@ def get_aal_summary_all_hazards():
         results = []
         for hazard in ("flood", "drought", "multihazard"):
             rows = db.execute(text("""
+                WITH multi_regions AS (
+                    SELECT DISTINCT a2.id_kabkota
+                    FROM aal a2
+                    JOIN hazards h2 ON a2.hazard_id = h2.id
+                    WHERE h2.name   = 'multihazard'
+                      AND a2.run_id = :run_id
+                )
                 SELECT
                     s.name AS scenario,
                     COALESCE(SUM(a.aal), 0) AS total_aal
                 FROM aal a
-                JOIN hazards h   ON a.hazard_id   = h.id
-                JOIN scenarios s ON a.scenario_id = s.id
+                JOIN hazards h        ON a.hazard_id   = h.id
+                JOIN scenarios s      ON a.scenario_id = s.id
+                JOIN multi_regions mr ON a.id_kabkota  = mr.id_kabkota
                 WHERE h.name  = :hazard
                   AND a.run_id = :run_id
                 GROUP BY s.name
@@ -343,13 +351,21 @@ def hazard_breakdown():
             return jsonify({"error": "No runs found"}), 404
 
         rows = db.execute(text("""
+            WITH multi_regions AS (
+                SELECT DISTINCT l2.id_kabkota
+                FROM losses l2
+                JOIN hazards h2 ON l2.hazard_id = h2.id
+                WHERE h2.name   = 'multihazard'
+                  AND l2.run_id = :run_id
+            )
             SELECT
                 h.name AS hazard,
                 SUM(l.loss) AS total
             FROM losses l
-            JOIN hazards h        ON l.hazard_id   = h.id
-            JOIN scenarios s      ON l.scenario_id = s.id
-            JOIN return_periods rp ON l.rp_id       = rp.id
+            JOIN hazards h         ON l.hazard_id   = h.id
+            JOIN scenarios s       ON l.scenario_id = s.id
+            JOIN return_periods rp  ON l.rp_id       = rp.id
+            JOIN multi_regions mr   ON l.id_kabkota  = mr.id_kabkota
             WHERE rp.rp    = :rp
               AND s.name   = :climate
               AND l.run_id = :run_id

@@ -80,32 +80,50 @@ def _latest_run_id(db) -> int | None:
 
 # ─── Spatial scope helpers ─────────────────────────────────────────────────────
 
-_SPATIAL_SCOPE = "intersection (multihazard)"
+_SPATIAL_SCOPE = "intersection (flood ∩ drought ∩ multihazard)"
 
-# Pre-compiled COUNT queries — one per source table used by the comparison endpoints.
+# Pre-compiled COUNT queries — count kabupaten present in ALL three hazard types.
+# Uses GROUP BY + per-hazard HAVING flags instead of COUNT(DISTINCT hazard_id) = 3
+# so that the check is explicit and immune to future changes in the hazards table.
 _MULTI_REGION_COUNT_SQL: dict[str, object] = {
     "aal": text("""
-        SELECT COUNT(DISTINCT a.id_kabkota) AS cnt
-        FROM aal a
-        JOIN hazards h ON a.hazard_id = h.id
-        WHERE h.name = 'multihazard'
-          AND a.run_id = :run_id
+        WITH intersection AS (
+            SELECT a.id_kabkota
+            FROM aal a
+            JOIN hazards h ON a.hazard_id = h.id
+            WHERE h.name IN ('flood', 'drought', 'multihazard')
+              AND a.run_id = :run_id
+            GROUP BY a.id_kabkota
+            HAVING
+                MAX(CASE WHEN h.name = 'flood'       THEN 1 ELSE 0 END) = 1
+            AND MAX(CASE WHEN h.name = 'drought'     THEN 1 ELSE 0 END) = 1
+            AND MAX(CASE WHEN h.name = 'multihazard' THEN 1 ELSE 0 END) = 1
+        )
+        SELECT COUNT(*) AS cnt FROM intersection
     """),
     "losses": text("""
-        SELECT COUNT(DISTINCT l.id_kabkota) AS cnt
-        FROM losses l
-        JOIN hazards h ON l.hazard_id = h.id
-        WHERE h.name = 'multihazard'
-          AND l.run_id = :run_id
+        WITH intersection AS (
+            SELECT l.id_kabkota
+            FROM losses l
+            JOIN hazards h ON l.hazard_id = h.id
+            WHERE h.name IN ('flood', 'drought', 'multihazard')
+              AND l.run_id = :run_id
+            GROUP BY l.id_kabkota
+            HAVING
+                MAX(CASE WHEN h.name = 'flood'       THEN 1 ELSE 0 END) = 1
+            AND MAX(CASE WHEN h.name = 'drought'     THEN 1 ELSE 0 END) = 1
+            AND MAX(CASE WHEN h.name = 'multihazard' THEN 1 ELSE 0 END) = 1
+        )
+        SELECT COUNT(*) AS cnt FROM intersection
     """),
 }
 
 
 def _multi_region_count(db, table: str, run_id: int) -> int:
-    """Return the number of distinct kabupaten with multihazard data for run_id.
+    """Return kabupaten count present in flood, drought, AND multihazard for run_id.
 
-    Returns 0 when no multihazard reference set exists — callers use this to
-    detect the empty-reference-set condition and attach a warning to the response.
+    Returns 0 when the true spatial intersection is empty — callers use this to
+    detect the condition and attach a warning to the response.
     """
     sql = _MULTI_REGION_COUNT_SQL.get(table)
     if sql is None:
@@ -116,7 +134,8 @@ def _multi_region_count(db, table: str, run_id: int) -> int:
 
 def _no_multihazard_warning(run_id: int) -> str:
     return (
-        f"No multihazard reference data for run_id={run_id}. "
+        f"No spatial intersection found for run_id={run_id} "
+        "(requires flood, drought, and multihazard data in the same kabupaten). "
         "Run the full pipeline (--hazard multi) to enable spatially comparable aggregation."
     )
 
@@ -200,7 +219,7 @@ def get_aal_summary_all_hazards():
         region_count = _multi_region_count(db, "aal", run_id)
         if region_count == 0:
             print(
-                f"WARN aal-summary-all-hazards: no multihazard AAL data for run_id={run_id}",
+                f"WARN aal-summary-all-hazards: no spatial intersection for run_id={run_id}",
                 flush=True,
             )
 
@@ -208,11 +227,16 @@ def get_aal_summary_all_hazards():
         for hazard in ("flood", "drought", "multihazard"):
             rows = db.execute(text("""
                 WITH multi_regions AS (
-                    SELECT DISTINCT a2.id_kabkota
+                    SELECT a2.id_kabkota
                     FROM aal a2
                     JOIN hazards h2 ON a2.hazard_id = h2.id
-                    WHERE h2.name   = 'multihazard'
+                    WHERE h2.name IN ('flood', 'drought', 'multihazard')
                       AND a2.run_id = :run_id
+                    GROUP BY a2.id_kabkota
+                    HAVING
+                        MAX(CASE WHEN h2.name = 'flood'       THEN 1 ELSE 0 END) = 1
+                    AND MAX(CASE WHEN h2.name = 'drought'     THEN 1 ELSE 0 END) = 1
+                    AND MAX(CASE WHEN h2.name = 'multihazard' THEN 1 ELSE 0 END) = 1
                 )
                 SELECT
                     s.name AS scenario,
@@ -408,17 +432,22 @@ def hazard_breakdown():
         region_count = _multi_region_count(db, "losses", run_id)
         if region_count == 0:
             print(
-                f"WARN hazard-breakdown: no multihazard loss data for run_id={run_id}",
+                f"WARN hazard-breakdown: no spatial intersection for run_id={run_id}",
                 flush=True,
             )
 
         rows = db.execute(text("""
             WITH multi_regions AS (
-                SELECT DISTINCT l2.id_kabkota
+                SELECT l2.id_kabkota
                 FROM losses l2
                 JOIN hazards h2 ON l2.hazard_id = h2.id
-                WHERE h2.name   = 'multihazard'
+                WHERE h2.name IN ('flood', 'drought', 'multihazard')
                   AND l2.run_id = :run_id
+                GROUP BY l2.id_kabkota
+                HAVING
+                    MAX(CASE WHEN h2.name = 'flood'       THEN 1 ELSE 0 END) = 1
+                AND MAX(CASE WHEN h2.name = 'drought'     THEN 1 ELSE 0 END) = 1
+                AND MAX(CASE WHEN h2.name = 'multihazard' THEN 1 ELSE 0 END) = 1
             )
             SELECT
                 h.name AS hazard,

@@ -82,9 +82,10 @@ def _latest_run_id(db) -> int | None:
 
 _SPATIAL_SCOPE = "intersection (flood ∩ drought ∩ multihazard)"
 
-# Pre-compiled COUNT queries — count kabupaten present in ALL three hazard types.
-# Uses GROUP BY + per-hazard HAVING flags instead of COUNT(DISTINCT hazard_id) = 3
-# so that the check is explicit and immune to future changes in the hazards table.
+# Pre-compiled COUNT queries — count kabupaten present in ALL three hazard types
+# with a valid (> 0) value.  WHERE pre-filters zero/null rows; HAVING uses
+# COUNT(DISTINCT CASE ... AND value > 0 THEN 1 END) > 0 to confirm each hazard
+# has at least one genuine record per kabupaten.
 _MULTI_REGION_COUNT_SQL: dict[str, object] = {
     "aal": text("""
         WITH intersection AS (
@@ -93,11 +94,12 @@ _MULTI_REGION_COUNT_SQL: dict[str, object] = {
             JOIN hazards h ON a.hazard_id = h.id
             WHERE h.name IN ('flood', 'drought', 'multihazard')
               AND a.run_id = :run_id
+              AND a.aal IS NOT NULL AND a.aal > 0
             GROUP BY a.id_kabkota
             HAVING
-                MAX(CASE WHEN h.name = 'flood'       THEN 1 ELSE 0 END) = 1
-            AND MAX(CASE WHEN h.name = 'drought'     THEN 1 ELSE 0 END) = 1
-            AND MAX(CASE WHEN h.name = 'multihazard' THEN 1 ELSE 0 END) = 1
+                COUNT(DISTINCT CASE WHEN h.name = 'flood'       AND a.aal > 0 THEN 1 END) > 0
+            AND COUNT(DISTINCT CASE WHEN h.name = 'drought'     AND a.aal > 0 THEN 1 END) > 0
+            AND COUNT(DISTINCT CASE WHEN h.name = 'multihazard' AND a.aal > 0 THEN 1 END) > 0
         )
         SELECT COUNT(*) AS cnt FROM intersection
     """),
@@ -108,11 +110,12 @@ _MULTI_REGION_COUNT_SQL: dict[str, object] = {
             JOIN hazards h ON l.hazard_id = h.id
             WHERE h.name IN ('flood', 'drought', 'multihazard')
               AND l.run_id = :run_id
+              AND l.loss IS NOT NULL AND l.loss > 0
             GROUP BY l.id_kabkota
             HAVING
-                MAX(CASE WHEN h.name = 'flood'       THEN 1 ELSE 0 END) = 1
-            AND MAX(CASE WHEN h.name = 'drought'     THEN 1 ELSE 0 END) = 1
-            AND MAX(CASE WHEN h.name = 'multihazard' THEN 1 ELSE 0 END) = 1
+                COUNT(DISTINCT CASE WHEN h.name = 'flood'       AND l.loss > 0 THEN 1 END) > 0
+            AND COUNT(DISTINCT CASE WHEN h.name = 'drought'     AND l.loss > 0 THEN 1 END) > 0
+            AND COUNT(DISTINCT CASE WHEN h.name = 'multihazard' AND l.loss > 0 THEN 1 END) > 0
         )
         SELECT COUNT(*) AS cnt FROM intersection
     """),
@@ -232,11 +235,12 @@ def get_aal_summary_all_hazards():
                     JOIN hazards h2 ON a2.hazard_id = h2.id
                     WHERE h2.name IN ('flood', 'drought', 'multihazard')
                       AND a2.run_id = :run_id
+                      AND a2.aal IS NOT NULL AND a2.aal > 0
                     GROUP BY a2.id_kabkota
                     HAVING
-                        MAX(CASE WHEN h2.name = 'flood'       THEN 1 ELSE 0 END) = 1
-                    AND MAX(CASE WHEN h2.name = 'drought'     THEN 1 ELSE 0 END) = 1
-                    AND MAX(CASE WHEN h2.name = 'multihazard' THEN 1 ELSE 0 END) = 1
+                        COUNT(DISTINCT CASE WHEN h2.name = 'flood'       AND a2.aal > 0 THEN 1 END) > 0
+                    AND COUNT(DISTINCT CASE WHEN h2.name = 'drought'     AND a2.aal > 0 THEN 1 END) > 0
+                    AND COUNT(DISTINCT CASE WHEN h2.name = 'multihazard' AND a2.aal > 0 THEN 1 END) > 0
                 )
                 SELECT
                     s.name AS scenario,
@@ -443,11 +447,12 @@ def hazard_breakdown():
                 JOIN hazards h2 ON l2.hazard_id = h2.id
                 WHERE h2.name IN ('flood', 'drought', 'multihazard')
                   AND l2.run_id = :run_id
+                  AND l2.loss IS NOT NULL AND l2.loss > 0
                 GROUP BY l2.id_kabkota
                 HAVING
-                    MAX(CASE WHEN h2.name = 'flood'       THEN 1 ELSE 0 END) = 1
-                AND MAX(CASE WHEN h2.name = 'drought'     THEN 1 ELSE 0 END) = 1
-                AND MAX(CASE WHEN h2.name = 'multihazard' THEN 1 ELSE 0 END) = 1
+                    COUNT(DISTINCT CASE WHEN h2.name = 'flood'       AND l2.loss > 0 THEN 1 END) > 0
+                AND COUNT(DISTINCT CASE WHEN h2.name = 'drought'     AND l2.loss > 0 THEN 1 END) > 0
+                AND COUNT(DISTINCT CASE WHEN h2.name = 'multihazard' AND l2.loss > 0 THEN 1 END) > 0
             )
             SELECT
                 h.name AS hazard,

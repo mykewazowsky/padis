@@ -26,31 +26,31 @@ def _col(code: str, text: str) -> str:
 
 def info(step: str, msg: str = "") -> None:
     prefix = _col(_CYAN, f"[{step}]")
-    print(f"{prefix} {msg}" if msg else prefix)
+    print(f"{prefix} {msg}" if msg else prefix, flush=True)
 
 
 def ok(step: str, msg: str = "") -> None:
     prefix = _col(_GREEN, f"[{step}]")
-    print(f"{prefix} {msg}" if msg else prefix)
+    print(f"{prefix} {msg}" if msg else prefix, flush=True)
 
 
 def warn(step: str, msg: str = "") -> None:
     prefix = _col(_YELLOW, f"[{step}]")
-    print(f"{prefix} {msg}" if msg else prefix)
+    print(f"{prefix} {msg}" if msg else prefix, flush=True)
 
 
 def error(step: str, msg: str = "") -> None:
     prefix = _col(_RED, f"[{step}]")
-    print(f"{prefix} {msg}" if msg else prefix, file=sys.stderr)
+    print(f"{prefix} {msg}" if msg else prefix, file=sys.stderr, flush=True)
 
 
 def progress(n: int, total: int, msg: str = "") -> None:
     prefix = _col(_DIM, f"[{n}/{total}]")
-    print(f"  {prefix} {msg}" if msg else f"  {prefix}")
+    print(f"  {prefix} {msg}" if msg else f"  {prefix}", flush=True)
 
 
 def header(title: str) -> None:
     bar = "─" * (len(title) + 4)
     b = _col(_BOLD, bar)
     t = _col(_BOLD, f"  {title}")
-    print(f"\n{b}\n{t}\n{b}")
+    print(f"\n{b}\n{t}\n{b}", flush=True)

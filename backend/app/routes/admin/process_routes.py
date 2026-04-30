@@ -390,41 +390,73 @@ def admin_start_pipeline():
             },
         }), 409
 
-    # Spawn CLI as a detached subprocess — progress tracked via DB, errors via log file
+    # Spawn pipeline CLI — Windows: cmd /K agar console tetap terbuka + log tampil
+    #                       Unix:    sesi baru + log ke file
     script_path = os.path.join(SCRIPTS_DIR, "main.py")
     python_exe  = _get_pipeline_python()
-    cmd = [python_exe, script_path,
-           "--mode", mode, "--hazard", hazard, "--operator", operator]
 
-    spawn_kwargs = (
-        {"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
-        if os.name == "nt"
-        else {"start_new_session": True}
-    )
+    # -u = unbuffered stdout/stderr; wajib agar print() muncul real-time di console
+    pipeline_cmd = [python_exe, "-u", script_path,
+                    "--mode", mode, "--hazard", hazard, "--operator", operator]
 
     log_dir  = os.path.join(BACKEND_DIR, "logs")
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, "subprocess.log")
 
+    # Env: PYTHONUNBUFFERED=1 sebagai double-safety di samping flag -u
+    child_env = {
+        **os.environ,
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUNBUFFERED": "1",
+    }
+
     try:
-        with open(log_path, "a", encoding="utf-8") as log_file:
-            header = (
+        # Tulis header audit ke log file (selalu, di semua platform)
+        with open(log_path, "a", encoding="utf-8") as lf:
+            lf.write(
                 f"\n{'='*60}\n"
                 f"[{_now_iso()}] python={python_exe}\n"
                 f"mode={mode}  hazard={hazard}  operator={operator}\n"
                 f"cwd={BACKEND_DIR}\n"
                 f"{'='*60}\n"
             )
-            log_file.write(header)
+
+        if os.name == "nt":
+            # Windows: tulis batch file lalu spawn "cmd /K batch_path".
+            # Batch file menghindari quoting hell cmd.exe — path ditulis sebagai
+            # teks plain di dalam file, bukan di-escape lewat command string.
+            batch_path = os.path.join(log_dir, "run_pipeline.bat")
+            with open(batch_path, "w", encoding="cp1252") as bf:
+                bf.write("@echo off\n")
+                bf.write("chcp 65001 > nul\n")
+                bf.write(f"title PADIS Pipeline [{hazard}] [{mode}]\n")
+                bf.write(f'cd /d "{BACKEND_DIR}"\n')
+                bf.write(
+                    f'"{python_exe}" -u "{script_path}"'
+                    f" --mode {mode} --hazard {hazard} --operator {operator}\n"
+                )
+                bf.write("echo.\n")
+                bf.write("echo Pipeline selesai. Tekan sembarang tombol untuk menutup...\n")
+                bf.write("pause > nul\n")
 
             proc = subprocess.Popen(
-                cmd,
+                ["cmd", "/K", batch_path],
                 cwd=BACKEND_DIR,
-                stdout=log_file,
-                stderr=log_file,
-                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
-                **spawn_kwargs,
+                env=child_env,
+                creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP,
             )
+        else:
+            # Unix/Linux: tidak ada window — arahkan stdout/stderr ke log file
+            with open(log_path, "a", encoding="utf-8") as lf:
+                proc = subprocess.Popen(
+                    pipeline_cmd,
+                    cwd=BACKEND_DIR,
+                    stdout=lf,
+                    stderr=lf,
+                    env=child_env,
+                    start_new_session=True,
+                )
+
     except Exception as e:
         return jsonify({"error": "Gagal menjalankan pipeline", "detail": str(e)}), 500
 

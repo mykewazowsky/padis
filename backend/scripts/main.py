@@ -130,6 +130,11 @@ def _print_results(results: dict) -> None:
 # =============================================================================
 
 def main() -> None:
+    # Paksa stdout/stderr ke line-buffered agar print() muncul real-time di console.
+    # Ini backup dari flag -u dan PYTHONUNBUFFERED=1 yang di-set oleh Flask subprocess.
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     parser = _build_parser()
     args = parser.parse_args()
 

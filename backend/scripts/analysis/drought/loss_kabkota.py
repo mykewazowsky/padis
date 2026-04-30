@@ -79,6 +79,17 @@ def compute_loss_drought_kab(gdf, prod_df, gabah):
     gdf_kab["total_prod"] = gdf_kab["total_prod"].fillna(0)
 
     # =========================
+    # SAFETY CHECK: LOP harus dalam [0, 1]
+    # =========================
+    for col in lop_cols:
+        out_of_range = gdf_kab[(gdf_kab[col] < 0) | (gdf_kab[col] > 1)]
+        if not out_of_range.empty:
+            print(
+                f"⚠️ [LOP RANGE] Kolom '{col}' memiliki {len(out_of_range)} nilai "
+                f"di luar [0, 1]: min={gdf_kab[col].min():.4f}, max={gdf_kab[col].max():.4f}"
+            )
+
+    # =========================
     # COMPUTE LOSS
     # =========================
     for col in lop_cols:
@@ -90,11 +101,20 @@ def compute_loss_drought_kab(gdf, prod_df, gabah):
         else:
             out_col = f"loss_drought_nonclimate_rp{rp}"
 
+        # LOP = fraksi kehilangan produksi [0, 1]; loss = LOP × total_prod × gabah
         gdf_kab[out_col] = (
             gdf_kab["total_prod"] *
-            (1 - gdf_kab[col]) *
+            gdf_kab[col] *
             gabah
         )
+
+        # Debug: 3 sampel wilayah pertama per kolom LOP
+        sample = gdf_kab[["id_kabkota", "total_prod", col, out_col]].head(3)
+        for _, row in sample.iterrows():
+            print(
+                f"[DEBUG] {row['id_kabkota']} | total_prod={row['total_prod']:.0f} | "
+                f"LOP({col})={row[col]:.4f} | loss={row[out_col]:.2f}"
+            )
 
     # =========================
     # CLEAN GEOMETRY

@@ -78,6 +78,49 @@ def _latest_run_id(db) -> int | None:
     return int(row.id) if row else None
 
 
+# ─── Spatial scope helpers ─────────────────────────────────────────────────────
+
+_SPATIAL_SCOPE = "intersection (multihazard)"
+
+# Pre-compiled COUNT queries — one per source table used by the comparison endpoints.
+_MULTI_REGION_COUNT_SQL: dict[str, object] = {
+    "aal": text("""
+        SELECT COUNT(DISTINCT a.id_kabkota) AS cnt
+        FROM aal a
+        JOIN hazards h ON a.hazard_id = h.id
+        WHERE h.name = 'multihazard'
+          AND a.run_id = :run_id
+    """),
+    "losses": text("""
+        SELECT COUNT(DISTINCT l.id_kabkota) AS cnt
+        FROM losses l
+        JOIN hazards h ON l.hazard_id = h.id
+        WHERE h.name = 'multihazard'
+          AND l.run_id = :run_id
+    """),
+}
+
+
+def _multi_region_count(db, table: str, run_id: int) -> int:
+    """Return the number of distinct kabupaten with multihazard data for run_id.
+
+    Returns 0 when no multihazard reference set exists — callers use this to
+    detect the empty-reference-set condition and attach a warning to the response.
+    """
+    sql = _MULTI_REGION_COUNT_SQL.get(table)
+    if sql is None:
+        return 0
+    row = db.execute(sql, {"run_id": run_id}).fetchone()
+    return int(row.cnt) if row else 0
+
+
+def _no_multihazard_warning(run_id: int) -> str:
+    return (
+        f"No multihazard reference data for run_id={run_id}. "
+        "Run the full pipeline (--hazard multi) to enable spatially comparable aggregation."
+    )
+
+
 # ===============================
 # AAL SUMMARY
 # ===============================
@@ -154,6 +197,13 @@ def get_aal_summary_all_hazards():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
+        region_count = _multi_region_count(db, "aal", run_id)
+        if region_count == 0:
+            print(
+                f"WARN aal-summary-all-hazards: no multihazard AAL data for run_id={run_id}",
+                flush=True,
+            )
+
         results = []
         for hazard in ("flood", "drought", "multihazard"):
             rows = db.execute(text("""
@@ -177,11 +227,16 @@ def get_aal_summary_all_hazards():
             """), {"hazard": hazard, "run_id": run_id}).mappings().all()
 
             totals = {row["scenario"]: float(row["total_aal"] or 0) for row in rows}
-            results.append({
-                "hazard":              get_hazard_display_name(hazard),
+            item: dict = {
+                "hazard":               get_hazard_display_name(hazard),
                 "total_aal_nonclimate": totals.get("nonclimate", 0),
                 "total_aal_climate":    totals.get("climate",    0),
-            })
+                "spatial_scope":        _SPATIAL_SCOPE,
+                "region_count":         region_count,
+            }
+            if region_count == 0:
+                item["warning"] = _no_multihazard_warning(run_id)
+            results.append(item)
 
         return jsonify(results)
 
@@ -350,6 +405,13 @@ def hazard_breakdown():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
+        region_count = _multi_region_count(db, "losses", run_id)
+        if region_count == 0:
+            print(
+                f"WARN hazard-breakdown: no multihazard loss data for run_id={run_id}",
+                flush=True,
+            )
+
         rows = db.execute(text("""
             WITH multi_regions AS (
                 SELECT DISTINCT l2.id_kabkota
@@ -377,8 +439,12 @@ def hazard_breakdown():
             for row in rows
         }
 
+        base: dict = {"spatial_scope": _SPATIAL_SCOPE, "region_count": region_count}
+        if region_count == 0:
+            base["warning"] = _no_multihazard_warning(run_id)
+
         return jsonify([
-            {"hazard": get_hazard_display_name(h), "total": totals.get(h, 0)}
+            {**base, "hazard": get_hazard_display_name(h), "total": totals.get(h, 0)}
             for h in ["flood", "drought", "multihazard"]
         ])
 

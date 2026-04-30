@@ -111,7 +111,7 @@ def _normalize_reverse(data: np.ndarray) -> np.ndarray:
         raise ValueError("Semua nilai adalah nodata")
 
     # 🔥 FIXED THRESHOLD
-    min_val = -6.5
+    min_val = -6.0
     max_val = -2.0
 
     if max_val - min_val == 0:

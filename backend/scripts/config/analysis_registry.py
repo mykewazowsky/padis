@@ -47,7 +47,9 @@ EXPOSURE_PATH = os.path.join(
 def _load_prod() -> pd.DataFrame:
     if not os.path.exists(EXPOSURE_PATH):
         raise FileNotFoundError(f"File produksi tidak ditemukan: {EXPOSURE_PATH}")
-    return pd.read_csv(EXPOSURE_PATH)
+    # dtype=str wajib: tanpanya pandas membaca "33.20" sebagai float 33.2
+    # lalu str(33.2)="33.2" yang tidak match "33.20" di gdf → total_prod=0
+    return pd.read_csv(EXPOSURE_PATH, dtype={"id_kabkota": str})
 
 
 # ===============================

@@ -61,7 +61,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="pointer-events-auto inline-flex max-w-full rounded-full border border-white/15 bg-slate-950/35 px-3 py-1.5 text-[11px] text-blue-100/90 shadow-sm backdrop-blur-sm transition hover:bg-slate-950/50 hover:text-white"
             >
-              <span className="truncate">Photo by Dhenny Napitupulu on Pexels</span>
+              <span className="truncate">Foto oleh Dhenny Napitupulu di Pexels</span>
             </a>
           </div>
         </div>

@@ -638,7 +638,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               <p className="text-sm text-red-600">{errorLoss}</p>
             ) : !hasLossData ? (
               <p className="text-sm text-gray-500">
-                Belum ada total loss per scenario yang dapat dianalisis.
+                Belum ada total kerugian per scenario yang dapat dianalisis.
               </p>
             ) : (
               <div className="flex items-start gap-3">
@@ -664,8 +664,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
             {loadingLoss ? (
               <DashboardLoadingBlock
                 heightClass="h-80"
-                title="Memuat perbandingan total loss..."
-                description="Ringkasan loss climate vs non-climate sedang disiapkan."
+                title="Memuat perbandingan total kerugian..."
+                description="Ringkasan kerugian climate vs non-climate sedang disiapkan."
               />
             ) : errorLoss ? (
               <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
@@ -673,7 +673,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               </div>
             ) : !hasLossData ? (
               <DashboardEmptyState
-                message="Belum ada total loss per scenario yang dapat ditampilkan untuk hazard ini."
+                message="Belum ada total kerugian per scenario yang dapat ditampilkan untuk hazard ini."
                 actionHint="Pastikan layer web output tersedia untuk semua scenario."
               />
             ) : (

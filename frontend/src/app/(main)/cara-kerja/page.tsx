@@ -62,7 +62,7 @@ const previewFeatures = [
   {
     title: "Ringkasan",
     icon: PanelTop,
-    desc: "Lihat nilai loss dan AAL wilayah terpilih dalam panel ringkasan yang ringkas.",
+    desc: "Lihat nilai kerugian dan AAL wilayah terpilih dalam panel ringkasan yang ringkas.",
   },
   {
     title: "Insight Grafik",

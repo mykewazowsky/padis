@@ -251,7 +251,7 @@ export default function DashboardMapOverlay({
                   </p>
                   {formatPercent(selectedRegionShare) && (
                     <p className="mt-0.5 text-[11px] text-muted">
-                      {formatPercent(selectedRegionShare)} dari total loss
+                      {formatPercent(selectedRegionShare)} dari total kerugian
                     </p>
                   )}
                 </div>

@@ -197,7 +197,7 @@ export default function AdvancedCharts({
       .then((res) => setLossDistribution(res.data ?? []))
       .catch((err) => {
         console.error("Loss distribution fetch error:", err);
-        setErrorLossDist("Gagal memuat distribusi loss.");
+        setErrorLossDist("Gagal memuat distribusi kerugian.");
         setLossDistribution([]);
       })
       .finally(() => setLoadingLossDist(false));
@@ -318,12 +318,12 @@ export default function AdvancedCharts({
                 </h4>
               </div>
               <p className="mt-2 text-sm text-gray-500">
-                Ranking wilayah dengan loss tertinggi untuk {getHazardLabel(hazard)} ·{" "}
+                Ranking wilayah dengan kerugian tertinggi untuk {getHazardLabel(hazard)} ·{" "}
                 {scenario.toUpperCase()} · {getClimateLabel(climate)}
               </p>
             </div>
             <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
-              Click to focus
+              Klik untuk fokus ke peta
             </div>
           </div>
 
@@ -358,7 +358,7 @@ export default function AdvancedCharts({
               <p className="text-sm text-red-600">{errorTopRegions}</p>
             ) : !hasTopRegionData ? (
               <p className="text-sm text-gray-500">
-                Belum ada wilayah dengan loss yang cukup untuk ditampilkan.
+                Belum ada wilayah dengan kerugian yang cukup untuk ditampilkan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
@@ -383,7 +383,7 @@ export default function AdvancedCharts({
               <DashboardLoadingBlock
                 heightClass="h-80"
                 title="Memuat ranking wilayah..."
-                description="Sistem sedang menyusun wilayah dengan loss tertinggi."
+                description="Sistem sedang menyusun wilayah dengan kerugian tertinggi."
               />
             ) : errorTopRegions ? (
               <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
@@ -534,7 +534,7 @@ export default function AdvancedCharts({
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     Setiap batang menunjukkan jumlah kabupaten/kota dalam
-                    rentang loss tertentu. Distribusi condong ke kanan
+                    rentang kerugian tertentu. Distribusi condong ke kanan
                     mengindikasikan konsentrasi risiko di sedikit wilayah.
                   </p>
                 </div>
@@ -546,7 +546,7 @@ export default function AdvancedCharts({
             {loadingLossDist ? (
               <DashboardLoadingBlock
                 heightClass="h-72"
-                title="Memuat distribusi loss..."
+                title="Memuat distribusi kerugian..."
                 description="Data kerugian per kabupaten sedang diproses."
               />
             ) : errorLossDist ? (

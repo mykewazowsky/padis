@@ -3,6 +3,7 @@ import {
   Database,
   Globe2,
   GraduationCap,
+  Mail,
   ShieldCheck,
   Users,
   Droplet,
@@ -315,6 +316,18 @@ export default function AboutPage() {
                   ))}
                 </ul>
               </div>
+            </div>
+
+            <div className="mt-5 flex justify-center">
+              <a
+                href="mailto:padiswebgis@gmail.com"
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-soft)]/35 px-4 py-2 text-sm text-muted transition hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]"
+              >
+                <Mail className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
+                <span className="truncate">
+                  Kontak proyek: padiswebgis@gmail.com
+                </span>
+              </a>
             </div>
           </div>
         </div>

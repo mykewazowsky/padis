@@ -71,7 +71,7 @@ const metadataRules = [
     iconColor: "text-cyan-500",
     badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200",
     description:
-      "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai kedalaman genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
+      "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai ketinggian genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "30 meter" },
@@ -135,6 +135,7 @@ const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 export default function MetodologiPage() {
   const [histData, setHistData] = useState<HistoricalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const hazardWeights = [
     {
@@ -164,6 +165,43 @@ export default function MetodologiPage() {
     }
     return data;
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncViewport = () => setIsMobile(mediaQuery.matches);
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+    return () => mediaQuery.removeEventListener("change", syncViewport);
+  }, []);
+
+  const vulnerabilityTickStyle = {
+    fill: "#64748B",
+    fontSize: isMobile ? 10 : 11,
+  };
+
+  const vulnerabilityChartMargin = isMobile
+    ? { top: 8, right: 10, left: 6, bottom: 56 }
+    : { top: 10, right: 20, left: 20, bottom: 10 };
+
+  const vulnerabilityXAxisLabel = (
+    value: string
+  ): {
+    value: string;
+    position: "bottom" | "insideBottom";
+    offset: number;
+    style: { fill: string; fontSize: number };
+  } => ({
+    value,
+    position: isMobile ? "bottom" : "insideBottom",
+    offset: isMobile ? 16 : -5,
+    style: {
+      fill: "#64748B",
+      fontSize: isMobile ? 11 : 12,
+    },
+  });
 
   const droughtCurveData = useMemo(() => {
     const data = [];
@@ -596,11 +634,11 @@ export default function MetodologiPage() {
                 </div>
               </div>
 
-              <div className="mb-6 h-[320px] w-full overflow-hidden chart-shell p-4">
+              <div className="mb-3 h-[360px] w-full overflow-hidden chart-shell p-3 sm:mb-6 sm:h-[320px] sm:p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={floodCurveData}
-                    margin={{ top: 10, right: 20, left: 20, bottom: 10 }}
+                    margin={vulnerabilityChartMargin}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -611,21 +649,21 @@ export default function MetodologiPage() {
                       dataKey="x"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#64748B", fontSize: 11 }}
-                      interval={15}
-                      label={{
-                        value: "Kedalaman Genangan (m)",
-                        position: "insideBottom",
-                        offset: -5,
-                      }}
+                      tick={vulnerabilityTickStyle}
+                      interval={isMobile ? 34 : 15}
+                      tickMargin={isMobile ? 12 : 6}
+                      angle={isMobile ? -32 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 60 : undefined}
+                      label={vulnerabilityXAxisLabel("Ketinggian Genangan (m)")}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      tick={vulnerabilityTickStyle}
                       domain={[0, 1]}
                       tickFormatter={formatPercent}
-                      width={60}
+                      width={isMobile ? 44 : 60}
                     >
                       <Label
                         value="Loss of Productivity (%)"
@@ -649,9 +687,14 @@ export default function MetodologiPage() {
                         formatPercent(Number(value)),
                         "Loss",
                       ]}
-                      labelFormatter={(label) => `Kedalaman: ${label} m`}
+                      labelFormatter={(label) => `Ketinggian: ${label} m`}
                     />
-                    <Legend wrapperStyle={{ paddingTop: "16px" }} />
+                    {!isMobile ? (
+                      <Legend
+                        verticalAlign="bottom"
+                        wrapperStyle={{ paddingTop: "16px" }}
+                      />
+                    ) : null}
                     <Line
                       name="Kurva Kerentanan Banjir"
                       type="monotone"
@@ -665,13 +708,18 @@ export default function MetodologiPage() {
                 </ResponsiveContainer>
               </div>
 
+              <div className="mb-4 flex items-center gap-2 text-sm text-muted md:hidden">
+                <span className="h-0.5 w-6 rounded-full bg-[#3B82F6]" />
+                <span>Kurva Banjir</span>
+              </div>
+
               <div className="alert-info mt-auto">
                 <p className="font-medium mb-2 flex items-center gap-2 text-sm">
                   <Info className="w-4 h-4" /> Formulasi Kerentanan
                 </p>
 
                 <p className="leading-relaxed text-sm">
-                  Kurva ini menunjukkan hubungan antara kedalaman genangan
+                  Kurva ini menunjukkan hubungan antara ketinggian genangan
                   banjir dan kehilangan produktivitas padi (
                   <strong>loss of productivity</strong>). Formulasi yang
                   digunakan mengacu pada Hendrawan &amp; Komori (2021) untuk
@@ -691,7 +739,7 @@ export default function MetodologiPage() {
                 <p className="mt-3 leading-relaxed text-sm">
                   Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
                   <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
-                  <strong>x</strong> merepresentasikan kedalaman genangan banjir
+                  <strong>x</strong> merepresentasikan ketinggian genangan banjir
                   maksimum (meter).
                 </p>
               </div>
@@ -720,11 +768,11 @@ export default function MetodologiPage() {
                 </div>
               </div>
 
-              <div className="mb-6 h-[320px] w-full overflow-hidden chart-shell p-4">
+              <div className="mb-3 h-[360px] w-full overflow-hidden chart-shell p-3 sm:mb-6 sm:h-[320px] sm:p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={droughtCurveData}
-                    margin={{ top: 10, right: 20, left: 20, bottom: 10 }}
+                    margin={vulnerabilityChartMargin}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -735,21 +783,21 @@ export default function MetodologiPage() {
                       dataKey="x"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#64748B", fontSize: 11 }}
-                      interval={10}
-                      label={{
-                        value: "Indeks Kekeringan Ternormalisasi",
-                        position: "insideBottom",
-                        offset: -5,
-                      }}
+                      tick={vulnerabilityTickStyle}
+                      interval={isMobile ? 22 : 10}
+                      tickMargin={isMobile ? 12 : 6}
+                      angle={isMobile ? -32 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 60 : undefined}
+                      label={vulnerabilityXAxisLabel("Indeks Kekeringan Ternormalisasi")}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      tick={vulnerabilityTickStyle}
                       domain={[0, 1]}
                       tickFormatter={formatPercent}
-                      width={60}
+                      width={isMobile ? 44 : 60}
                     >
                       <Label
                         value="Loss of Productivity (%)"
@@ -775,7 +823,12 @@ export default function MetodologiPage() {
                       ]}
                       labelFormatter={(label) => `Indeks: ${label}`}
                     />
-                    <Legend wrapperStyle={{ paddingTop: "16px" }} />
+                    {!isMobile ? (
+                      <Legend
+                        verticalAlign="bottom"
+                        wrapperStyle={{ paddingTop: "16px" }}
+                      />
+                    ) : null}
                     <Line
                       name="Kurva Kerentanan Kekeringan"
                       type="monotone"
@@ -787,6 +840,11 @@ export default function MetodologiPage() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+              </div>
+
+              <div className="mb-4 flex items-center gap-2 text-sm text-muted md:hidden">
+                <span className="h-0.5 w-6 rounded-full bg-[#F97316]" />
+                <span>Kurva Kekeringan</span>
               </div>
 
               <div className="alert-warning mt-auto">

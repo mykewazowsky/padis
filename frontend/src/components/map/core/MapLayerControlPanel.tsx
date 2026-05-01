@@ -29,6 +29,7 @@ type LayerGroup = {
   groupName: string;
   layers: LayerEntry[];
 };
+type DesktopTab = "basemap" | "overlay" | "analysis";
 
 const BASEMAP_LABELS: Record<BasemapKey, string> = {
   imagery: "Satelit",
@@ -83,6 +84,13 @@ export default function MapLayerControlPanel({
 }: Props) {
   const [isOpen, setIsOpen] = useState(true);
   const [groups, setGroups] = useState<LayerGroup[]>(INITIAL_GROUPS);
+  const [activeDesktopTab, setActiveDesktopTab] = useState<DesktopTab>(
+    activeLayers.hazard || activeLayers.loss || activeLayers.aal
+      ? "analysis"
+      : activeLayers.regions || activeLayers.production
+        ? "overlay"
+        : "basemap"
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -131,6 +139,20 @@ export default function MapLayerControlPanel({
       })
     );
   };
+
+  const activeOverlayCount = groups
+    .find((group) => group.id === "overlay")
+    ?.layers.filter((layer) => activeLayers[layer.id]).length ?? 0;
+
+  const activeAnalysisCount = groups
+    .find((group) => group.id === "analysis")
+    ?.layers.filter((layer) => activeLayers[layer.id]).length ?? 0;
+  const activeGroup =
+    activeDesktopTab === "overlay"
+      ? groups.find((group) => group.id === "overlay") ?? null
+      : activeDesktopTab === "analysis"
+        ? groups.find((group) => group.id === "analysis") ?? null
+        : null;
 
   if (!isOpen) {
     return (
@@ -186,25 +208,73 @@ export default function MapLayerControlPanel({
       ) : null}
 
       <div className={`flex-shrink-0 ${compact ? "px-0 pb-2" : "px-3 pb-3"}`}>
-        <p className={`mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 ${compact ? "sr-only" : ""}`}>
-          Basemap
-        </p>
-        <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
-          {(["imagery", "dark", "light"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onBasemapChange?.(key)}
-              className={`flex-1 rounded-md py-1.5 text-[11px] font-medium transition-colors ${
-                basemap === key
-                  ? "bg-white text-[var(--color-primary)] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {BASEMAP_LABELS[key]}
-            </button>
-          ))}
-        </div>
+        {compact ? (
+          <>
+            <p className="sr-only mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+              Basemap
+            </p>
+            <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+              {(["imagery", "dark", "light"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onBasemapChange?.(key)}
+                  className={`flex-1 rounded-md py-1.5 text-[11px] font-medium transition-colors ${
+                    basemap === key
+                      ? "bg-white text-[var(--color-primary)] shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {BASEMAP_LABELS[key]}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <div className="grid grid-cols-3 gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveDesktopTab("basemap")}
+                className={`rounded-md px-2 py-2 text-[11px] font-medium transition ${
+                  activeDesktopTab === "basemap"
+                    ? "bg-white text-[var(--color-primary)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Basemap
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDesktopTab("overlay")}
+                className={`rounded-md px-2 py-2 text-[11px] font-medium transition ${
+                  activeDesktopTab === "overlay"
+                    ? "bg-white text-[var(--color-primary)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Overlay
+                <span className="ml-1 text-[10px] text-gray-400">
+                  {activeOverlayCount}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDesktopTab("analysis")}
+                className={`rounded-md px-2 py-2 text-[11px] font-medium transition ${
+                  activeDesktopTab === "analysis"
+                    ? "bg-white text-[var(--color-primary)] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Analisis
+                <span className="ml-1 text-[10px] text-gray-400">
+                  {activeAnalysisCount}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={`${compact ? "overflow-visible px-0" : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3"}`}>
@@ -214,44 +284,113 @@ export default function MapLayerControlPanel({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            {groups.map((group, idx) => (
-              <div key={group.id} className={idx > 0 ? "mt-3" : ""}>
-                <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                  {group.groupName}
-                </div>
-
-                <SortableContext
-                  items={group.layers.map((l) => l.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-0.5">
-                    {group.layers.map((layer) => {
-                      const isHazardDisabled =
-                        layer.id === "hazard" && hazard === "multi";
-                      return (
-                        <LayerItem
-                          key={layer.id}
-                          id={layer.id}
-                          label={layer.label}
-                          visible={!!activeLayers[layer.id]}
-                          opacity={layerOpacity[layer.id] ?? 0.7}
-                          onToggle={() => handleToggle(layer.id)}
-                          onOpacityChange={(op) =>
-                            onOpacityChange(layer.id, op)
-                          }
-                          disabled={isHazardDisabled}
-                          disabledReason={
-                            isHazardDisabled
-                              ? "Indeks Bahaya tidak tersedia untuk Multi-hazard karena dihitung dari kombinasi kekeringan dan banjir."
-                              : undefined
-                          }
-                        />
-                      );
-                    })}
+            {!compact ? (
+              activeDesktopTab === "basemap" ? (
+                <div>
+                  <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                    Basemap
                   </div>
-                </SortableContext>
-              </div>
-            ))}
+                  <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1">
+                    {(["imagery", "dark", "light"] as const).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => onBasemapChange?.(key)}
+                        className={`flex-1 rounded-md py-2 text-[11px] font-medium transition-colors ${
+                          basemap === key
+                            ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] shadow-sm"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {BASEMAP_LABELS[key]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : activeGroup ? (
+                <div>
+                  <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                    {activeGroup.groupName}
+                  </div>
+                  <p className="mb-2 px-1 text-[11px] text-gray-500">
+                    {activeDesktopTab === "overlay"
+                      ? `${activeOverlayCount} layer aktif`
+                      : `${activeAnalysisCount} layer aktif`}
+                  </p>
+                  <SortableContext
+                    items={activeGroup.layers.map((l) => l.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-0.5">
+                      {activeGroup.layers.map((layer) => {
+                        const isHazardDisabled =
+                          layer.id === "hazard" && hazard === "multi";
+                        return (
+                          <LayerItem
+                            key={layer.id}
+                            id={layer.id}
+                            label={layer.label}
+                            visible={!!activeLayers[layer.id]}
+                            opacity={layerOpacity[layer.id] ?? 0.7}
+                            onToggle={() => handleToggle(layer.id)}
+                            onOpacityChange={(op) =>
+                              onOpacityChange(layer.id, op)
+                            }
+                            disabled={isHazardDisabled}
+                            disabledReason={
+                              isHazardDisabled
+                                ? "Indeks Bahaya tidak tersedia untuk Multi-hazard karena dihitung dari kombinasi kekeringan dan banjir."
+                                : undefined
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </div>
+              ) : null
+            ) : (
+              groups.map((group, idx) => (
+                <div key={group.id} className={idx > 0 ? "mt-3" : ""}>
+                  <>
+                    <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      {group.groupName}
+                    </div>
+
+                    <SortableContext
+                      items={group.layers.map((l) => l.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-0.5">
+                        {group.layers.map((layer) => {
+                          const isHazardDisabled =
+                            layer.id === "hazard" && hazard === "multi";
+                          return (
+                            <LayerItem
+                              key={layer.id}
+                              id={layer.id}
+                              label={layer.label}
+                              visible={!!activeLayers[layer.id]}
+                              opacity={layerOpacity[layer.id] ?? 0.7}
+                              onToggle={() => handleToggle(layer.id)}
+                              onOpacityChange={(op) =>
+                                onOpacityChange(layer.id, op)
+                              }
+                              disabled={isHazardDisabled}
+                              disabledReason={
+                                isHazardDisabled
+                                  ? "Indeks Bahaya tidak tersedia untuk Multi-hazard karena dihitung dari kombinasi kekeringan dan banjir."
+                                  : undefined
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </>
+                </div>
+              ))
+            )}
           </DndContext>
         </div>
       </div>

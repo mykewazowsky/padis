@@ -83,7 +83,7 @@ function shortenRegionName(name: string) {
     .replace(/^kabupaten\s+/i, "Kab. ")
     .replace(/^kota\s+/i, "Kota ")
     .trim();
-  return cleaned.length > 20 ? `${cleaned.slice(0, 20)}…` : cleaned;
+  return cleaned.length > 18 ? `${cleaned.slice(0, 18)}…` : cleaned;
 }
 
 function CustomTooltip({
@@ -399,7 +399,7 @@ export default function AdvancedCharts({
                 <BarChart
                   data={chartTopRegions}
                   layout="vertical"
-                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                  margin={{ top: 5, right: 12, left: 4, bottom: 5 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -414,7 +414,8 @@ export default function AdvancedCharts({
                   <YAxis
                     type="category"
                     dataKey="shortName"
-                    width={148}
+                    width={118}
+                    tickMargin={4}
                     tick={{ fill: "#374151", fontSize: 11 }}
                   />
                   <Tooltip content={<CustomTooltip labelPrefix="Wilayah" />} />

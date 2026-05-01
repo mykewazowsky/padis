@@ -53,6 +53,19 @@ export default function LandingPage() {
         <div className="hero-orb hero-orb-secondary right-0 top-0 h-56 w-56 z-10 opacity-70" />
         <div className="hero-orb hero-orb-soft bottom-0 left-1/3 h-36 w-36 z-10 opacity-60" />
 
+        <div className="pointer-events-none absolute bottom-4 left-0 right-0 z-20 px-6 lg:px-10">
+          <div className="section-container flex justify-end">
+            <a
+              href="https://www.pexels.com/photo/farmer-working-on-rice-field-19104382/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto inline-flex max-w-full rounded-full border border-white/15 bg-slate-950/35 px-3 py-1.5 text-[11px] text-blue-100/90 shadow-sm backdrop-blur-sm transition hover:bg-slate-950/50 hover:text-white"
+            >
+              <span className="truncate">Photo by Dhenny Napitupulu on Pexels</span>
+            </a>
+          </div>
+        </div>
+
         <div className="section-container relative z-20 grid gap-14 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-28">
           <div className="space-y-8">
             <span className="badge badge-secondary">

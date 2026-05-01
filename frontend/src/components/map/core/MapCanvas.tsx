@@ -1,8 +1,8 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Filter, Layers3, LocateFixed, Palette, X } from "lucide-react";
 import MapLegendPanel, { type LayerKey } from "./MapLegendPanel";
 import MapLayerControlPanel from "./MapLayerControlPanel";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
@@ -20,6 +20,7 @@ import type {
   Polygon,
   Position,
 } from "geojson";
+import type { MobilePanel } from "@/components/dashboard/DashboardMapOverlay";
 import type { DataBounds, FeatureProps, GeoJsonData } from "../../../types/map";
 import { buildTileUrl, BASE_URL } from "@/services/fetchLayers";
 
@@ -59,6 +60,10 @@ type MapCanvasProps = {
   ) => string;
   formatCompactRupiah: (value: number | null | undefined) => string;
   onRegionSelect?: (region: string) => void;
+  onResetView?: () => void;
+  onFocusFilters?: () => void;
+  onMobilePanelChange?: (panel: MobilePanel) => void;
+  mobileFilterContent?: ReactNode;
   resetViewSignal?: number;
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -519,6 +524,10 @@ export default function MapCanvas({
   getColorFromBreaks,
   formatCompactRupiah,
   onRegionSelect,
+  onResetView,
+  onFocusFilters,
+  onMobilePanelChange,
+  mobileFilterContent,
   resetViewSignal = 0,
   activeLayers,
   onToggleLayer,
@@ -533,9 +542,14 @@ export default function MapCanvas({
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_ZOOM);
   const [isMapReady, setIsMapReady] = useState(false);
   const [basemapKey, setBasemapKey] = useState<BasemapKey>("light");
+  const [mobileSheetTab, setMobileSheetTab] = useState<MobilePanel>(null);
   const [layerOpacityMap, setLayerOpacityMap] = useState<Record<LayerKey, number>>({
     hazard: 1, loss: 1, aal: 1, production: 1, regions: 1,
   });
+
+  const toggleMobileSheet = (tab: Exclude<MobilePanel, null>) => {
+    setMobileSheetTab((prev) => (prev === tab ? null : tab));
+  };
 
   const normalizedTopRegionKeys = useMemo(
     () => new Set(Array.from(topRegionKeys).map(normalizeRegionKey)),
@@ -561,6 +575,10 @@ export default function MapCanvas({
     if (activeLayers.aal) return layerOpacityMap.aal;
     return 1;
   }, [activeLayers, layerOpacityMap]);
+
+  useEffect(() => {
+    onMobilePanelChange?.(mobileSheetTab);
+  }, [mobileSheetTab, onMobilePanelChange]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -759,6 +777,53 @@ export default function MapCanvas({
         : "Legenda";
 
   const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;
+  const hasLegend = hasAnalysisLayer && legendItems.length > 0;
+
+  useEffect(() => {
+    if (mobileSheetTab === "legend" && !hasLegend) {
+      setMobileSheetTab("layer");
+    }
+  }, [hasLegend, mobileSheetTab]);
+
+  const mobileActionButtons = [
+    {
+      key: "filter",
+      label: "Filter",
+      icon: Filter,
+      onClick: () => {
+        toggleMobileSheet("filter");
+      },
+      disabled: !mobileFilterContent && !onFocusFilters,
+      active: mobileSheetTab === "filter",
+    },
+    {
+      key: "layer",
+      label: "Layer",
+      icon: Layers3,
+      onClick: () => toggleMobileSheet("layer"),
+      disabled: false,
+      active: mobileSheetTab === "layer",
+    },
+    {
+      key: "reset",
+      label: "Reset tampilan",
+      icon: LocateFixed,
+      onClick: onResetView,
+      disabled: !onResetView,
+      active: false,
+    },
+  ];
+
+  if (hasLegend) {
+    mobileActionButtons.push({
+      key: "legend",
+      label: "Legenda",
+      icon: Palette,
+      onClick: () => toggleMobileSheet("legend"),
+      disabled: false,
+      active: mobileSheetTab === "legend",
+    });
+  }
 
   // Nama dari production features — mencakup semua kabupaten.
   const regionNameMap = useMemo(() => {
@@ -872,37 +937,196 @@ export default function MapCanvas({
         />
       </MapContainer>
 
-      <MapLayerControlPanel
-        activeLayers={activeLayers}
-        onToggleLayer={onToggleLayer}
-        layerOpacity={layerOpacityMap}
-        onOpacityChange={(key, val) =>
-          setLayerOpacityMap((prev) => ({ ...prev, [key]: val }))
-        }
-        basemap={basemapKey}
-        onBasemapChange={setBasemapKey}
-        hazard={hazard}
-      />
+      <div className="pointer-events-none absolute left-4 top-4 z-[1061] flex gap-2 md:hidden">
+        {mobileActionButtons.map((button) => {
+          const Icon = button.icon;
+          return (
+            <button
+              key={button.key}
+              type="button"
+              onClick={button.onClick}
+              disabled={button.disabled}
+              className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-xl border shadow-md backdrop-blur transition ${
+                button.active
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                  : "border-gray-200 bg-white/95 text-[var(--color-primary)]"
+              } disabled:cursor-not-allowed disabled:opacity-50`}
+              aria-label={button.label}
+              title={button.label}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          );
+        })}
+      </div>
 
-      {hazard === "multi" && (
-        <div className="pointer-events-none absolute left-1/2 top-4 z-[1059] -translate-x-1/2">
-          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-md backdrop-blur">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-            <span className="whitespace-nowrap text-[11px] font-medium text-amber-800">
-              Indeks Bahaya tidak tersedia untuk Multi-hazard
-            </span>
-          </div>
+      <div className="hidden md:block">
+        <MapLayerControlPanel
+          activeLayers={activeLayers}
+          onToggleLayer={onToggleLayer}
+          layerOpacity={layerOpacityMap}
+          onOpacityChange={(key, val) =>
+            setLayerOpacityMap((prev) => ({ ...prev, [key]: val }))
+          }
+          basemap={basemapKey}
+          onBasemapChange={setBasemapKey}
+          hazard={hazard}
+        />
+      </div>
+
+      {hasLegend && (
+        <div className="hidden md:block">
+          <MapLegendPanel
+            title={legendTitle}
+            items={legendItems}
+            collapsed={legendCollapsed}
+            onToggle={() => setLegendCollapsed((prev) => !prev)}
+            showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+          />
         </div>
       )}
 
-      {hasAnalysisLayer && legendItems.length > 0 && (
-        <MapLegendPanel
-          title={legendTitle}
-          items={legendItems}
-          collapsed={legendCollapsed}
-          onToggle={() => setLegendCollapsed((prev) => !prev)}
-          showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
-        />
+      {mobileSheetTab !== null && (
+        <>
+          <button
+            type="button"
+            className="absolute inset-0 z-[1061] bg-black/10 md:hidden"
+            aria-label="Tutup bottom sheet"
+            onClick={() => setMobileSheetTab(null)}
+          />
+          <div
+            className={`absolute inset-x-3 z-[1062] md:hidden ${
+              mobileSheetTab === "filter" ? "bottom-1.5" : "bottom-2"
+            }`}
+          >
+            <div
+              className={`flex flex-col overflow-hidden rounded-[22px] border border-gray-200 bg-white/96 shadow-xl backdrop-blur ${
+                mobileSheetTab === "filter"
+                  ? "max-h-[min(57vh,29rem)]"
+                  : "max-h-[min(54vh,26rem)]"
+              }`}
+            >
+              <div className="sticky top-0 z-20 flex-shrink-0 bg-white/96 backdrop-blur">
+                <div
+                  className={`flex items-center justify-between gap-3 border-b border-gray-100 px-4 ${
+                    mobileSheetTab === "filter" ? "py-3" : "py-3"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900">
+                      {mobileSheetTab === "filter"
+                        ? "Filter Analisis"
+                        : mobileSheetTab === "layer"
+                          ? "Pengaturan Layer"
+                          : legendTitle}
+                    </p>
+                    {mobileSheetTab === "filter" ? (
+                      <p className="truncate text-[11px] text-gray-500">Atur parameter analisis peta</p>
+                    ) : mobileSheetTab === "legend" ? (
+                      <p className="truncate text-[11px] text-gray-500">Legenda layer aktif</p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileSheetTab(null)}
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm"
+                    aria-label="Tutup bottom sheet"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div
+                  className={`border-b border-gray-100 px-3 ${
+                    mobileSheetTab === "filter" ? "pb-2.5 pt-1.5" : "py-2"
+                  }`}
+                >
+                  <div
+                    className={`grid gap-2 rounded-xl bg-gray-50 p-1 ${
+                      hasLegend ? "grid-cols-3" : "grid-cols-2"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleMobileSheet("filter")}
+                      className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                        mobileSheetTab === "filter"
+                          ? "bg-[var(--color-primary)] text-white shadow-sm"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      Filter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleMobileSheet("layer")}
+                      className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
+                        mobileSheetTab === "layer"
+                          ? "bg-white text-[var(--color-primary)] shadow-sm"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      Layer
+                    </button>
+                    {hasLegend ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleMobileSheet("legend")}
+                        className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
+                          mobileSheetTab === "legend"
+                            ? "bg-white text-[var(--color-primary)] shadow-sm"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        Legenda
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={`min-h-0 flex-1 overflow-y-auto ${
+                  mobileSheetTab === "filter"
+                    ? "px-3 pb-3 pt-3"
+                    : "px-3 pb-3 pt-3"
+                }`}
+              >
+                {mobileSheetTab === "filter" ? (
+                  mobileFilterContent ?? (
+                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
+                      Filter belum tersedia.
+                    </div>
+                  )
+                ) : mobileSheetTab === "layer" ? (
+                  <div className="[&>div]:!static [&>div]:!w-full">
+                    <MapLayerControlPanel
+                      activeLayers={activeLayers}
+                      onToggleLayer={onToggleLayer}
+                      layerOpacity={layerOpacityMap}
+                      onOpacityChange={(key, val) =>
+                        setLayerOpacityMap((prev) => ({ ...prev, [key]: val }))
+                      }
+                      basemap={basemapKey}
+                      onBasemapChange={setBasemapKey}
+                      hazard={hazard}
+                      compact
+                    />
+                  </div>
+                ) : (
+                  <MapLegendPanel
+                    title={legendTitle}
+                    items={legendItems}
+                    collapsed={legendCollapsed}
+                    onToggle={() => setLegendCollapsed((prev) => !prev)}
+                    showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+                    inline
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

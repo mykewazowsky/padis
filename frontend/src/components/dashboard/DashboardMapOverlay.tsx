@@ -16,6 +16,8 @@ type SelectedFeature = {
   };
 } | null;
 
+export type MobilePanel = "filter" | "layer" | "legend" | null;
+
 type Props = {
   selectedFeature: SelectedFeature;
   hasActiveRegion?: boolean;
@@ -29,6 +31,7 @@ type Props = {
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
   isMapTransitioning?: boolean;
+  mobilePanel?: MobilePanel;
 };
 
 function formatCurrency(value: number | null | undefined): string {
@@ -52,6 +55,32 @@ function formatProduksi(value: number | null | undefined): string {
   return `${Math.round(value).toLocaleString("id-ID")} ton`;
 }
 
+function getPrimaryMetric(
+  activeLayers: Record<LayerKey, boolean>,
+  props: NonNullable<SelectedFeature>["properties"]
+) {
+  if (activeLayers.loss) {
+    return { label: "Loss", value: formatCurrency(props.loss) };
+  }
+
+  if (activeLayers.aal) {
+    return { label: "AAL", value: formatCurrency(props.aal) };
+  }
+
+  if (activeLayers.hazard) {
+    return {
+      label: "Indeks",
+      value: props.mean_value != null ? Number(props.mean_value).toFixed(4) : "-",
+    };
+  }
+
+  if (activeLayers.production) {
+    return { label: "Produksi", value: formatProduksi(props.total_prod) };
+  }
+
+  return null;
+}
+
 export default function DashboardMapOverlay({
   selectedFeature,
   hasActiveRegion = false,
@@ -64,6 +93,7 @@ export default function DashboardMapOverlay({
   onDownloadCsv,
   onGenerateReport,
   isMapTransitioning = false,
+  mobilePanel = null,
 }: Props) {
   const isAuthenticated = !!getToken();
   const [exportingCsv, setExportingCsv] = useState(false);
@@ -80,6 +110,12 @@ export default function DashboardMapOverlay({
   }
 
   const props = selectedFeature?.properties;
+  const primaryMetric = props ? getPrimaryMetric(activeLayers, props) : null;
+  const shouldShowMobileSummary =
+    !!selectedFeature &&
+    !!props &&
+    !mobilePanel &&
+    !isMapTransitioning;
 
   return (
     <>
@@ -96,7 +132,7 @@ export default function DashboardMapOverlay({
         </p>
       </div>
 
-      <div className="pointer-events-none absolute right-4 top-4 z-[500] flex flex-col gap-2">
+      <div className="pointer-events-none absolute right-4 top-4 z-[500] hidden flex-col gap-2 md:flex">
         <div className="pointer-events-auto flex flex-col gap-2">
           <button
             type="button"
@@ -138,8 +174,39 @@ export default function DashboardMapOverlay({
         </div>
       </div>
 
+      {shouldShowMobileSummary ? (
+        <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-[500] md:hidden">
+          <div className="pointer-events-auto rounded-2xl border border-white/80 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-gray-900">
+                  {props.kab_kota || "-"}
+                </p>
+                {primaryMetric ? (
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    <span className="font-medium text-gray-700">{primaryMetric.label}</span>{" "}
+                    {primaryMetric.value}
+                  </p>
+                ) : null}
+              </div>
+
+              {onClearRegion && (
+                <button
+                  type="button"
+                  onClick={onClearRegion}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm"
+                  aria-label="Hapus pilihan wilayah"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {selectedFeature && props ? (
-        <div className="pointer-events-none absolute bottom-20 left-4 right-4 z-[500] sm:bottom-4 sm:right-auto sm:w-80">
+        <div className="pointer-events-none absolute bottom-20 left-4 right-4 z-[500] hidden sm:bottom-4 sm:right-auto sm:w-80 md:block">
           <div className="pointer-events-auto card card-accent-primary bg-white/95 p-4 backdrop-blur">
 
             <div className="flex items-start justify-between gap-2">

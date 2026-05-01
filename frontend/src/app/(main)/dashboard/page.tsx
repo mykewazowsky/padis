@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import Select from "react-select";
-import { Filter, ShieldAlert, X } from "lucide-react";
+import { ShieldAlert, X } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
 import { fetchAllLayers, fetchLatestRunId } from "../../../services/fetchLayers";
@@ -11,6 +10,7 @@ import { buildApiUrl } from "../../../lib/api";
 import { getToken, clearToken } from "../../../lib/auth";
 import DashboardLoadingBlock from "../../../components/dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../../../components/dashboard/DashboardEmptyState";
+import DashboardMapFilters from "../../../components/dashboard/DashboardMapFilters";
 import type { AalSummary } from "../../../types/map";
 import type { LayerKey } from "../../../components/map/core/MapLegendPanel";
 
@@ -220,6 +220,7 @@ function DashboardSectionHeader({
 }
 
 export default function DashboardPage() {
+  const filterPanelRef = useRef<HTMLDivElement | null>(null);
   const [runId, setRunId] = useState<number | null>(null);
   const [scenario, setScenario] = useState("rp25");
   const [hazard, setHazard] = useState("multi");
@@ -581,6 +582,13 @@ export default function DashboardPage() {
     setShowReportPreview(true);
   }
 
+  function handleFocusFilters() {
+    filterPanelRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
   const layerSummary = useMemo(() => {
     if (!layers?.loss?.features) {
       return {
@@ -837,102 +845,29 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="relative z-30 rounded-2xl border border-white/70 bg-white/75 p-4 shadow-[0_14px_36px_rgba(37,99,235,0.08)] backdrop-blur">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
-                  <Filter className="h-4 w-4 text-[var(--color-primary)]" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold leading-tight text-gray-900">
-                    Filter Analisis
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Atur parameter untuk memperbarui distribusi risiko pada peta.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-800">
-                    Jenis Bencana
-                  </label>
-                  <Select
-                    instanceId="hazard-select"
-                    options={hazardOptions}
-                    value={selectedHazardOption}
-                    onChange={(option) => setHazard(option?.value ?? "multi")}
-                    isSearchable={false}
-                    isDisabled={loadingLayer}
-                    styles={{ ...selectStyles, ...selectPortalStyles }}
-                    menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-                    menuPosition="fixed"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-800">
-                    Skenario Analisis
-                  </label>
-                  <Select
-                    instanceId="climate-select"
-                    options={climateOptions}
-                    value={selectedClimateOption}
-                    onChange={(option) => setClimate(option?.value ?? "nonclimate")}
-                    isSearchable={false}
-                    isDisabled={loadingLayer}
-                    styles={{ ...selectStyles, ...selectPortalStyles }}
-                    menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-                    menuPosition="fixed"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-800">
-                    Periode Ulang
-                  </label>
-                  <Select
-                    instanceId="scenario-select"
-                    options={scenarioOptions}
-                    value={selectedScenarioOption}
-                    onChange={(option) => setScenario(option?.value ?? "rp25")}
-                    isSearchable={false}
-                    isDisabled={loadingLayer}
-                    styles={{ ...selectStyles, ...selectPortalStyles }}
-                    menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-                    menuPosition="fixed"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-800">
-                    Kabupaten/Kota
-                  </label>
-                  <Select
-                    instanceId="region-select"
-                    options={regionOptions}
-                    value={selectedRegionOption}
-                    onChange={(option) => handleRegionChange(option?.value ?? "")}
-                    isClearable
-                    isLoading={loadingRegions}
-                    placeholder={
-                      loadingRegions
-                        ? "Memuat wilayah..."
-                        : "Pilih Kabupaten/Kota ..."
-                    }
-                    noOptionsMessage={() =>
-                      errorRegions
-                        ? errorRegions
-                        : loadingRegions
-                          ? "Memuat..."
-                          : "Tidak ada data wilayah"
-                    }
-                    styles={{ ...selectStyles, ...selectPortalStyles }}
-                    menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-                    menuPosition="fixed"
-                  />
-                </div>
-              </div>
+            <div
+              ref={filterPanelRef}
+              className="hidden md:block"
+            >
+              <DashboardMapFilters
+                hazardOptions={hazardOptions}
+                climateOptions={climateOptions}
+                scenarioOptions={scenarioOptions}
+                regionOptions={regionOptions}
+                selectedHazardOption={selectedHazardOption}
+                selectedClimateOption={selectedClimateOption}
+                selectedScenarioOption={selectedScenarioOption}
+                selectedRegionOption={selectedRegionOption}
+                loadingLayer={loadingLayer}
+                loadingRegions={loadingRegions}
+                errorRegions={errorRegions}
+                onHazardChange={(value) => setHazard(value)}
+                onClimateChange={(value) => setClimate(value)}
+                onScenarioChange={(value) => setScenario(value)}
+                onRegionChange={(value) => handleRegionChange(value)}
+                selectStyles={selectStyles}
+                selectPortalStyles={selectPortalStyles}
+              />
             </div>
 
             <div className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white/90 shadow-[0_20px_56px_rgba(37,99,235,0.10)]">
@@ -960,6 +895,29 @@ export default function DashboardPage() {
                     onDownloadCsv={handleDownloadCsv}
                     onGenerateReport={handlePreviewReport}
                     isMapTransitioning={isMapTransitioning}
+                    onFocusFilters={handleFocusFilters}
+                    mobileFilterContent={
+                      <DashboardMapFilters
+                        hazardOptions={hazardOptions}
+                        climateOptions={climateOptions}
+                        scenarioOptions={scenarioOptions}
+                        regionOptions={regionOptions}
+                        selectedHazardOption={selectedHazardOption}
+                        selectedClimateOption={selectedClimateOption}
+                        selectedScenarioOption={selectedScenarioOption}
+                        selectedRegionOption={selectedRegionOption}
+                        loadingLayer={loadingLayer}
+                        loadingRegions={loadingRegions}
+                        errorRegions={errorRegions}
+                        onHazardChange={(value) => setHazard(value)}
+                        onClimateChange={(value) => setClimate(value)}
+                        onScenarioChange={(value) => setScenario(value)}
+                        onRegionChange={(value) => handleRegionChange(value)}
+                        selectStyles={selectStyles}
+                        selectPortalStyles={selectPortalStyles}
+                        variant="inline"
+                      />
+                    }
 
                     layers={layers}
 

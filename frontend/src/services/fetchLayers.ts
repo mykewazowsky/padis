@@ -6,7 +6,11 @@ if (!BASE_URL) {
   throw new Error("NEXT_PUBLIC_API_BASE_URL is NOT set!");
 }
 
-if (BASE_URL.includes("127.0.0.1")) {
+const isProduction = process.env.NODE_ENV === "production";
+const isLocalhost =
+  BASE_URL.includes("127.0.0.1") || BASE_URL.includes("localhost");
+
+if (isProduction && isLocalhost) {
   throw new Error("❌ Production is using localhost! Set NEXT_PUBLIC_API_BASE_URL correctly.");
 }
 

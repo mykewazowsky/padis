@@ -45,6 +45,7 @@ type Props = {
   basemap?: BasemapKey;
   onBasemapChange?: (key: BasemapKey) => void;
   hazard?: string;
+  compact?: boolean;
 };
 
 const THEMATIC_KEYS: LayerKey[] = ["hazard", "loss", "aal"];
@@ -78,6 +79,7 @@ export default function MapLayerControlPanel({
   basemap = "imagery",
   onBasemapChange,
   hazard,
+  compact = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(true);
   const [groups, setGroups] = useState<LayerGroup[]>(INITIAL_GROUPS);
@@ -101,7 +103,6 @@ export default function MapLayerControlPanel({
       return;
     }
 
-    // Deactivate other thematic layers before activating the selected one
     THEMATIC_KEYS.forEach((k) => {
       if (k !== key && activeLayers[k]) onToggleLayer(k);
     });
@@ -148,38 +149,44 @@ export default function MapLayerControlPanel({
 
   return (
     <div
-      className="absolute left-4 top-4 z-[1060] flex w-72 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur"
-      style={{ maxHeight: "max(10rem, calc(100svh - 440px))" }}
+      className={
+        compact
+          ? "flex w-full flex-col overflow-visible rounded-none border-0 bg-transparent shadow-none"
+          : "absolute left-4 top-4 z-[1060] flex w-72 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur"
+      }
+      style={
+        compact ? undefined : { maxHeight: "max(10rem, calc(100svh - 440px))" }
+      }
     >
-      {/* Header — fixed */}
-      <div className="flex-shrink-0 px-3 pt-3">
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex gap-2">
-            <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
-              <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
+      {!compact ? (
+        <div className="flex-shrink-0 px-3 pt-3">
+          <div className="mb-3 flex items-start justify-between">
+            <div className="flex gap-2">
+              <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
+                <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800">
+                  Pengaturan Layer
+                </h3>
+                <p className="text-[11px] text-gray-500">Tampilkan &amp; atur layer</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800">
-                Pengaturan Layer
-              </h3>
-              <p className="text-[11px] text-gray-500">Tampilkan &amp; atur layer</p>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
+              aria-label="Tutup pengaturan layer"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
-            aria-label="Tutup pengaturan layer"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
         </div>
-      </div>
+      ) : null}
 
-      {/* Basemap selector — fixed */}
-      <div className="flex-shrink-0 px-3 pb-3">
-        <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+      <div className={`flex-shrink-0 ${compact ? "px-0 pb-2" : "px-3 pb-3"}`}>
+        <p className={`mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 ${compact ? "sr-only" : ""}`}>
           Basemap
         </p>
         <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
@@ -200,8 +207,7 @@ export default function MapLayerControlPanel({
         </div>
       </div>
 
-      {/* Layer groups — scrollable */}
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3">
+      <div className={`${compact ? "overflow-visible px-0" : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3"}`}>
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
           <DndContext
             sensors={sensors}
@@ -250,10 +256,11 @@ export default function MapLayerControlPanel({
         </div>
       </div>
 
-      {/* Hint — fixed */}
-      <p className="flex-shrink-0 px-4 pb-2.5 pt-1.5 text-[10px] text-gray-400">
-        Seret ≡ untuk mengubah urutan layer
-      </p>
+      {!compact ? (
+        <p className="flex-shrink-0 px-4 pb-2.5 pt-1.5 text-[10px] text-gray-400">
+          Seret layer untuk mengubah urutan
+        </p>
+      ) : null}
     </div>
   );
 }

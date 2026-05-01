@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import type { Layer, Map as LeafletMap } from "leaflet";
 import MapCanvas from "./core/MapCanvas";
+import type { MobilePanel } from "@/components/dashboard/DashboardMapOverlay";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 import type { DataBounds, GeoJsonData } from "@/types/map";
 
@@ -13,6 +14,10 @@ type Props = {
   runId: number;
   selectedRegion: string;
   onRegionSelect?: (region: string) => void;
+  onResetView?: () => void;
+  onFocusFilters?: () => void;
+  onMobilePanelChange?: (panel: MobilePanel) => void;
+  mobileFilterContent?: ReactNode;
 
   data: GeoJsonData | null;
   dataBounds?: DataBounds | null;
@@ -100,6 +105,10 @@ export default function MapViewClient({
   runId,
   selectedRegion,
   onRegionSelect,
+  onResetView,
+  onFocusFilters,
+  onMobilePanelChange,
+  mobileFilterContent,
   data,
   dataBounds,
   layers,
@@ -177,6 +186,10 @@ export default function MapViewClient({
         formatCompactRupiah={formatCompactRupiah}
 
         onRegionSelect={onRegionSelect}
+        onResetView={onResetView}
+        onFocusFilters={onFocusFilters}
+        onMobilePanelChange={onMobilePanelChange}
+        mobileFilterContent={mobileFilterContent}
         resetViewSignal={resetViewSignal}
 
         activeLayers={activeLayers}

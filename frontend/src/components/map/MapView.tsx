@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import DashboardMapOverlay from "@/components/dashboard/DashboardMapOverlay";
+import type { MobilePanel } from "@/components/dashboard/DashboardMapOverlay";
 import type { DataBounds, GeoJsonData } from "@/types/map";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 
@@ -30,6 +31,8 @@ type Props = {
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
   isMapTransitioning?: boolean;
+  onFocusFilters?: () => void;
+  mobileFilterContent?: ReactNode;
 
   layers: {
     regions: GeoJsonData | null;
@@ -58,11 +61,15 @@ export default function MapView({
   onDownloadCsv,
   onGenerateReport,
   isMapTransitioning,
+  onFocusFilters,
+  mobileFilterContent,
   resetViewSignal,
   activeLayers,
   onToggleLayer,
   regionCentroids,
 }: Props) {
+  const [mobileSheetTab, setMobileSheetTab] = useState<MobilePanel>(null);
+
   // =========================
   // SELECT ACTIVE DATA (for MapViewClient classification breaks)
   // =========================
@@ -199,6 +206,10 @@ export default function MapView({
         runId={runId}
         selectedRegion={selectedRegion}
         onRegionSelect={onRegionSelect}
+        onResetView={onResetView}
+        onFocusFilters={onFocusFilters}
+        onMobilePanelChange={setMobileSheetTab}
+        mobileFilterContent={mobileFilterContent}
 
         data={data}
         layers={layers}
@@ -223,6 +234,7 @@ export default function MapView({
         onDownloadCsv={onDownloadCsv}
         onGenerateReport={onGenerateReport}
         isMapTransitioning={isMapTransitioning}
+        mobilePanel={mobileSheetTab}
       />
     </div>
   );

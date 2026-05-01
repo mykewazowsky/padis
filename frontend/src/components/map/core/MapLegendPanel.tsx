@@ -21,6 +21,7 @@ type Props = {
   onToggle: () => void;
   /** When true, shows a Top-5 amber indicator matching the map highlight. */
   showTop5Indicator?: boolean;
+  inline?: boolean;
 };
 
 export default function MapLegendPanel({
@@ -29,9 +30,16 @@ export default function MapLegendPanel({
   collapsed,
   onToggle,
   showTop5Indicator = false,
+  inline = false,
 }: Props) {
   return (
-    <div className="absolute bottom-4 right-4 z-[1060] w-56 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-md backdrop-blur">
+    <div
+      className={
+        inline
+          ? "w-full rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm"
+          : "absolute bottom-4 right-4 z-[1060] w-56 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-md backdrop-blur"
+      }
+    >
       {/* HEADER */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">

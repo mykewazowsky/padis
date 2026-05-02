@@ -21,6 +21,7 @@ import {
 
 import { buildApiUrl } from "@/lib/api";
 import { clearToken, decodeToken, getToken } from "@/lib/auth";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 type UserInfo = {
   id?: string;
@@ -60,7 +61,7 @@ function getVisibleNavItems(_user: UserInfo | null, _isAuthenticated: boolean) {
 function Brand() {
   return (
     <Link href="/" className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white/10">
+      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-[var(--theme-brand-chip-bg)] shadow-sm">
         <Image
           src="/logo/padis.svg"
           alt="PADIS"
@@ -72,8 +73,8 @@ function Brand() {
       </div>
 
       <div className="min-w-0">
-        <p className="text-xl font-bold tracking-tight text-gray-900">PADIS</p>
-        <p className="hidden text-xs text-gray-500 sm:block">
+        <p className="text-xl font-bold tracking-tight text-[var(--theme-shell-text)]">PADIS</p>
+        <p className="hidden text-xs text-[var(--theme-shell-text-muted)] sm:block">
           Paddy Disaster Information System
         </p>
       </div>
@@ -104,7 +105,7 @@ function CenterNav({
             className={`relative pb-1 text-sm font-medium transition ${
               active
                 ? "text-[var(--color-primary)]"
-                : "text-gray-600 hover:text-[var(--color-primary)]"
+                : "text-[var(--theme-shell-text-muted)] hover:text-[var(--color-primary)]"
             }`}
           >
             {item.label}
@@ -132,7 +133,7 @@ function UserBadge({
   return (
     <div className="hidden xl:flex items-center gap-3">
       <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-secondary)] bg-[var(--color-secondary-soft)] px-4 py-2">
-        <div className="rounded-xl bg-white/80 p-2">
+        <div className="rounded-xl bg-[var(--theme-shell-surface-soft)] p-2">
           {isAdmin ? (
             <ShieldCheck
               className="h-4 w-4 text-[var(--color-secondary-dark)]"
@@ -150,7 +151,7 @@ function UserBadge({
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-secondary-dark)]">
             Masuk sebagai
           </p>
-          <p className="mt-1 text-sm font-semibold text-gray-900">
+          <p className="mt-1 text-sm font-semibold text-[var(--theme-shell-text)]">
             {user?.name || "Pengguna"}
           </p>
         </div>
@@ -159,7 +160,7 @@ function UserBadge({
       <button
         type="button"
         onClick={onLogout}
-        className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-red-500"
+        className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-shell-text-muted)] transition hover:text-red-500"
         aria-label="Keluar dari akun"
       >
         <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -198,7 +199,7 @@ function MobileMenu({
       />
 
       <div
-        className={`fixed left-0 right-0 top-[73px] z-[1260] border-t border-gray-200 bg-white shadow-xl transition-all duration-300 xl:hidden ${
+        className={`fixed left-0 right-0 top-[73px] z-[1260] border-t border-[var(--theme-shell-border)] bg-[var(--theme-shell-bg-solid)] shadow-[var(--theme-shell-shadow)] transition-all duration-300 xl:hidden ${
           isOpen
             ? "translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-2 opacity-0"
@@ -214,30 +215,32 @@ function MobileMenu({
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
-                  className={`flex items-center justify-between border-b border-gray-100 py-4 text-sm font-medium transition ${
+                  className={`flex items-center justify-between border-b border-[var(--theme-shell-border-subtle)] py-4 text-sm font-medium transition ${
                     active
                       ? "text-[var(--color-primary)]"
-                      : "text-gray-700 hover:text-[var(--color-primary)]"
+                      : "text-[var(--theme-shell-text)] hover:text-[var(--color-primary)]"
                   }`}
                 >
                   <span>{item.label}</span>
                   {active ? (
                     <span className="h-[2px] w-6 bg-[var(--color-primary)]" />
                   ) : (
-                    <span className="text-xs text-gray-400">›</span>
+                    <span className="text-xs text-[var(--theme-shell-text-soft)]">›</span>
                   )}
                 </Link>
               );
             })}
           </div>
 
-          <div className="mt-5 border-t border-gray-200 pt-5">
+          <div className="mt-5 space-y-4 border-t border-[var(--theme-shell-border)] pt-5">
+            <ThemeToggle mobile />
+
             {authChecked ? (
               isAuthenticated && user ? (
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-[var(--color-secondary)] bg-[var(--color-secondary-soft)] p-4">
                     <div className="flex items-start gap-3">
-                      <div className="rounded-xl bg-white/80 p-2">
+                      <div className="rounded-xl bg-[var(--theme-shell-surface-soft)] p-2">
                         {user?.role === "admin" ? (
                           <ShieldCheck
                             className="h-4 w-4 text-[var(--color-secondary-dark)]"
@@ -255,10 +258,10 @@ function MobileMenu({
                         <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-secondary-dark)]">
                           Masuk sebagai
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-gray-900">
+                        <p className="mt-1 text-sm font-semibold text-[var(--theme-shell-text)]">
                           {user?.name || "Pengguna"}
                         </p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-[var(--theme-shell-text-muted)]">
                           {user?.email || "-"}
                         </p>
                       </div>
@@ -272,7 +275,7 @@ function MobileMenu({
                       onClose();
                     }}
                     aria-label="Keluar dari akun"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-red-500"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--theme-shell-border)] px-4 py-3 text-sm font-medium text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)] hover:text-red-500"
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />
                     <span>Keluar</span>
@@ -283,7 +286,7 @@ function MobileMenu({
                   <Link
                     href="/login"
                     onClick={onClose}
-                    className="inline-flex items-center justify-center rounded-full border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    className="inline-flex items-center justify-center rounded-full border border-[var(--theme-shell-border)] px-4 py-3 text-sm font-medium text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)]"
                   >
                     Masuk
                   </Link>
@@ -487,8 +490,8 @@ export default function SiteShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <header className="sticky top-0 z-[1200] border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90">
+    <div className="flex min-h-screen flex-col bg-[var(--theme-body-bg)] text-[var(--theme-body-text)] transition-colors duration-200">
+      <header className="sticky top-0 z-[1200] border-b border-[var(--theme-shell-border)] bg-[var(--theme-shell-bg)] shadow-[var(--theme-shell-shadow)] backdrop-blur supports-[backdrop-filter]:bg-[var(--theme-shell-bg)]">
         <div className="section-container py-4">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 xl:grid-cols-3">
             <div className="flex items-center">
@@ -502,13 +505,15 @@ export default function SiteShell({
             />
 
             <div className="flex items-center justify-end gap-4">
+              <ThemeToggle />
+
               {authChecked && isAuthenticated && user ? (
                 <UserBadge user={user} onLogout={handleLogout} />
               ) : authChecked ? (
                 <>
                   <Link
                     href="/login"
-                    className="hidden xl:inline-flex text-sm font-medium text-gray-500 transition hover:text-[var(--color-primary)]"
+                    className="hidden xl:inline-flex text-sm font-medium text-[var(--theme-shell-text-muted)] transition hover:text-[var(--color-primary)]"
                   >
                     Masuk
                   </Link>
@@ -525,7 +530,7 @@ export default function SiteShell({
               <button
                 type="button"
                 onClick={() => setMobileOpen((prev) => !prev)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition hover:bg-gray-50 xl:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--theme-shell-border)] bg-[var(--theme-shell-surface)] text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)] xl:hidden"
                 aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
                 aria-expanded={mobileOpen}
               >

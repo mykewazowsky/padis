@@ -16,6 +16,7 @@ import { BarChart3, MapPinned, Target } from "lucide-react";
 import { fetchJson } from "../../lib/fetcher";
 import DashboardLoadingBlock from "../dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../dashboard/DashboardEmptyState";
+import { useChartTheme } from "./chartTheme";
 
 type Props = {
   scenario: string;
@@ -100,8 +101,8 @@ function CustomTooltip({
   if (!active || !payload || !payload.length) return null;
   const fullName = (payload[0]?.payload?.name as string | undefined) ?? label;
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
-      <p className="text-xs font-semibold tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-4 py-3 shadow-[var(--chart-tooltip-shadow)]">
+      <p className="text-xs font-semibold tracking-wide text-[var(--chart-tooltip-muted)]">
         {labelPrefix}: {fullName}
       </p>
       <div className="mt-2 space-y-1">
@@ -111,9 +112,9 @@ function CustomTooltip({
               className="inline-block h-3 w-3 rounded-sm"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-gray-700">
+            <span className="text-[var(--chart-tooltip-muted)]">
               {entry.name}:{" "}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-[var(--chart-tooltip-text)]">
                 {formatRupiah(safeNumber(entry.value))}
               </span>
             </span>
@@ -135,11 +136,11 @@ function HistogramTooltip({
   const bucket = payload[0]?.payload as HistogramBucket | undefined;
   if (!bucket) return null;
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
-      <p className="text-xs font-semibold tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-4 py-3 shadow-[var(--chart-tooltip-shadow)]">
+      <p className="text-xs font-semibold tracking-wide text-[var(--chart-tooltip-muted)]">
         Rp {formatCompact(bucket.lo)} – Rp {formatCompact(bucket.hi)}
       </p>
-      <p className="mt-1.5 text-sm font-bold text-gray-900">
+      <p className="mt-1.5 text-sm font-bold text-[var(--chart-tooltip-text)]">
         {bucket.count} wilayah
       </p>
     </div>
@@ -171,6 +172,7 @@ export default function AdvancedCharts({
 
   const [errorTopRegions, setErrorTopRegions] = useState<string | null>(null);
   const [errorLossDist, setErrorLossDist] = useState<string | null>(null);
+  const chartTheme = useChartTheme();
 
   useEffect(() => {
     setLoadingTopRegions(true);
@@ -213,13 +215,13 @@ export default function AdvancedCharts({
         shortName: shortenRegionName(item.name),
         rank: index + 1,
         fill: isSelected
-          ? "#111827"
+          ? chartTheme.selectedFill
           : index < 3
             ? "var(--color-primary)"
             : "#93c5fd",
       };
     });
-  }, [topRegions, selectedRegion]);
+  }, [topRegions, selectedRegion, chartTheme.selectedFill]);
 
   const topRegionSummary = useMemo(() => {
     if (!topRegions.length) return { name: "-", value: 0 };
@@ -313,34 +315,34 @@ export default function AdvancedCharts({
                 <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
                   <MapPinned className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
-                <h4 className="text-lg font-bold tracking-tight text-gray-900">
+                <h4 className="text-lg font-bold tracking-tight text-heading">
                   Top 10 Kabupaten/Kota
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted">
                 Ranking wilayah dengan kerugian tertinggi untuk {getHazardLabel(hazard)} ·{" "}
                 {scenario.toUpperCase()} · {getClimateLabel(climate)}
               </p>
             </div>
-            <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+            <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-gray-light)] px-3 py-1 text-xs font-semibold text-heading">
               Klik untuk fokus ke peta
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="surface-soft rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Wilayah Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
+              <p className="mt-2 text-lg font-bold text-heading">
                 {loadingTopRegions ? "Loading..." : topRegionSummary.name}
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="surface-soft rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Loss Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
+              <p className="mt-2 text-lg font-bold text-heading">
                 {loadingTopRegions
                   ? "Loading..."
                   : formatRupiah(topRegionSummary.value)}
@@ -348,28 +350,28 @@ export default function AdvancedCharts({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="surface-soft rounded-2xl px-4 py-3">
             {loadingTopRegions ? (
               <div className="animate-pulse space-y-2">
-                <div className="h-4 w-36 rounded bg-gray-200" />
-                <div className="h-4 w-48 rounded bg-gray-200" />
+                <div className="h-4 w-36 rounded bg-[var(--color-border)]" />
+                <div className="h-4 w-48 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorTopRegions ? (
               <p className="text-sm text-red-600">{errorTopRegions}</p>
             ) : !hasTopRegionData ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Belum ada wilayah dengan kerugian yang cukup untuk ditampilkan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-white p-2 shadow-sm">
+                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
                   <Target className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-heading">
                     Fokus cepat ke peta
                   </p>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="mt-1 text-sm text-muted">
                     Klik batang chart untuk memilih wilayah dan memfokuskan map
                     ke kabupaten/kota terkait.
                   </p>
@@ -386,7 +388,7 @@ export default function AdvancedCharts({
                 description="Sistem sedang menyusun wilayah dengan kerugian tertinggi."
               />
             ) : errorTopRegions ? (
-              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
+              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] text-sm text-[var(--dashboard-status-danger-text)]">
                 {errorTopRegions}
               </div>
             ) : !hasTopRegionData ? (
@@ -403,20 +405,20 @@ export default function AdvancedCharts({
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#e5e7eb"
+                    stroke={chartTheme.grid}
                     horizontal={false}
                   />
                   <XAxis
                     type="number"
                     tickFormatter={(value) => formatCompact(safeNumber(value))}
-                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                    tick={{ fill: chartTheme.axis, fontSize: 11 }}
                   />
                   <YAxis
                     type="category"
                     dataKey="shortName"
                     width={118}
                     tickMargin={4}
-                    tick={{ fill: "#374151", fontSize: 11 }}
+                    tick={{ fill: chartTheme.axis, fontSize: 11 }}
                   />
                   <Tooltip content={<CustomTooltip labelPrefix="Wilayah" />} />
                   <Bar
@@ -438,7 +440,7 @@ export default function AdvancedCharts({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+          <div className="flex flex-wrap gap-4 text-xs text-muted">
             <div className="flex items-center gap-2">
               <span
                 className="inline-block h-3 w-3 rounded-sm"
@@ -456,7 +458,7 @@ export default function AdvancedCharts({
             <div className="flex items-center gap-2">
               <span
                 className="inline-block h-3 w-3 rounded-sm"
-                style={{ backgroundColor: "#111827" }}
+                style={{ backgroundColor: chartTheme.selectedFill }}
               />
               Wilayah terpilih
             </div>
@@ -473,17 +475,17 @@ export default function AdvancedCharts({
                 <div className="rounded-xl bg-[var(--color-secondary-soft)] p-2">
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
-                <h4 className="text-lg font-bold tracking-tight text-gray-900">
+                <h4 className="text-lg font-bold tracking-tight text-heading">
                   Distribusi Loss
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted">
                 Sebaran jumlah kabupaten/kota berdasarkan rentang kerugian untuk{" "}
                 {getHazardLabel(hazard)} · {scenario.toUpperCase()} ·{" "}
                 {getClimateLabel(climate)}
               </p>
             </div>
-            <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+            <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-gray-light)] px-3 py-1 text-xs font-semibold text-heading">
               {scenario.toUpperCase()}
             </div>
           </div>
@@ -493,14 +495,14 @@ export default function AdvancedCharts({
             {STAT_ITEMS.map(({ key, label }) => (
               <div
                 key={key}
-                className="rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                className="surface-soft rounded-2xl p-3"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">
                   {label}
                 </p>
-                <p className="mt-1.5 truncate text-sm font-bold text-gray-900">
+                <p className="mt-1.5 truncate text-sm font-bold text-heading">
                   {loadingLossDist ? (
-                    <span className="animate-pulse text-gray-300">—</span>
+                    <span className="animate-pulse text-muted">—</span>
                   ) : histogramData.stats != null ? (
                     `Rp ${formatCompact(histogramData.stats[key])}`
                   ) : (
@@ -511,28 +513,28 @@ export default function AdvancedCharts({
             ))}
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="surface-soft rounded-2xl px-4 py-3">
             {loadingLossDist ? (
               <div className="animate-pulse space-y-2">
-                <div className="h-4 w-32 rounded bg-gray-200" />
-                <div className="h-4 w-44 rounded bg-gray-200" />
+                <div className="h-4 w-32 rounded bg-[var(--color-border)]" />
+                <div className="h-4 w-44 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorLossDist ? (
               <p className="text-sm text-red-600">{errorLossDist}</p>
             ) : !hasLossDistData ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Belum ada data distribusi yang dapat divisualisasikan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-white p-2 shadow-sm">
+                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
                   <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-heading">
                     Pola distribusi kerugian
                   </p>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="mt-1 text-sm text-muted">
                     Setiap batang menunjukkan jumlah kabupaten/kota dalam
                     rentang kerugian tertentu. Distribusi condong ke kanan
                     mengindikasikan konsentrasi risiko di sedikit wilayah.
@@ -550,7 +552,7 @@ export default function AdvancedCharts({
                 description="Data kerugian per kabupaten sedang diproses."
               />
             ) : errorLossDist ? (
-              <div className="flex h-72 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
+              <div className="flex h-72 w-full items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] text-sm text-[var(--dashboard-status-danger-text)]">
                 {errorLossDist}
               </div>
             ) : !hasLossDistData ? (
@@ -569,12 +571,12 @@ export default function AdvancedCharts({
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="#e5e7eb"
+                      stroke={chartTheme.grid}
                       vertical={false}
                     />
                     <XAxis
                       dataKey="label"
-                      tick={{ fill: "#6b7280", fontSize: 10 }}
+                      tick={{ fill: chartTheme.axis, fontSize: 10 }}
                       tickLine={false}
                       angle={-40}
                       textAnchor="end"
@@ -582,7 +584,7 @@ export default function AdvancedCharts({
                     />
                     <YAxis
                       allowDecimals={false}
-                      tick={{ fill: "#6b7280", fontSize: 11 }}
+                      tick={{ fill: chartTheme.axis, fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
                       width={28}
@@ -623,7 +625,7 @@ export default function AdvancedCharts({
                   </BarChart>
                 </ResponsiveContainer>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500">
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
                   <div className="flex items-center gap-1.5">
                     <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)]" />
                     Frekuensi tertinggi

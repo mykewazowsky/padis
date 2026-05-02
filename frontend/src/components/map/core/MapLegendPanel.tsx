@@ -36,8 +36,8 @@ export default function MapLegendPanel({
     <div
       className={
         inline
-          ? "w-full rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm"
-          : "absolute bottom-4 right-4 z-[1060] w-56 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-md backdrop-blur"
+          ? "w-full rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] p-3 shadow-sm"
+          : "absolute bottom-4 right-4 z-[1060] w-56 rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] p-3 shadow-md backdrop-blur"
       }
     >
       {/* HEADER */}
@@ -48,10 +48,10 @@ export default function MapLegendPanel({
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-gray-800">
+            <h3 className="text-xs font-semibold text-[var(--dashboard-text)]">
               {title}
             </h3>
-            <p className="text-[10px] text-gray-500">
+            <p className="text-[10px] text-[var(--dashboard-text-muted)]">
               Distribusi kelas data
             </p>
           </div>
@@ -61,7 +61,7 @@ export default function MapLegendPanel({
         <button
           type="button"
           onClick={onToggle}
-          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+          className="rounded-md p-1 text-[var(--dashboard-text-muted)] transition hover:bg-[var(--dashboard-control-hover)] hover:text-[var(--dashboard-text)]"
           aria-label={collapsed ? "Buka legenda" : "Tutup legenda"}
         >
           {collapsed ? (
@@ -82,10 +82,10 @@ export default function MapLegendPanel({
                 className="flex items-center gap-2"
               >
                 <div
-                  className="h-3 w-3 flex-shrink-0 rounded-sm border border-gray-300"
+                  className="h-3 w-3 flex-shrink-0 rounded-sm border border-[var(--dashboard-border-solid)]"
                   style={{ backgroundColor: item.color }}
                 />
-                <span className="text-[11px] text-gray-700">
+                <span className="text-[11px] text-[var(--dashboard-text)]">
                   {item.label}
                 </span>
               </div>
@@ -93,11 +93,11 @@ export default function MapLegendPanel({
           </div>
 
           {showTop5Indicator && (
-            <div className="mt-2.5 border-t border-gray-200 pt-2.5">
+            <div className="mt-2.5 border-t border-[var(--dashboard-border-soft)] pt-2.5">
               <div className="flex items-center gap-2">
                 {/* Amber border swatch matches the map highlight for top-5 regions */}
-                <div className="h-3 w-3 flex-shrink-0 rounded-sm border-2 border-amber-400 bg-white" />
-                <span className="text-[11px] text-gray-700">
+                <div className="h-3 w-3 flex-shrink-0 rounded-sm border-2 border-amber-400 bg-[var(--dashboard-surface-solid)]" />
+                <span className="text-[11px] text-[var(--dashboard-text)]">
                   Top 5 wilayah terdampak
                 </span>
               </div>

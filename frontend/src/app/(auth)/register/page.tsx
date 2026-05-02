@@ -113,9 +113,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[var(--color-primary-soft)] via-white to-[var(--color-secondary-soft)]">
+    <main className="auth-page-gradient min-h-screen">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-        <section className="section-gradient-primary relative hidden overflow-hidden lg:flex">
+        <section className="auth-hero-gradient relative hidden overflow-hidden lg:flex">
+          <div className="auth-hero-overlay" />
           <div className="hero-grid-overlay" />
           <div className="hero-orb hero-orb-secondary right-[-80px] top-[80px] h-56 w-56" />
           <div className="hero-orb hero-orb-primary bottom-[-60px] left-[-40px] h-48 w-48" />
@@ -132,7 +133,7 @@ export default function RegisterPage() {
                 PADIS
               </h1>
 
-              <p className="mt-5 max-w-xl text-sm leading-7 text-blue-100 xl:text-base">
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
                 Daftarkan akun Anda untuk mengakses dashboard risiko,
                 visualisasi spasial, perbandingan climate dan non-climate, serta
                 fitur unduh output dan report PADIS.
@@ -143,14 +144,14 @@ export default function RegisterPage() {
               <div className="grid gap-4">
                 <div className="card-glass rounded-3xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/15 p-2">
+                    <div className="rounded-2xl bg-[var(--auth-hero-icon-bg)] p-2">
                       <MapPinned className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         Dashboard Interaktif
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-blue-100">
+                      <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
                         Eksplorasi peta risiko, statistik, dan chart analisis
                         secara terintegrasi.
                       </p>
@@ -160,14 +161,14 @@ export default function RegisterPage() {
 
                 <div className="card-glass rounded-3xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/15 p-2">
+                    <div className="rounded-2xl bg-[var(--auth-hero-icon-bg)] p-2">
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         Akses Terkelola
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-blue-100">
+                      <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
                         Akun pengguna dapat dikelola untuk mendukung kontrol
                         akses fitur PADIS.
                       </p>
@@ -176,7 +177,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-blue-100/80">
+              <p className="text-xs text-[var(--auth-hero-soft)]">
                 © 2026 PADIS. All rights reserved.
               </p>
             </div>
@@ -188,10 +189,10 @@ export default function RegisterPage() {
             <div className="card card-elevated p-8 md:p-9">
               <div className="mb-8">
                 <span className="badge badge-primary">REGISTER</span>
-                <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">
+                <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
                   Buat akun PADIS
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
                   Lengkapi data berikut untuk membuat akun baru dan mulai
                   mengakses platform PADIS.
                 </p>
@@ -201,10 +202,10 @@ export default function RegisterPage() {
                 <div>
                   <label className="input-label">Nama Lengkap</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <User className="h-4 w-4 shrink-0 text-gray-400" />
+                    <User className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
                       type="text"
-                      className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Masukkan nama lengkap"
@@ -215,10 +216,10 @@ export default function RegisterPage() {
                 <div>
                   <label className="input-label">Email</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <Mail className="h-4 w-4 shrink-0 text-gray-400" />
+                    <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
                       type="email"
-                      className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Masukkan email"
@@ -229,10 +230,10 @@ export default function RegisterPage() {
                 <div>
                   <label className="input-label">Password</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+                    <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Minimal 8 karakter"
@@ -240,7 +241,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="text-gray-400 transition hover:text-gray-700"
+                      className="text-[var(--auth-input-icon)] transition hover:text-[var(--auth-input-icon-hover)]"
                       aria-label={
                         showPassword ? "Sembunyikan password" : "Tampilkan password"
                       }
@@ -257,10 +258,10 @@ export default function RegisterPage() {
                 <div>
                   <label className="input-label">Konfirmasi Password</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+                    <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
-                      className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Ulangi password"
@@ -270,7 +271,7 @@ export default function RegisterPage() {
                       onClick={() =>
                         setShowConfirmPassword((prev) => !prev)
                       }
-                      className="text-gray-400 transition hover:text-gray-700"
+                      className="text-[var(--auth-input-icon)] transition hover:text-[var(--auth-input-icon-hover)]"
                       aria-label={
                         showConfirmPassword
                           ? "Sembunyikan konfirmasi password"
@@ -287,13 +288,13 @@ export default function RegisterPage() {
                 </div>
 
                 {error ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
                     {error}
                   </div>
                 ) : null}
 
                 {success ? (
-                  <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-success-text)] [background:var(--auth-alert-success-bg)] [border-color:var(--auth-alert-success-border)]">
                     {success}
                   </div>
                 ) : null}
@@ -309,10 +310,10 @@ export default function RegisterPage() {
               </form>
 
               <div className="mt-5 surface-soft p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text)]">
                   Catatan
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
                   Setelah registrasi berhasil, akun dapat langsung digunakan atau
                   menunggu aktivasi admin, tergantung konfigurasi sistem PADIS.
                 </p>
@@ -321,7 +322,7 @@ export default function RegisterPage() {
               <div className="mt-6 flex items-center justify-between gap-3 text-sm">
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 text-gray-600 transition hover:text-gray-900"
+                  className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Kembali ke Login
@@ -335,7 +336,7 @@ export default function RegisterPage() {
                 </Link>
               </div>
 
-              <div className="mt-4 text-center text-sm text-gray-500">
+              <div className="mt-4 text-center text-sm text-[var(--auth-text-muted)]">
                 Sudah punya akun?{" "}
                 <Link
                   href="/login"

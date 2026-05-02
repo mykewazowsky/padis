@@ -106,9 +106,10 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[var(--color-primary-soft)] via-white to-[var(--color-secondary-soft)]">
+    <main className="auth-page-gradient min-h-screen">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-        <section className="section-gradient-primary relative hidden overflow-hidden lg:flex">
+        <section className="auth-hero-gradient relative hidden overflow-hidden lg:flex">
+          <div className="auth-hero-overlay" />
           <div className="hero-grid-overlay" />
           <div className="hero-orb hero-orb-secondary right-[-80px] top-[80px] h-56 w-56" />
           <div className="hero-orb hero-orb-primary bottom-[-60px] left-[-40px] h-48 w-48" />
@@ -125,7 +126,7 @@ export default function ResetPasswordPage() {
                 PADIS
               </h1>
 
-              <p className="mt-5 max-w-xl text-sm leading-7 text-blue-100 xl:text-base">
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
                 Gunakan halaman ini untuk menyelesaikan proses pemulihan akun.
                 Setelah password diperbarui, Anda dapat kembali login ke PADIS
                 menggunakan kredensial baru.
@@ -136,14 +137,14 @@ export default function ResetPasswordPage() {
               <div className="grid gap-4">
                 <div className="card-glass rounded-3xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/15 p-2">
+                    <div className="rounded-2xl bg-[var(--auth-hero-icon-bg)] p-2">
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         Token Sekali Pakai
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-blue-100">
+                      <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
                         Tautan reset hanya berlaku terbatas dan akan ditandai
                         selesai setelah password diperbarui.
                       </p>
@@ -153,14 +154,14 @@ export default function ResetPasswordPage() {
 
                 <div className="card-glass rounded-3xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/15 p-2">
+                    <div className="rounded-2xl bg-[var(--auth-hero-icon-bg)] p-2">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         Akses Kembali ke Sistem
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-blue-100">
+                      <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
                         Setelah berhasil, pengguna dapat kembali mengakses fitur
                         dashboard dan analisis PADIS.
                       </p>
@@ -169,7 +170,7 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-blue-100/80">
+              <p className="text-xs text-[var(--auth-hero-soft)]">
                 © 2026 PADIS. All rights reserved.
               </p>
             </div>
@@ -181,10 +182,10 @@ export default function ResetPasswordPage() {
             <div className="card card-elevated p-8 md:p-9">
               <div className="mb-8">
                 <span className="badge badge-primary">NEW PASSWORD</span>
-                <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">
+                <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
                   Reset password
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
                   Masukkan password baru untuk akun PADIS Anda. Pastikan password
                   cukup kuat dan mudah Anda simpan dengan aman.
                 </p>
@@ -192,13 +193,13 @@ export default function ResetPasswordPage() {
 
               {!token ? (
                 <div className="space-y-5">
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
                     Token reset password tidak ditemukan. Silakan ulangi proses
                     lupa password.
                   </div>
 
                   <div className="surface-soft p-4">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-[var(--auth-text-muted)]">
                       Pastikan Anda membuka halaman reset dari tautan yang
                       dibuat sistem.
                     </p>
@@ -215,7 +216,7 @@ export default function ResetPasswordPage() {
 
                     <Link
                       href="/login"
-                      className="text-gray-600 transition hover:text-gray-900"
+                      className="text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                     >
                       Kembali ke Login
                     </Link>
@@ -227,10 +228,10 @@ export default function ResetPasswordPage() {
                     <div>
                       <label className="input-label">Password Baru</label>
                       <div className="input-shell flex items-center gap-3 px-4 py-3">
-                        <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+                        <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                         <input
                           type={showPassword ? "text" : "password"}
-                          className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                          className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="Minimal 8 karakter"
@@ -238,7 +239,7 @@ export default function ResetPasswordPage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          className="text-gray-400 transition hover:text-gray-700"
+                          className="text-[var(--auth-input-icon)] transition hover:text-[var(--auth-input-icon-hover)]"
                           aria-label={
                             showPassword
                               ? "Sembunyikan password"
@@ -259,10 +260,10 @@ export default function ResetPasswordPage() {
                         Konfirmasi Password Baru
                       </label>
                       <div className="input-shell flex items-center gap-3 px-4 py-3">
-                        <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+                        <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                         <input
                           type={showConfirmPassword ? "text" : "password"}
-                          className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                          className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="Ulangi password baru"
@@ -272,7 +273,7 @@ export default function ResetPasswordPage() {
                           onClick={() =>
                             setShowConfirmPassword((prev) => !prev)
                           }
-                          className="text-gray-400 transition hover:text-gray-700"
+                          className="text-[var(--auth-input-icon)] transition hover:text-[var(--auth-input-icon-hover)]"
                           aria-label={
                             showConfirmPassword
                               ? "Sembunyikan konfirmasi password"
@@ -289,13 +290,13 @@ export default function ResetPasswordPage() {
                     </div>
 
                     {error ? (
-                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
                         {error}
                       </div>
                     ) : null}
 
                     {success ? (
-                      <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                      <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-success-text)] [background:var(--auth-alert-success-bg)] [border-color:var(--auth-alert-success-border)]">
                         <div className="flex items-start gap-2">
                           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                           <span>{success}</span>
@@ -314,10 +315,10 @@ export default function ResetPasswordPage() {
                   </form>
 
                   <div className="mt-5 surface-soft p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text)]">
                       Tips keamanan
                     </p>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
                       Gunakan kombinasi huruf, angka, dan karakter khusus agar
                       password lebih aman dan tidak mudah ditebak.
                     </p>
@@ -326,7 +327,7 @@ export default function ResetPasswordPage() {
                   <div className="mt-6 flex items-center justify-between gap-3 text-sm">
                     <Link
                       href="/login"
-                      className="inline-flex items-center gap-2 text-gray-600 transition hover:text-gray-900"
+                      className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       Kembali ke Login

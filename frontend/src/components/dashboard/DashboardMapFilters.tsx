@@ -74,7 +74,7 @@ function FilterFields({
           borderRadius: isInline ? 14 : originalControl.borderRadius,
           borderColor: isActive ? "var(--color-primary)" : originalControl.borderColor,
           boxShadow: isActive
-            ? "0 0 0 3px rgba(30,99,181,0.12)"
+            ? "0 0 0 3px rgba(30,99,181,0.14)"
             : originalControl.boxShadow,
         };
       },
@@ -86,15 +86,15 @@ function FilterFields({
     isInline
       ? `space-y-1.5 rounded-xl border p-2.5 transition ${
           activeField === fieldId
-            ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]/35 shadow-sm"
-            : "border-gray-100 bg-gray-50/75"
+            ? "border-[var(--color-primary)] bg-[var(--dashboard-active-surface)] shadow-sm"
+            : "border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-muted)]"
         }`
       : "space-y-1";
 
   const getLabelClassName = () =>
     isInline
-      ? "block text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-600"
-      : "block text-xs font-semibold text-gray-800";
+      ? "block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-muted)]"
+      : "block text-xs font-semibold text-[var(--dashboard-text)]";
 
   return (
     <div className={`grid grid-cols-1 ${isInline ? "gap-3.5" : "gap-2.5 md:grid-cols-2 xl:grid-cols-4"}`}>
@@ -203,7 +203,7 @@ export default function DashboardMapFilters(props: Props) {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]">
             Filter
           </p>
-          <p className="mt-0.5 text-[11px] text-gray-500">
+          <p className="mt-0.5 text-[11px] text-[var(--dashboard-text-muted)]">
             Atur tampilan analisis peta.
           </p>
         </div>
@@ -213,16 +213,16 @@ export default function DashboardMapFilters(props: Props) {
   }
 
   return (
-    <div className="relative z-30 rounded-2xl border border-white/70 bg-white/75 p-4 shadow-[0_14px_36px_rgba(37,99,235,0.08)] backdrop-blur">
+    <div className="relative z-30 rounded-2xl border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 shadow-[var(--dashboard-shadow)] backdrop-blur">
       <div className="mb-3 flex items-center gap-2">
         <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
           <Filter className="h-4 w-4 text-[var(--color-primary)]" />
         </div>
         <div>
-          <p className="text-sm font-semibold leading-tight text-gray-900">
+          <p className="text-sm font-semibold leading-tight text-[var(--dashboard-text)]">
             Filter Analisis
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--dashboard-text-muted)]">
             Atur parameter untuk memperbarui distribusi risiko pada peta.
           </p>
         </div>

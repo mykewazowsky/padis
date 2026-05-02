@@ -110,8 +110,9 @@ function SectionHeader({
 
 export default function AboutPage() {
   return (
-    <>
-      <section className="section-gradient-primary relative overflow-hidden text-white">
+    <div className="content-theme">
+      <section className="content-hero-gradient relative overflow-hidden text-white">
+        <div className="content-hero-overlay" />
         <div className="hero-grid-overlay" />
         <div className="hero-orb hero-orb-primary -left-10 top-10 h-52 w-52" />
         <div className="hero-orb hero-orb-secondary right-0 top-0 h-64 w-64" />
@@ -128,7 +129,7 @@ export default function AboutPage() {
               </span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-blue-100 md:text-base">
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
               Platform geospasial untuk estimasi kerugian banjir, kekeringan, dan
               multi-hazard — dari raster hazard hingga Annual Average Loss tingkat
               kabupaten.
@@ -145,7 +146,7 @@ export default function AboutPage() {
                   <p className="text-3xl font-bold text-white">
                     <CountUp to={stat.num} />
                   </p>
-                  <p className="mt-0.5 text-xs font-medium text-blue-200">{stat.label}</p>
+                  <p className="mt-0.5 text-xs font-medium text-[var(--content-hero-soft)]">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -159,7 +160,7 @@ export default function AboutPage() {
               </Link>
               <Link
                 href="/cara-kerja"
-                className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 font-medium text-white transition hover:bg-white/15"
+                className="rounded-2xl border border-[var(--content-hero-glass-border)] bg-[var(--content-hero-glass-bg)] px-5 py-3 font-medium text-white transition hover:bg-[var(--content-hero-glass-bg-strong)]"
               >
                 Cara Kerja
               </Link>
@@ -168,7 +169,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="section-container">
           <div className="mx-auto max-w-5xl">
             <SectionHeader title="Apa yang Dilakukan PADIS" centered={true} />
@@ -260,7 +261,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="section-container">
           <div className="mx-auto max-w-5xl">
             <div className="text-center">
@@ -349,9 +350,9 @@ export default function AboutPage() {
                 {[...partnerCards, ...partnerCards].map((item, index) => (
                   <div
                     key={`${item.short}-${index}`}
-                    className="group mx-3 flex min-w-[220px] max-w-[220px] flex-col items-center rounded-3xl border border-[var(--color-border)] bg-white px-5 py-5 text-center shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                    className="group mx-3 flex min-w-[220px] max-w-[220px] flex-col items-center rounded-3xl border border-[var(--color-border)] bg-[var(--content-surface)] px-5 py-5 text-center shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
                   >
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-white p-3">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-logo-tile-bg)] p-3 shadow-sm">
                       {item.logo ? (
                         <Image
                           src={item.logo}
@@ -382,9 +383,9 @@ export default function AboutPage() {
         </div>
       </section>
 
-     <section className="section-shell bg-white">
+     <section className="section-shell content-section">
       <div className="section-container">
-        <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary-soft)]/40 via-white to-[var(--color-secondary-soft)]/30 p-10 text-center shadow-[var(--shadow-lg)]">
+        <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-10 text-center shadow-[var(--shadow-lg)]">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
             <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-[var(--color-secondary)]/10 blur-3xl" />
@@ -410,6 +411,6 @@ export default function AboutPage() {
         </div>
       </div>
     </section>
-    </>
+    </div>
   );
 }

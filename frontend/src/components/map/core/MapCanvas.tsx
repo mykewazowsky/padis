@@ -969,7 +969,7 @@ export default function MapCanvas({
               className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-xl border shadow-md backdrop-blur transition ${
                 button.active
                   ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
-                  : "border-gray-200 bg-white/95 text-[var(--color-primary)]"
+                  : "border-[var(--dashboard-border-solid)] bg-[var(--dashboard-control-bg)] text-[var(--color-primary)]"
               } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-label={button.label}
               title={button.label}
@@ -1010,7 +1010,7 @@ export default function MapCanvas({
         <>
           <button
             type="button"
-            className="absolute inset-0 z-[1061] bg-black/10 md:hidden"
+            className="absolute inset-0 z-[1061] bg-[var(--dashboard-sheet-backdrop)] md:hidden"
             aria-label="Tutup bottom sheet"
             onClick={() => setMobileSheetTab(null)}
           />
@@ -1020,20 +1020,20 @@ export default function MapCanvas({
             }`}
           >
             <div
-              className={`flex flex-col overflow-hidden rounded-[22px] border border-gray-200 bg-white/96 shadow-xl backdrop-blur ${
+              className={`flex flex-col overflow-hidden rounded-[22px] border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] shadow-xl backdrop-blur ${
                 mobileSheetTab === "filter"
                   ? "max-h-[min(57vh,29rem)]"
                   : "max-h-[min(54vh,26rem)]"
               }`}
             >
-              <div className="sticky top-0 z-20 flex-shrink-0 bg-white/96 backdrop-blur">
+              <div className="sticky top-0 z-20 flex-shrink-0 bg-[var(--dashboard-surface)] backdrop-blur">
                 <div
-                  className={`flex items-center justify-between gap-3 border-b border-gray-100 px-4 ${
+                  className={`flex items-center justify-between gap-3 border-b border-[var(--dashboard-border-soft)] px-4 ${
                     mobileSheetTab === "filter" ? "py-3" : "py-3"
                   }`}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-gray-900">
+                    <p className="truncate text-sm font-semibold text-[var(--dashboard-text)]">
                       {mobileSheetTab === "filter"
                         ? "Filter Analisis"
                         : mobileSheetTab === "layer"
@@ -1041,15 +1041,15 @@ export default function MapCanvas({
                           : legendTitle}
                     </p>
                     {mobileSheetTab === "filter" ? (
-                      <p className="truncate text-[11px] text-gray-500">Atur parameter analisis peta</p>
+                      <p className="truncate text-[11px] text-[var(--dashboard-text-muted)]">Atur parameter analisis peta</p>
                     ) : mobileSheetTab === "legend" ? (
-                      <p className="truncate text-[11px] text-gray-500">Legenda layer aktif</p>
+                      <p className="truncate text-[11px] text-[var(--dashboard-text-muted)]">Legenda layer aktif</p>
                     ) : null}
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileSheetTab(null)}
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm"
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] text-[var(--dashboard-text-muted)] shadow-sm"
                     aria-label="Tutup bottom sheet"
                   >
                     <X className="h-4 w-4" />
@@ -1057,12 +1057,12 @@ export default function MapCanvas({
                 </div>
 
                 <div
-                  className={`border-b border-gray-100 px-3 ${
+                  className={`border-b border-[var(--dashboard-border-soft)] px-3 ${
                     mobileSheetTab === "filter" ? "pb-2.5 pt-1.5" : "py-2"
                   }`}
                 >
                   <div
-                    className={`grid gap-2 rounded-xl bg-gray-50 p-1 ${
+                    className={`grid gap-2 rounded-xl bg-[var(--dashboard-surface-muted)] p-1 ${
                       hasLegend ? "grid-cols-3" : "grid-cols-2"
                     }`}
                   >
@@ -1072,7 +1072,7 @@ export default function MapCanvas({
                       className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                         mobileSheetTab === "filter"
                           ? "bg-[var(--color-primary)] text-white shadow-sm"
-                          : "text-gray-400"
+                          : "text-[var(--dashboard-text-soft)]"
                       }`}
                     >
                       Filter
@@ -1082,8 +1082,8 @@ export default function MapCanvas({
                       onClick={() => toggleMobileSheet("layer")}
                       className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
                         mobileSheetTab === "layer"
-                          ? "bg-white text-[var(--color-primary)] shadow-sm"
-                          : "text-gray-400"
+                          ? "bg-[var(--dashboard-surface-solid)] text-[var(--color-primary)] shadow-sm"
+                          : "text-[var(--dashboard-text-soft)]"
                       }`}
                     >
                       Layer
@@ -1094,8 +1094,8 @@ export default function MapCanvas({
                         onClick={() => toggleMobileSheet("legend")}
                         className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
                           mobileSheetTab === "legend"
-                            ? "bg-white text-[var(--color-primary)] shadow-sm"
-                            : "text-gray-400"
+                            ? "bg-[var(--dashboard-surface-solid)] text-[var(--color-primary)] shadow-sm"
+                            : "text-[var(--dashboard-text-soft)]"
                         }`}
                       >
                         Legenda
@@ -1114,7 +1114,7 @@ export default function MapCanvas({
               >
                 {mobileSheetTab === "filter" ? (
                   mobileFilterContent ?? (
-                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
+                    <div className="rounded-xl border border-dashed border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-muted)] px-4 py-5 text-sm text-[var(--dashboard-text-muted)]">
                       Filter belum tersedia.
                     </div>
                   )

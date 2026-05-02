@@ -120,9 +120,10 @@ function SectionHeader({
 
 export default function CaraKerjaPage() {
   return (
-    <>
+    <div className="content-theme">
       {/* HERO */}
-      <section className="section-gradient-primary relative overflow-hidden text-white">
+      <section className="content-hero-gradient relative overflow-hidden text-white">
+        <div className="content-hero-overlay" />
         <div className="hero-grid-overlay" />
         <div className="hero-orb hero-orb-primary -left-10 top-10 h-44 w-44" />
         <div className="hero-orb hero-orb-secondary right-0 top-0 h-56 w-56" />
@@ -136,7 +137,7 @@ export default function CaraKerjaPage() {
               Dari data hazard ke estimasi kerugian
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-blue-100 md:text-base">
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
               Lima tahap analisis spasial yang mengubah raster banjir dan kekeringan
               menjadi Average Annual Loss tingkat kabupaten/kota.
             </p>
@@ -150,12 +151,12 @@ export default function CaraKerjaPage() {
                     className="flex items-center gap-2 animate-fade-in"
                     style={{ animationDelay: `${i * 80}ms` }}
                   >
-                    <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
-                      <span className="font-mono text-[10px] text-white/50">{item.step}</span>
+                    <span className="flex items-center gap-1.5 rounded-full border border-[var(--content-hero-glass-border)] bg-[var(--content-hero-glass-bg)] px-3 py-1 text-xs font-medium text-[var(--content-hero-muted)]">
+                      <span className="font-mono text-[10px] text-[var(--content-hero-soft)]">{item.step}</span>
                       {item.title}
                     </span>
                     {i < analyticalPipeline.length - 1 && (
-                      <span className="text-sm text-white/25">›</span>
+                      <span className="text-sm text-[var(--content-hero-soft)]/60">›</span>
                     )}
                   </div>
                 ))}
@@ -174,7 +175,7 @@ export default function CaraKerjaPage() {
               <Link
                 href="/"
                 aria-label="Kembali ke halaman beranda"
-                className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 font-medium text-white transition hover:bg-white/15"
+                className="rounded-2xl border border-[var(--content-hero-glass-border)] bg-[var(--content-hero-glass-bg)] px-5 py-3 font-medium text-white transition hover:bg-[var(--content-hero-glass-bg-strong)]"
               >
                 Kembali ke Beranda
               </Link>
@@ -186,7 +187,7 @@ export default function CaraKerjaPage() {
       {/* Video Panduan */}
       <section className="section-shell-tight section-soft -mt-8 rounded-t-[2rem]">
         <div className="section-container">
-          <section className="overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-white shadow-[var(--shadow-soft)]">
+          <section className="overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-[var(--content-surface)] shadow-[var(--shadow-soft)]">
             <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3">
               <div className="flex shrink-0 items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full bg-red-400" />
@@ -248,7 +249,7 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* Alur Analisis */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="section-container">
           <SectionHeader
             title="Alur Analisis PADIS"
@@ -293,7 +294,7 @@ export default function CaraKerjaPage() {
                       ${
                         isPrimary
                           ? "border-[var(--color-primary)]/20 bg-[var(--color-primary-soft)]/20"
-                          : "border-[var(--color-border)] bg-white"
+                          : "border-[var(--color-border)] bg-[var(--content-surface)]"
                       }`}
                     >
                       <div
@@ -341,7 +342,7 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* Kasus Penggunaan */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="section-container">
           <SectionHeader
             title="Kasus Penggunaan"
@@ -354,7 +355,7 @@ export default function CaraKerjaPage() {
               return (
                 <div
                   key={item.title}
-                  className="group flex flex-col gap-4 rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
+                  className="group flex flex-col gap-4 rounded-3xl border border-[var(--color-border)] bg-[var(--content-surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] transition-all duration-300 group-hover:bg-[var(--color-primary)]/10">
                     <Icon className="h-5 w-5 text-[var(--color-primary)] transition-all duration-300 group-hover:scale-110" />
@@ -375,9 +376,9 @@ export default function CaraKerjaPage() {
       </section>
 
       {/* CTA */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="section-container">
-          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary-soft)]/40 via-white to-[var(--color-secondary-soft)]/30 p-10 text-center shadow-[var(--shadow-lg)]">
+          <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-10 text-center shadow-[var(--shadow-lg)]">
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
               <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-[var(--color-secondary)]/10 blur-3xl" />
@@ -419,6 +420,6 @@ export default function CaraKerjaPage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

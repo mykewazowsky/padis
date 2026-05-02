@@ -45,19 +45,19 @@ export default function LayerItem({
       ref={setNodeRef}
       style={style}
       title={disabled ? disabledReason : undefined}
-      className={`rounded-md bg-white border px-2 py-1.5 transition-opacity ${
+      className={`rounded-md bg-[var(--dashboard-surface-solid)] border px-2 py-1.5 transition-opacity ${
         isDragging
           ? "border-[var(--color-primary)] shadow-md opacity-80"
-          : "border-transparent hover:border-gray-200"
+          : "border-transparent hover:border-[var(--dashboard-border-solid)]"
       } ${disabled ? "opacity-50" : ""}`}
     >
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className={`touch-none flex-shrink-0 text-gray-300 ${
+          className={`touch-none flex-shrink-0 text-[var(--dashboard-text-soft)] ${
             disabled
               ? "cursor-not-allowed"
-              : "cursor-grab hover:text-gray-500"
+              : "cursor-grab hover:text-[var(--dashboard-text-muted)]"
           }`}
           {...(disabled ? {} : { ...attributes, ...listeners })}
           aria-label={`Seret untuk mengubah urutan ${label}`}
@@ -66,7 +66,7 @@ export default function LayerItem({
           <GripVertical className="h-3.5 w-3.5" />
         </button>
 
-        <span className="flex-1 text-[12px] text-gray-700 select-none">
+        <span className="flex-1 text-[12px] text-[var(--dashboard-text)] select-none">
           {label}
         </span>
 
@@ -83,7 +83,7 @@ export default function LayerItem({
 
       {visible && !disabled && (
         <div className="mt-1.5 flex items-center gap-2 pl-6 pr-1">
-          <span className="text-[10px] text-gray-400 flex-shrink-0">
+          <span className="text-[10px] text-[var(--dashboard-text-soft)] flex-shrink-0">
             Opacity
           </span>
           <input
@@ -95,7 +95,7 @@ export default function LayerItem({
             onChange={(e) => onOpacityChange(Number(e.target.value) / 100)}
             className="min-w-0 flex-1 h-1 accent-[var(--color-primary)] cursor-pointer"
           />
-          <span className="w-8 flex-shrink-0 text-right text-[10px] tabular-nums text-gray-500">
+          <span className="w-8 flex-shrink-0 text-right text-[10px] tabular-nums text-[var(--dashboard-text-muted)]">
             {Math.round(opacity * 100)}%
           </span>
         </div>

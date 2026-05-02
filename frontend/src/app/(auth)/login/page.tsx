@@ -127,12 +127,12 @@ export default function LoginPage() {
       setError("Login dengan Google gagal. Silakan coba lagi.");
       setGoogleLoading(false);
     }
-    // On success the browser navigates away — no need to reset loading
+    // On success the browser navigates away, so no need to reset loading.
   }
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-[var(--color-primary-soft)] via-white to-[var(--color-secondary-soft)]">
+      <main className="auth-page-gradient min-h-screen">
         <div className="section-container flex min-h-screen items-center justify-center py-10">
           <div
             className="card card-elevated w-full max-w-md p-8 text-center"
@@ -146,11 +146,11 @@ export default function LoginPage() {
               />
             </div>
 
-            <h2 className="mt-5 text-xl font-bold text-gray-900">
+            <h2 className="mt-5 text-xl font-bold text-[var(--auth-text)]">
               Memeriksa sesi login
             </h2>
 
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-[var(--auth-text-muted)]">
               PADIS sedang memastikan status autentikasi Anda.
             </p>
 
@@ -162,9 +162,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[var(--color-primary-soft)] via-white to-[var(--color-secondary-soft)]">
+    <main className="auth-page-gradient min-h-screen">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-        <section className="section-gradient-primary relative hidden overflow-hidden lg:flex">
+        <section className="auth-hero-gradient relative hidden overflow-hidden lg:flex">
+          <div className="auth-hero-overlay" />
           <div className="hero-grid-overlay" />
           <div className="hero-orb hero-orb-secondary right-[-80px] top-[80px] h-56 w-56" />
           <div className="hero-orb hero-orb-primary bottom-[-60px] left-[-40px] h-48 w-48" />
@@ -179,7 +180,7 @@ export default function LoginPage() {
                 risiko kerugian padi
               </h1>
 
-              <p className="mt-5 max-w-xl text-sm leading-7 text-blue-100 xl:text-base">
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
                 Login untuk mengeksplorasi hasil analisis risiko, melihat peta
                 interaktif, membandingkan climate dan non-climate, serta
                 mengunduh output PADIS secara lebih lengkap.
@@ -190,14 +191,14 @@ export default function LoginPage() {
               <div className="grid gap-4">
                 <div className="card-glass rounded-3xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/15 p-2">
+                    <div className="rounded-2xl bg-[var(--auth-hero-icon-bg)] p-2">
                       <MapPinned className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         WebGIS Interaktif
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-blue-100">
+                      <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
                         Visualisasi spasial loss dan AAL per kabupaten/kota.
                       </p>
                     </div>
@@ -206,14 +207,14 @@ export default function LoginPage() {
 
                 <div className="card-glass rounded-3xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/15 p-2">
+                    <div className="rounded-2xl bg-[var(--auth-hero-icon-bg)] p-2">
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         Akses Terkelola
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-blue-100">
+                      <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
                         Sistem login untuk kontrol fitur data, report, dan admin.
                       </p>
                     </div>
@@ -221,7 +222,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-blue-100/80">
+              <p className="text-xs text-[var(--auth-hero-soft)]">
                 © 2026 PADIS. All rights reserved.
               </p>
             </div>
@@ -233,10 +234,10 @@ export default function LoginPage() {
             <div className="card card-elevated p-8 md:p-9">
               <div className="mb-8">
                 <span className="badge badge-primary">LOGIN</span>
-                <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">
+                <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
                   Masuk ke PADIS
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
                   Gunakan akun Anda untuk mengakses dashboard, mengunduh CSV,
                   dan menggunakan fitur report PADIS.
                 </p>
@@ -246,10 +247,10 @@ export default function LoginPage() {
                 <div>
                   <label className="input-label">Email</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <Mail className="h-4 w-4 shrink-0 text-gray-400" />
+                    <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
                       type="email"
-                      className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Masukkan email"
@@ -269,10 +270,10 @@ export default function LoginPage() {
                   </div>
 
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+                    <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="w-full border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan password"
@@ -280,7 +281,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="text-gray-400 transition hover:text-gray-700"
+                      className="text-[var(--auth-input-icon)] transition hover:text-[var(--auth-input-icon-hover)]"
                       aria-label={
                         showPassword
                           ? "Sembunyikan password"
@@ -297,7 +298,7 @@ export default function LoginPage() {
                 </div>
 
                 {error ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
                     {error}
                   </div>
                 ) : null}
@@ -312,18 +313,18 @@ export default function LoginPage() {
               </form>
 
               <div className="mt-5 flex items-center gap-3">
-                <span className="h-px flex-1 bg-gray-200" />
-                <span className="text-xs font-medium text-gray-400">
+                <span className="h-px flex-1 bg-[var(--auth-divider)]" />
+                <span className="text-xs font-medium text-[var(--auth-text-soft)]">
                   atau lanjutkan dengan
                 </span>
-                <span className="h-px flex-1 bg-gray-200" />
+                <span className="h-px flex-1 bg-[var(--auth-divider)]" />
               </div>
 
               <button
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={googleLoading || loading}
-                className="mt-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-4 flex w-full items-center justify-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 [background:var(--auth-google-bg)] [border-color:var(--auth-google-border)] [color:var(--auth-google-text)] hover:[background:var(--auth-google-hover-bg)] hover:[border-color:var(--auth-google-hover-border)]"
               >
                 <svg
                   aria-hidden="true"
@@ -356,7 +357,7 @@ export default function LoginPage() {
               <div className="mt-6 flex items-center justify-between gap-3 text-sm">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 text-gray-600 transition hover:text-gray-900"
+                  className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Kembali ke Beranda
@@ -370,7 +371,7 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <div className="mt-4 text-center text-sm text-gray-500">
+              <div className="mt-4 text-center text-sm text-[var(--auth-text-muted)]">
                 Ingin tahu lebih lanjut tentang PADIS?{" "}
                 <Link
                   href="/cara-kerja"
@@ -380,11 +381,18 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <div className="mt-5 flex items-start gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
-                <p className="text-[11px] leading-relaxed text-gray-400">
-                  PADIS hanya menyimpan token autentikasi di browser Anda — tidak ada pelacakan atau analitik.{" "}
-                  <Link href="/kebijakan-privasi" className="text-gray-500 hover:underline">
+              <div className="mt-5 flex items-start gap-2 rounded-2xl border border-[var(--auth-surface-border)] bg-[var(--auth-surface-muted)] px-4 py-3">
+                <ShieldCheck
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--auth-text-soft)]"
+                  aria-hidden="true"
+                />
+                <p className="text-[11px] leading-relaxed text-[var(--auth-text-soft)]">
+                  PADIS hanya menyimpan token autentikasi di browser Anda -
+                  tidak ada pelacakan atau analitik.{" "}
+                  <Link
+                    href="/kebijakan-privasi"
+                    className="text-[var(--auth-text-muted)] hover:underline"
+                  >
                     Kebijakan Privasi
                   </Link>
                 </p>

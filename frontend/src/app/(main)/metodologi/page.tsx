@@ -25,6 +25,7 @@ import {
   ResponsiveContainer,
   Label,
 } from "recharts";
+import { useChartTheme } from "@/components/charts/chartTheme";
 
 // -- Tipe Data --
 interface HistoricalRecord {
@@ -136,6 +137,7 @@ export default function MetodologiPage() {
   const [histData, setHistData] = useState<HistoricalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const chartTheme = useChartTheme();
 
   const hazardWeights = [
     {
@@ -178,7 +180,7 @@ export default function MetodologiPage() {
   }, []);
 
   const vulnerabilityTickStyle = {
-    fill: "#64748B",
+    fill: chartTheme.axis,
     fontSize: isMobile ? 10 : 11,
   };
 
@@ -198,7 +200,7 @@ export default function MetodologiPage() {
     position: isMobile ? "bottom" : "insideBottom",
     offset: isMobile ? 16 : -5,
     style: {
-      fill: "#64748B",
+      fill: chartTheme.axis,
       fontSize: isMobile ? 11 : 12,
     },
   });
@@ -254,9 +256,10 @@ export default function MetodologiPage() {
   }, []);
 
   return (
-    <>
+    <div className="content-theme">
       {/* 1. HERO SECTION */}
-      <section className="section-gradient-primary relative overflow-hidden text-white">
+      <section className="content-hero-gradient relative overflow-hidden text-white">
+        <div className="content-hero-overlay" />
         <div className="hero-grid-overlay" />
         <div className="hero-orb hero-orb-primary -left-10 top-10 h-44 w-44" />
         <div className="hero-orb hero-orb-secondary right-0 top-0 h-56 w-56" />
@@ -270,7 +273,7 @@ export default function MetodologiPage() {
               Metodologi Analisis Risiko Spasial
             </h1>
 
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-blue-100 md:text-base">
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
               Sistem berbasis raster yang mengintegrasikan hazard, kerentanan, dan
               exposure untuk menghasilkan estimasi Loss dan AAL tingkat kabupaten.
             </p>
@@ -288,16 +291,16 @@ export default function MetodologiPage() {
                   className={`animate-fade-up rounded-2xl border px-4 py-3 ${
                     i === 3
                       ? "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10"
-                      : "border-white/10 bg-white/5"
+                      : "border-[var(--content-hero-glass-border)] bg-[var(--content-hero-glass-bg)]"
                   }`}
                   style={{ animationDelay: `${i * 80}ms` }}
                 >
                   <p className={`text-[10px] font-bold uppercase tracking-wider ${
-                    i === 3 ? "text-[var(--color-secondary)]" : "text-blue-200"
+                    i === 3 ? "text-[var(--color-secondary)]" : "text-[var(--content-hero-soft)]"
                   }`}>
                     {item.label}
                   </p>
-                  <p className="mt-1 text-[11px] leading-snug text-blue-100/70">
+                  <p className="mt-1 text-[11px] leading-snug text-[var(--content-hero-muted)]/75">
                     {item.sub}
                   </p>
                 </div>
@@ -348,19 +351,19 @@ export default function MetodologiPage() {
                           <CartesianGrid
                             strokeDasharray="3 3"
                             vertical={false}
-                            stroke="#E2E8F0"
+                            stroke={chartTheme.grid}
                           />
                           <XAxis
                             dataKey="year"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "#64748B", fontSize: 12 }}
+                            tick={{ fill: chartTheme.axis, fontSize: 12 }}
                             dy={10}
                           />
                           <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "#64748B", fontSize: 11 }}
+                            tick={{ fill: chartTheme.axis, fontSize: 11 }}
                             tickFormatter={formatYAxis}
                             width={65}
                             allowDecimals={false}
@@ -368,9 +371,13 @@ export default function MetodologiPage() {
                           <Tooltip
                             contentStyle={{
                               borderRadius: "12px",
-                              border: "none",
-                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                              backgroundColor: chartTheme.tooltipBg,
+                              border: `1px solid ${chartTheme.tooltipBorder}`,
+                              boxShadow: chartTheme.tooltipShadow,
+                              color: chartTheme.tooltipText,
                             }}
+                            itemStyle={{ color: chartTheme.tooltipText }}
+                            labelStyle={{ color: chartTheme.tooltipMuted }}
                             formatter={(value: any, name: any) => [
                               Math.round(Number(value)), // 🔥 hilangkan desimal
                               name === "Kejadian Banjir" ? "Banjir" : "Kekeringan",
@@ -379,7 +386,7 @@ export default function MetodologiPage() {
                           />
                           <Legend
                             iconType="circle"
-                            wrapperStyle={{ paddingTop: "20px" }}
+                            wrapperStyle={{ color: chartTheme.axis, paddingTop: "20px" }}
                           />
                           <Line
                             name="Kejadian Banjir"
@@ -431,7 +438,7 @@ export default function MetodologiPage() {
                                 Banjir
                               </h5>
                             </div>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--content-surface)] shadow-sm">
                               <Droplets className="h-5 w-5 text-[var(--color-primary)]" />
                             </div>
                           </div>
@@ -460,7 +467,7 @@ export default function MetodologiPage() {
                                 Kekeringan
                               </h5>
                             </div>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--content-surface)] shadow-sm">
                               <Leaf className="h-5 w-5 text-[var(--color-secondary-dark)]" />
                             </div>
                           </div>
@@ -488,7 +495,7 @@ export default function MetodologiPage() {
       </section>
 
       {/* 3. SKENARIO CLIMATE DAN NON-CLIMATE */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
@@ -519,7 +526,7 @@ export default function MetodologiPage() {
                       Baseline Scenario
                     </p>
                   </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
                     <History className="h-5 w-5 text-[var(--color-primary)]" />
                   </div>
                 </div>
@@ -534,7 +541,7 @@ export default function MetodologiPage() {
 
               {/* vs divider */}
               <div className="hidden md:flex items-center justify-center">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white text-[11px] font-bold text-muted shadow-sm">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--content-surface)] text-[11px] font-bold text-muted shadow-sm">
                   vs
                 </span>
               </div>
@@ -551,7 +558,7 @@ export default function MetodologiPage() {
                       Climate Projection Scenario
                     </p>
                   </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
                     <TrendingUp className="h-5 w-5 text-[var(--color-secondary-dark)]" />
                   </div>
                 </div>
@@ -643,7 +650,7 @@ export default function MetodologiPage() {
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
-                      stroke="#E2E8F0"
+                      stroke={chartTheme.grid}
                     />
                     <XAxis
                       dataKey="x"
@@ -672,7 +679,7 @@ export default function MetodologiPage() {
                         offset={10}
                         style={{
                           textAnchor: "middle",
-                          fill: "#64748B",
+                          fill: chartTheme.axis,
                           fontSize: 12,
                         }}
                       />
@@ -680,9 +687,13 @@ export default function MetodologiPage() {
                     <Tooltip
                       contentStyle={{
                         borderRadius: "12px",
-                        border: "none",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        backgroundColor: chartTheme.tooltipBg,
+                        border: `1px solid ${chartTheme.tooltipBorder}`,
+                        boxShadow: chartTheme.tooltipShadow,
+                        color: chartTheme.tooltipText,
                       }}
+                      itemStyle={{ color: chartTheme.tooltipText }}
+                      labelStyle={{ color: chartTheme.tooltipMuted }}
                       formatter={(value: any) => [
                         formatPercent(Number(value)),
                         "Loss",
@@ -692,7 +703,7 @@ export default function MetodologiPage() {
                     {!isMobile ? (
                       <Legend
                         verticalAlign="bottom"
-                        wrapperStyle={{ paddingTop: "16px" }}
+                        wrapperStyle={{ color: chartTheme.axis, paddingTop: "16px" }}
                       />
                     ) : null}
                     <Line
@@ -777,7 +788,7 @@ export default function MetodologiPage() {
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
-                      stroke="#E2E8F0"
+                      stroke={chartTheme.grid}
                     />
                     <XAxis
                       dataKey="x"
@@ -806,7 +817,7 @@ export default function MetodologiPage() {
                         offset={10}
                         style={{
                           textAnchor: "middle",
-                          fill: "#64748B",
+                          fill: chartTheme.axis,
                           fontSize: 12,
                         }}
                       />
@@ -814,9 +825,13 @@ export default function MetodologiPage() {
                     <Tooltip
                       contentStyle={{
                         borderRadius: "12px",
-                        border: "none",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        backgroundColor: chartTheme.tooltipBg,
+                        border: `1px solid ${chartTheme.tooltipBorder}`,
+                        boxShadow: chartTheme.tooltipShadow,
+                        color: chartTheme.tooltipText,
                       }}
+                      itemStyle={{ color: chartTheme.tooltipText }}
+                      labelStyle={{ color: chartTheme.tooltipMuted }}
                       formatter={(value: any) => [
                         formatPercent(Number(value)),
                         "Loss",
@@ -826,7 +841,7 @@ export default function MetodologiPage() {
                     {!isMobile ? (
                       <Legend
                         verticalAlign="bottom"
-                        wrapperStyle={{ paddingTop: "16px" }}
+                        wrapperStyle={{ color: chartTheme.axis, paddingTop: "16px" }}
                       />
                     ) : null}
                     <Line
@@ -882,7 +897,7 @@ export default function MetodologiPage() {
       </section>
 
       {/* 5. METADATA SECTION */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
             title="Spesifikasi & Metadata Geospasial"
@@ -950,9 +965,9 @@ export default function MetodologiPage() {
       </section>
 
       {/* 6. CTA SECTION */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
-          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary-soft)]/40 via-white to-[var(--color-secondary-soft)]/30 p-10 text-center shadow-[var(--shadow-lg)]">
+          <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-10 text-center shadow-[var(--shadow-lg)]">
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
               <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-[var(--color-secondary)]/10 blur-3xl" />
@@ -988,6 +1003,6 @@ export default function MetodologiPage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

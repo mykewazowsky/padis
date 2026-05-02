@@ -160,7 +160,7 @@ export default function MapLayerControlPanel({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur hover:bg-white"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-control-bg)] shadow-md backdrop-blur hover:bg-[var(--dashboard-control-hover)]"
           aria-label="Buka pengaturan layer"
         >
           <Layers3 className="h-5 w-5 text-[var(--color-primary)]" />
@@ -174,7 +174,7 @@ export default function MapLayerControlPanel({
       className={
         compact
           ? "flex w-full flex-col overflow-visible rounded-none border-0 bg-transparent shadow-none"
-          : "absolute left-4 top-4 z-[1060] flex w-72 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-md backdrop-blur"
+          : "absolute left-4 top-4 z-[1060] flex w-72 flex-col overflow-hidden rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] shadow-md backdrop-blur"
       }
       style={
         compact ? undefined : { maxHeight: "max(10rem, calc(100svh - 440px))" }
@@ -188,17 +188,17 @@ export default function MapLayerControlPanel({
                 <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-800">
+                <h3 className="text-sm font-semibold text-[var(--dashboard-text)]">
                   Pengaturan Layer
                 </h3>
-                <p className="text-[11px] text-gray-500">Tampilkan &amp; atur layer</p>
+                <p className="text-[11px] text-[var(--dashboard-text-muted)]">Tampilkan &amp; atur layer</p>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--dashboard-border-solid)] text-[var(--dashboard-text-muted)] hover:bg-[var(--dashboard-control-hover)]"
               aria-label="Tutup pengaturan layer"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -213,7 +213,7 @@ export default function MapLayerControlPanel({
             <p className="sr-only mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
               Basemap
             </p>
-            <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <div className="flex gap-1 rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-muted)] p-1">
               {(["imagery", "dark", "light"] as const).map((key) => (
                 <button
                   key={key}
@@ -221,8 +221,8 @@ export default function MapLayerControlPanel({
                   onClick={() => onBasemapChange?.(key)}
                   className={`flex-1 rounded-md py-1.5 text-[11px] font-medium transition-colors ${
                     basemap === key
-                      ? "bg-white text-[var(--color-primary)] shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-[var(--dashboard-surface-solid)] text-[var(--color-primary)] shadow-sm"
+                      : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                   }`}
                 >
                   {BASEMAP_LABELS[key]}
@@ -231,15 +231,15 @@ export default function MapLayerControlPanel({
             </div>
           </>
         ) : (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-1">
+          <div className="rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-muted)] p-1">
             <div className="grid grid-cols-3 gap-1">
               <button
                 type="button"
                 onClick={() => setActiveDesktopTab("basemap")}
                 className={`rounded-md px-2 py-2 text-[11px] font-medium transition ${
                   activeDesktopTab === "basemap"
-                    ? "bg-white text-[var(--color-primary)] shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-[var(--dashboard-surface-solid)] text-[var(--color-primary)] shadow-sm"
+                    : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
                 Basemap
@@ -249,12 +249,12 @@ export default function MapLayerControlPanel({
                 onClick={() => setActiveDesktopTab("overlay")}
                 className={`rounded-md px-2 py-2 text-[11px] font-medium transition ${
                   activeDesktopTab === "overlay"
-                    ? "bg-white text-[var(--color-primary)] shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-[var(--dashboard-surface-solid)] text-[var(--color-primary)] shadow-sm"
+                    : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
                 Overlay
-                <span className="ml-1 text-[10px] text-gray-400">
+                <span className="ml-1 text-[10px] text-[var(--dashboard-text-soft)]">
                   {activeOverlayCount}
                 </span>
               </button>
@@ -263,12 +263,12 @@ export default function MapLayerControlPanel({
                 onClick={() => setActiveDesktopTab("analysis")}
                 className={`rounded-md px-2 py-2 text-[11px] font-medium transition ${
                   activeDesktopTab === "analysis"
-                    ? "bg-white text-[var(--color-primary)] shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-[var(--dashboard-surface-solid)] text-[var(--color-primary)] shadow-sm"
+                    : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
                 Analisis
-                <span className="ml-1 text-[10px] text-gray-400">
+                <span className="ml-1 text-[10px] text-[var(--dashboard-text-soft)]">
                   {activeAnalysisCount}
                 </span>
               </button>
@@ -278,7 +278,7 @@ export default function MapLayerControlPanel({
       </div>
 
       <div className={`${compact ? "overflow-visible px-0" : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3"}`}>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+        <div className="rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-muted)] p-2">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -287,10 +287,10 @@ export default function MapLayerControlPanel({
             {!compact ? (
               activeDesktopTab === "basemap" ? (
                 <div>
-                  <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                  <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
                     Basemap
                   </div>
-                  <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1">
+                  <div className="flex gap-1 rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] p-1">
                     {(["imagery", "dark", "light"] as const).map((key) => (
                       <button
                         key={key}
@@ -299,7 +299,7 @@ export default function MapLayerControlPanel({
                         className={`flex-1 rounded-md py-2 text-[11px] font-medium transition-colors ${
                           basemap === key
                             ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] shadow-sm"
-                            : "text-gray-500 hover:text-gray-700"
+                            : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                         }`}
                       >
                         {BASEMAP_LABELS[key]}
@@ -309,10 +309,10 @@ export default function MapLayerControlPanel({
                 </div>
               ) : activeGroup ? (
                 <div>
-                  <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                  <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
                     {activeGroup.groupName}
                   </div>
-                  <p className="mb-2 px-1 text-[11px] text-gray-500">
+                  <p className="mb-2 px-1 text-[11px] text-[var(--dashboard-text-muted)]">
                     {activeDesktopTab === "overlay"
                       ? `${activeOverlayCount} layer aktif`
                       : `${activeAnalysisCount} layer aktif`}
@@ -353,7 +353,7 @@ export default function MapLayerControlPanel({
               groups.map((group, idx) => (
                 <div key={group.id} className={idx > 0 ? "mt-3" : ""}>
                   <>
-                    <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
                       {group.groupName}
                     </div>
 
@@ -396,7 +396,7 @@ export default function MapLayerControlPanel({
       </div>
 
       {!compact ? (
-        <p className="flex-shrink-0 px-4 pb-2.5 pt-1.5 text-[10px] text-gray-400">
+        <p className="flex-shrink-0 px-4 pb-2.5 pt-1.5 text-[10px] text-[var(--dashboard-text-soft)]">
           Seret layer untuk mengubah urutan
         </p>
       ) : null}

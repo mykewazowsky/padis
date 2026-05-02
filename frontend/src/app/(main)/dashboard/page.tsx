@@ -126,7 +126,7 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
     return {
       label: "N/A",
       isUp: false,
-      colorClass: "text-gray-500",
+      colorClass: "text-[var(--dashboard-text-muted)]",
       description: "Perubahan AAL belum dapat dihitung.",
       deltaValue: 0,
     };
@@ -152,13 +152,13 @@ const selectStyles = {
     ...base,
     minHeight: 48,
     borderRadius: 16,
-    borderColor: state.isFocused ? "var(--color-primary)" : "#d1d5db",
-    backgroundColor: "#ffffff",
+    borderColor: state.isFocused ? "var(--color-primary)" : "var(--dashboard-input-border)",
+    backgroundColor: "var(--dashboard-input-bg)",
     boxShadow: state.isFocused ? "0 0 0 3px rgba(30,99,181,0.10)" : "none",
     paddingLeft: 2,
     paddingRight: 2,
     "&:hover": {
-      borderColor: state.isFocused ? "var(--color-primary)" : "#9ca3af",
+      borderColor: state.isFocused ? "var(--color-primary)" : "var(--dashboard-input-border-hover)",
     },
   }),
   valueContainer: (base: any) => ({
@@ -171,26 +171,33 @@ const selectStyles = {
     backgroundColor: state.isSelected
       ? "var(--color-primary)"
       : state.isFocused
-        ? "var(--color-primary-soft)"
-        : "#ffffff",
-    color: state.isSelected ? "#ffffff" : "#111827",
+        ? "var(--dashboard-select-option-hover)"
+        : "var(--dashboard-input-bg)",
+    color: state.isSelected ? "#ffffff" : "var(--dashboard-input-text)",
     cursor: "pointer",
     paddingTop: 10,
     paddingBottom: 10,
   }),
   singleValue: (base: any) => ({
     ...base,
-    color: "#111827",
+    color: "var(--dashboard-input-text)",
   }),
   placeholder: (base: any) => ({
     ...base,
-    color: "#6b7280",
+    color: "var(--dashboard-text-muted)",
+  }),
+  input: (base: any) => ({
+    ...base,
+    color: "var(--dashboard-input-text)",
   }),
   menu: (base: any) => ({
     ...base,
     zIndex: 50,
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "var(--dashboard-input-bg)",
+    border: "1px solid var(--dashboard-border-solid)",
+    boxShadow: "var(--dashboard-shadow)",
   }),
   indicatorSeparator: () => ({
     display: "none",
@@ -211,10 +218,10 @@ function DashboardSectionHeader({
       <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
         {eyebrow}
       </p>
-      <h2 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">
+      <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--dashboard-text)]">
         {title}
       </h2>
-      {desc ? <p className="mt-1 text-sm text-gray-500">{desc}</p> : null}
+      {desc ? <p className="mt-1 text-sm text-[var(--dashboard-text-muted)]">{desc}</p> : null}
     </div>
   );
 }
@@ -689,41 +696,41 @@ export default function DashboardPage() {
     if (loadingLayer || loadingAAL) {
       return {
         label: "Memuat...",
-        className: "bg-gray-100 text-gray-600 border border-gray-200",
+        className: "bg-[var(--dashboard-status-muted-bg)] text-[var(--dashboard-status-muted-text)] border border-[var(--dashboard-status-muted-border)]",
       };
     }
 
     if (errorLayer || errorAAL) {
       return {
         label: "Periksa Data",
-        className: "bg-red-50 text-red-700 border border-red-200",
+        className: "bg-[var(--dashboard-status-danger-bg)] text-[var(--dashboard-status-danger-text)] border border-[var(--dashboard-status-danger-border)]",
       };
     }
 
     if (isLayerEmpty) {
       return {
         label: "Tidak Ada Data",
-        className: "bg-gray-100 text-gray-600 border border-gray-200",
+        className: "bg-[var(--dashboard-status-muted-bg)] text-[var(--dashboard-status-muted-text)] border border-[var(--dashboard-status-muted-border)]",
       };
     }
 
     if (climateChangeInfo.label === "N/A") {
       return {
         label: "AAL Tidak Tersedia",
-        className: "bg-gray-100 text-gray-600 border border-gray-200",
+        className: "bg-[var(--dashboard-status-muted-bg)] text-[var(--dashboard-status-muted-text)] border border-[var(--dashboard-status-muted-border)]",
       };
     }
 
     if (climateChangeInfo.isUp) {
       return {
         label: "Risiko Meningkat",
-        className: "bg-red-50 text-red-700 border border-red-200",
+        className: "bg-[var(--dashboard-status-danger-bg)] text-[var(--dashboard-status-danger-text)] border border-[var(--dashboard-status-danger-border)]",
       };
     }
 
     return {
       label: "Risiko Menurun",
-      className: "bg-green-50 text-green-700 border border-green-200",
+      className: "bg-[var(--dashboard-status-success-bg)] text-[var(--dashboard-status-success-text)] border border-[var(--dashboard-status-success-border)]",
     };
   }, [
     loadingLayer,
@@ -746,10 +753,10 @@ export default function DashboardPage() {
   };
 
   return (
-    <>
+    <div className="dashboard-theme">
       <section className="relative w-full overflow-hidden pt-10 pb-14">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-white via-blue-50 to-blue-100" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--dashboard-page-bg-top)_0%,var(--dashboard-page-bg-mid)_55%,var(--dashboard-page-bg-bottom)_100%)]" />
           <div className="absolute -top-24 -left-16 h-[28rem] w-[28rem] rounded-full bg-blue-300/30 blur-3xl" />
           <div className="absolute -top-20 right-[-4rem] h-[26rem] w-[26rem] rounded-full bg-emerald-300/25 blur-3xl" />
           <div className="absolute bottom-[-5rem] left-1/3 h-[22rem] w-[22rem] rounded-full bg-sky-300/20 blur-3xl" />
@@ -763,10 +770,10 @@ export default function DashboardPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
                   Analisis Spasial
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 xl:text-3xl">
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--dashboard-text-strong)] xl:text-3xl">
                   Peta Risiko
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-500">
+                <p className="mt-2 text-sm leading-6 text-[var(--dashboard-text-muted)]">
                   Eksplorasi distribusi kerugian dan AAL per wilayah berdasarkan
                   parameter analisis aktif.
                 </p>
@@ -786,14 +793,14 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Row 1 — primary metrics with micro-labels */}
-                <div className="flex items-start divide-x divide-gray-200">
+                <div className="flex items-start divide-x divide-[var(--dashboard-border-solid)]">
                   <div className="flex-[1.3] pr-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
                       Total Loss
                     </p>
-                    <p className="mt-1 whitespace-nowrap text-base font-semibold text-gray-900">
+                    <p className="mt-1 whitespace-nowrap text-base font-semibold text-[var(--dashboard-text)]">
                       {loadingLayer ? (
-                        <span className="animate-pulse text-gray-300">—</span>
+                        <span className="animate-pulse text-[var(--dashboard-text-soft)]">—</span>
                       ) : (
                         `Rp ${formatCompact(layerSummary.totalLoss)}`
                       )}
@@ -801,12 +808,12 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="min-w-0 flex-1 px-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
                       Perubahan AAL
                     </p>
                     <p
                       className={`mt-1 truncate text-sm font-bold ${
-                        loadingAAL ? "text-gray-300" : climateChangeInfo.colorClass
+                        loadingAAL ? "text-[var(--dashboard-text-soft)]" : climateChangeInfo.colorClass
                       }`}
                     >
                       {loadingAAL ? (
@@ -820,15 +827,15 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="min-w-0 flex-1 pl-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
                       Prioritas
                     </p>
                     <p
-                      className="mt-1 truncate text-sm font-bold text-gray-900"
+                      className="mt-1 truncate text-sm font-bold text-[var(--dashboard-text)]"
                       title={layerSummary.topRegion !== "-" ? layerSummary.topRegion : undefined}
                     >
                       {loadingLayer ? (
-                        <span className="animate-pulse text-gray-300">—</span>
+                        <span className="animate-pulse text-[var(--dashboard-text-soft)]">—</span>
                       ) : layerSummary.topRegion !== "-" ? (
                         layerSummary.topRegion.split(",")[0].trim()
                       ) : (
@@ -839,23 +846,23 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Row 2 — secondary metrics */}
-                <div className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-gray-500">
+                <div className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-[var(--dashboard-text-muted)]">
                   <span>
-                    <span className="font-semibold text-gray-700">
+                    <span className="font-semibold text-[var(--dashboard-text)]">
                       {loadingLayer ? "—" : layerSummary.dataCount}
                     </span>{" "}
                     wilayah
                   </span>
-                  <span className="select-none text-gray-300" aria-hidden="true">·</span>
+                  <span className="select-none text-[var(--dashboard-text-soft)]" aria-hidden="true">·</span>
                   <span
                     className={
                       !selectedRegion
-                        ? "text-gray-400"
+                        ? "text-[var(--dashboard-text-soft)]"
                         : loadingRegionAAL
-                          ? "text-gray-400"
+                          ? "text-[var(--dashboard-text-soft)]"
                           : errorRegionAAL
                             ? "text-red-500"
-                            : (selectedRegionClimateChangeInfo?.colorClass ?? "text-gray-500")
+                            : (selectedRegionClimateChangeInfo?.colorClass ?? "text-[var(--dashboard-text-muted)]")
                     }
                   >
                     {!selectedRegion ? (
@@ -900,18 +907,18 @@ export default function DashboardPage() {
             </div>
 
             <div
-              className={`relative overflow-hidden rounded-[28px] border border-white/80 bg-white/90 shadow-[0_20px_56px_rgba(37,99,235,0.10)] ${
+              className={`relative overflow-hidden rounded-[28px] border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] shadow-[var(--dashboard-shadow-lg)] ${
                 isMapExpanded
-                  ? "md:fixed md:inset-4 md:z-[1300] md:flex md:flex-col md:bg-white/95 md:shadow-[0_30px_90px_rgba(15,23,42,0.28)]"
+                  ? "md:fixed md:inset-4 md:z-[1300] md:flex md:flex-col md:bg-[var(--dashboard-surface)] md:shadow-[var(--dashboard-expanded-shadow)]"
                   : ""
               }`}
             >
-              <div className="relative z-10 flex flex-col gap-2 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between md:flex-shrink-0">
+              <div className="relative z-10 flex flex-col gap-2 border-b border-[var(--dashboard-border-soft)] px-5 py-3 sm:flex-row sm:items-center sm:justify-between md:flex-shrink-0">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-[var(--dashboard-text)]">
                     Visualisasi Wilayah
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--dashboard-text-muted)]">
                     Klik area peta untuk melihat detail dan indikator wilayah.
                   </p>
                 </div>
@@ -972,16 +979,16 @@ export default function DashboardPage() {
                 )}
 
                 {loadingLayer && (
-                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                    <div className="rounded-xl bg-white px-4 py-3 text-sm text-gray-600 shadow">
+                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[var(--dashboard-map-overlay)] backdrop-blur-sm">
+                    <div className="rounded-xl bg-[var(--dashboard-surface-solid)] px-4 py-3 text-sm text-[var(--dashboard-text-muted)] shadow">
                       Memuat peta...
                     </div>
                   </div>
                 )}
 
                 {errorLayer && (
-                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-white/30 backdrop-blur-sm">
-                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow">
+                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[var(--dashboard-map-overlay)] backdrop-blur-sm">
+                    <div className="rounded-xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] px-4 py-3 text-sm text-[var(--dashboard-status-danger-text)] shadow">
                       {errorLayer}
                     </div>
                   </div>
@@ -989,7 +996,7 @@ export default function DashboardPage() {
 
                 {!loadingLayer && layers?.loss && layers.loss.features?.length === 0 && !selectedRegion && (
                   <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
-                    <div className="rounded-xl bg-white/90 px-4 py-2 text-sm text-gray-600 shadow backdrop-blur">
+                    <div className="rounded-xl bg-[var(--dashboard-map-empty-bg)] px-4 py-2 text-sm text-[var(--dashboard-text-muted)] shadow backdrop-blur">
                       Belum ada data untuk kombinasi filter ini — coba ubah jenis bencana atau periode ulang
                     </div>
                   </div>
@@ -1000,9 +1007,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="relative w-full pt-8 pb-14">
+      <section className="relative w-full bg-[var(--dashboard-page-bg-bottom)] pt-8 pb-14">
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
-          <div className="rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-[0_20px_56px_rgba(37,99,235,0.08)] backdrop-blur sm:p-6">
+          <div className="rounded-[28px] border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-5 shadow-[var(--dashboard-shadow)] backdrop-blur sm:p-6">
             <div className="space-y-4">
               <DashboardSectionHeader
                 eyebrow="ANALISIS LANJUTAN"
@@ -1043,17 +1050,17 @@ export default function DashboardPage() {
 
       {showLoginNotice && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] p-6 shadow-2xl">
             <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-amber-100 p-2">
-                <ShieldAlert className="h-5 w-5 text-amber-600" />
+              <div className="rounded-xl border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] p-2">
+                <ShieldAlert className="h-5 w-5 text-[var(--dashboard-status-warning-text)]" />
               </div>
 
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-[var(--dashboard-text)]">
                   Login diperlukan
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="mt-2 text-sm leading-6 text-[var(--dashboard-text-muted)]">
                   {loginNoticeMessage}
                 </p>
               </div>
@@ -1063,7 +1070,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowLoginNotice(false)}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-xl border border-[var(--dashboard-border-solid)] px-4 py-2 text-sm font-medium text-[var(--dashboard-text)] hover:bg-[var(--dashboard-control-hover)]"
               >
                 Tutup
               </button>
@@ -1081,18 +1088,18 @@ export default function DashboardPage() {
       )}
 
       {downloadError && (
-        <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-lg">
-          <p className="text-sm text-red-700">{downloadError}</p>
+        <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-[var(--dashboard-toast-danger-border)] bg-[var(--dashboard-toast-danger-bg)] px-4 py-3 shadow-lg backdrop-blur">
+          <p className="text-sm text-[var(--dashboard-toast-danger-text)]">{downloadError}</p>
           <button
             type="button"
             onClick={() => setDownloadError(null)}
-            className="flex-shrink-0 text-red-400 hover:text-red-600"
+            className="flex-shrink-0 text-[var(--dashboard-status-danger-text)]/75 hover:text-[var(--dashboard-status-danger-text)]"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }

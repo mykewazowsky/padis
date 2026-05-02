@@ -26,7 +26,7 @@ export default function LandingPage() {
   const { ref: cakupanRef, inView: cakupanInView } = useInView();
 
   return (
-    <>
+    <div className="content-theme">
       {/* HERO */}
       <section className="section-gradient-primary relative overflow-hidden text-white">
         {/* Background image */}
@@ -38,10 +38,10 @@ export default function LandingPage() {
           />
 
           {/* Base dark overlay */}
-          <div className="absolute inset-0 bg-slate-950/55" />
+          <div className="absolute inset-0 bg-[var(--hero-overlay-base)]" />
 
           {/* Brand-toned overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/35 via-sky-950/20 to-blue-950/45" />
+          <div className="absolute inset-0 bg-[image:var(--hero-overlay-brand)]" />
 
           {/* Soft vignette biar fokus ke tengah */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.18)_55%,rgba(2,6,23,0.38)_100%)]" />
@@ -59,7 +59,7 @@ export default function LandingPage() {
               href="https://www.pexels.com/photo/farmer-working-on-rice-field-19104382/"
               target="_blank"
               rel="noopener noreferrer"
-              className="pointer-events-auto inline-flex max-w-full rounded-full border border-white/15 bg-slate-950/35 px-3 py-1.5 text-[11px] text-blue-100/90 shadow-sm backdrop-blur-sm transition hover:bg-slate-950/50 hover:text-white"
+              className="pointer-events-auto inline-flex max-w-full rounded-full border border-[var(--hero-chip-border)] bg-[var(--hero-chip-bg)] px-3 py-1.5 text-[11px] text-[var(--hero-text-muted)] shadow-sm backdrop-blur-sm transition hover:bg-[var(--hero-chip-bg)] hover:text-white"
             >
               <span className="truncate">Foto oleh Dhenny Napitupulu di Pexels</span>
             </a>
@@ -80,7 +80,7 @@ export default function LandingPage() {
                 </span>
               </h1>
 
-              <p className="animate-fade-up max-w-2xl text-base leading-relaxed text-blue-100 md:text-lg" style={{ animationDelay: "80ms" }}>
+              <p className="animate-fade-up max-w-2xl text-base leading-relaxed text-[var(--hero-text-muted)] md:text-lg" style={{ animationDelay: "80ms" }}>
                 PADIS membantu memahami kerugian padi secara spasial melalui
                 analisis banjir, kekeringan, dan multi-hazard, serta perbandingan
                 kondisi iklim dan non-iklim untuk mendukung pengambilan keputusan
@@ -98,14 +98,14 @@ export default function LandingPage() {
 
               <Link
                 href="/cara-kerja"
-                className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-white backdrop-blur-sm transition hover:bg-white/15"
+                className="rounded-full border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-5 py-3 text-white backdrop-blur-sm transition hover:bg-[var(--hero-glass-bg-strong)]"
               >
                 Cara Kerja
               </Link>
 
               <Link
                 href="/about"
-                className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-white backdrop-blur-sm transition hover:bg-white/15"
+                className="rounded-full border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-5 py-3 text-white backdrop-blur-sm transition hover:bg-[var(--hero-glass-bg-strong)]"
               >
                 Tentang PADIS
               </Link>
@@ -113,25 +113,25 @@ export default function LandingPage() {
           </div>
 
           {/* HERO CARD */}
-          <div className="animate-fade-up rounded-3xl border border-white/15 bg-white/10 p-7 shadow-xl backdrop-blur-lg" style={{ animationDelay: "150ms" }}>
-            <p className="text-sm text-blue-100">Ringkasan Sistem</p>
+          <div className="animate-fade-up rounded-3xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg-strong)] p-7 shadow-xl backdrop-blur-lg" style={{ animationDelay: "150ms" }}>
+            <p className="text-sm text-[var(--hero-text-muted)]">Ringkasan Sistem</p>
             <h3 className="mt-2 text-2xl font-bold">
               Dashboard Analisis Risiko Berbasis Geospasial
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-blue-100">
+            <p className="mt-3 text-sm leading-relaxed text-[var(--hero-text-muted)]">
               PADIS mengintegrasikan data bencana, skenario iklim dan non-iklim,
               dan produksi padi untuk menghasilkan estimasi kerugian langsung dan
               Average Annual Loss (AAL) secara spasial.
             </p>
 
             <div className="mt-5 grid gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+              <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
                 Analisis Banjir & Kekeringan
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+              <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
                 Penilaian Multi-hazard
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+              <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
                 Skenario Iklim dan Non-Iklim
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function LandingPage() {
       </section>
 
       {/* CAKUPAN */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-white to-[var(--color-primary-soft)]/25 py-24">
+      <section className="content-section-soft relative overflow-hidden py-24">
         {/* ambient */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-[-4rem] top-16 h-72 w-72 rounded-full bg-[var(--color-primary-soft)] opacity-40 blur-3xl" />
@@ -221,7 +221,7 @@ export default function LandingPage() {
       </section>
 
       {/* HASIL */}
-      <section className="relative overflow-hidden border-t border-[var(--color-primary)]/20 bg-gradient-to-b from-[var(--color-primary-soft)]/80 via-[var(--color-primary-soft)]/40 to-white py-24">
+      <section className="content-highlight-section relative overflow-hidden border-t border-[var(--color-primary)]/20 py-24">
 
         {/* BACKGROUND */}
         <div className="pointer-events-none absolute inset-0">
@@ -269,7 +269,7 @@ export default function LandingPage() {
               </p>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[var(--color-border)] bg-white/95 px-4 py-4 shadow-[var(--shadow-soft)] backdrop-blur">
+                <div className="content-surface-card rounded-2xl border border-[var(--color-border)] px-4 py-4 backdrop-blur">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-gray)]">
                     Luaran
                   </p>
@@ -278,7 +278,7 @@ export default function LandingPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--color-border)] bg-white/95 px-4 py-4 shadow-[var(--shadow-soft)] backdrop-blur">
+                <div className="content-surface-card rounded-2xl border border-[var(--color-border)] px-4 py-4 backdrop-blur">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-gray)]">
                     Pendekatan
                   </p>
@@ -287,7 +287,7 @@ export default function LandingPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--color-border)] bg-white/95 px-4 py-4 shadow-[var(--shadow-soft)] backdrop-blur">
+                <div className="content-surface-card rounded-2xl border border-[var(--color-border)] px-4 py-4 backdrop-blur">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-gray)]">
                     Komparasi
                   </p>
@@ -300,7 +300,7 @@ export default function LandingPage() {
 
             {/* RIGHT */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl border border-[var(--color-border)] bg-white/95 p-6 shadow-[var(--shadow-md)] backdrop-blur sm:col-span-2">
+              <div className="content-surface-card rounded-3xl border border-[var(--color-border)] p-6 backdrop-blur sm:col-span-2">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/15">
                     <TrendingUp className="h-5 w-5 text-[var(--color-primary)]" />
@@ -318,7 +318,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-[var(--color-border)] bg-white/95 p-6 shadow-[var(--shadow-soft)] backdrop-blur">
+              <div className="content-surface-card rounded-3xl border border-[var(--color-border)] p-6 backdrop-blur">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-secondary)]/25">
                   <MapPin className="h-5 w-5 text-[var(--color-secondary-dark)]" />
                 </div>
@@ -330,7 +330,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-[var(--color-border)] bg-white/95 p-6 shadow-[var(--shadow-soft)] backdrop-blur">
+              <div className="content-surface-card rounded-3xl border border-[var(--color-border)] p-6 backdrop-blur">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-accent)]/25">
                   <Layers3 className="h-5 w-5 text-[var(--color-accent-dark)]" />
                 </div>
@@ -357,7 +357,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="section-shell bg-white">
+      <section className="section-shell content-section">
         <div className="section-container">
           <div className="section-gradient-primary relative overflow-hidden rounded-[2rem] p-10 text-center text-white shadow-lg">
             
@@ -402,6 +402,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

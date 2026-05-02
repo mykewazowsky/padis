@@ -25,6 +25,7 @@ import {
 import { fetchJson } from "../../lib/fetcher";
 import DashboardLoadingBlock from "../dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../dashboard/DashboardEmptyState";
+import { useChartTheme } from "./chartTheme";
 
 type Props = {
   hazard: string;
@@ -69,7 +70,7 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
   if (!nonclimateValue || nonclimateValue === 0) {
     return {
       label: "N/A",
-      colorClass: "text-gray-500",
+      colorClass: "text-muted",
       description: "Perubahan belum dapat dihitung.",
       isUp: false,
       delta: 0,
@@ -114,7 +115,7 @@ function HazardDot({
 }) {
   return (
     <g>
-      <circle cx={cx} cy={cy} r={8} fill={fill} stroke="white" strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={8} fill={fill} stroke="var(--chart-tooltip-bg)" strokeWidth={2} />
       <text
         x={cx}
         y={cy - 13}
@@ -145,8 +146,8 @@ function ScatterTooltip({
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
-      <p className="text-xs font-semibold tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-4 py-3 shadow-[var(--chart-tooltip-shadow)]">
+      <p className="text-xs font-semibold tracking-wide text-[var(--chart-tooltip-muted)]">
         {d.name}
       </p>
       <div className="mt-2 space-y-1">
@@ -155,9 +156,9 @@ function ScatterTooltip({
             className="inline-block h-3 w-3 shrink-0 rounded-full"
             style={{ backgroundColor: NONCLIMATE_COLOR }}
           />
-          <span className="text-gray-700">
+          <span className="text-[var(--chart-tooltip-muted)]">
             Non-Climate:{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.x)}
             </span>
           </span>
@@ -167,9 +168,9 @@ function ScatterTooltip({
             className="inline-block h-3 w-3 shrink-0 rounded-full"
             style={{ backgroundColor: CLIMATE_COLOR }}
           />
-          <span className="text-gray-700">
+          <span className="text-[var(--chart-tooltip-muted)]">
             Climate:{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.y)}
             </span>
           </span>
@@ -190,8 +191,8 @@ function LineTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
-      <p className="text-xs font-semibold tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-4 py-3 shadow-[var(--chart-tooltip-shadow)]">
+      <p className="text-xs font-semibold tracking-wide text-[var(--chart-tooltip-muted)]">
         {String(label ?? "").toUpperCase()}
       </p>
       <div className="mt-2 space-y-1">
@@ -201,9 +202,9 @@ function LineTooltip({
               className="inline-block h-3 w-3 shrink-0 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-gray-700">
+            <span className="text-[var(--chart-tooltip-muted)]">
               {entry.name === "nonclimate" ? "Non-Climate" : "Climate"}:{" "}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-[var(--chart-tooltip-text)]">
                 {formatRupiah(Number(entry.value))}
               </span>
             </span>
@@ -227,6 +228,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
   const [errorAAL, setErrorAAL] = useState<string | null>(null);
   const [errorLoss, setErrorLoss] = useState<string | null>(null);
+  const chartTheme = useChartTheme();
 
   useEffect(() => {
     setLoadingAAL(true);
@@ -320,7 +322,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
         climateValue: 0,
         changeInfo: {
           label: "N/A",
-          colorClass: "text-gray-500",
+          colorClass: "text-muted",
           description: "Perubahan belum dapat dihitung.",
           isUp: false,
           delta: 0,
@@ -370,7 +372,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
         climateTotal: 0,
         compareInfo: {
           label: "N/A",
-          colorClass: "text-gray-500",
+          colorClass: "text-muted",
           description: "Perubahan belum dapat dihitung.",
           isUp: false,
           delta: 0,
@@ -420,38 +422,38 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
                   <ArrowRightLeft className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
-                <h4 className="text-lg font-bold tracking-tight text-gray-900">
+                <h4 className="text-lg font-bold tracking-tight text-heading">
                   AAL Antar Hazard
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted">
                 Perbandingan AAL Non-Climate dan Climate untuk Flood, Drought,
                 dan Multi-hazard.
               </p>
             </div>
 
             {!loadingAAL && !errorAAL && hasAALData ? (
-              <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+              <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-gray-light)] px-3 py-1 text-xs font-semibold text-heading">
                 All Hazards
               </div>
             ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="surface-soft rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Hazard Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
+              <p className="mt-2 text-lg font-bold text-heading">
                 {loadingAAL ? "Loading..." : topAalHazard.hazardLabel}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="surface-soft rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Nilai Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
+              <p className="mt-2 text-lg font-bold text-heading">
                 {loadingAAL
                   ? "Loading..."
                   : formatRupiah(
@@ -461,21 +463,21 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="surface-soft rounded-2xl px-4 py-3">
             {loadingAAL ? (
               <div className="animate-pulse space-y-2">
-                <div className="h-4 w-40 rounded bg-gray-200" />
-                <div className="h-4 w-52 rounded bg-gray-200" />
+                <div className="h-4 w-40 rounded bg-[var(--color-border)]" />
+                <div className="h-4 w-52 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorAAL ? (
               <p className="text-sm text-red-600">{errorAAL}</p>
             ) : !hasAALData ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Belum ada data AAL antar hazard yang dapat divisualisasikan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-white p-2 shadow-sm">
+                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
                   {topAalHazard.changeInfo.isUp ? (
                     <TrendingUp className="h-4 w-4 text-red-600" />
                   ) : (
@@ -488,7 +490,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   >
                     {topAalHazard.hazardLabel}: {topAalHazard.changeInfo.label}
                   </p>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="mt-1 text-sm text-muted">
                     {topAalHazard.changeInfo.description}
                   </p>
                 </div>
@@ -504,7 +506,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 description="Ringkasan AAL antar hazard sedang disiapkan."
               />
             ) : errorAAL ? (
-              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
+              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] text-sm text-[var(--dashboard-status-danger-text)]">
                 {errorAAL}
               </div>
             ) : !hasAALData ? (
@@ -517,20 +519,20 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 <ScatterChart
                   margin={{ top: 10, right: 30, bottom: 50, left: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis
                     type="number"
                     dataKey="x"
                     name="Non-Climate"
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
-                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
                       value: "Non-Climate (Rp)",
                       position: "insideBottom",
                       offset: -25,
                       fontSize: 11,
-                      fill: "#6b7280",
+                      fill: chartTheme.axis,
                     }}
                   />
                   <YAxis
@@ -540,14 +542,14 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     width={72}
-                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
                       value: "Climate (Rp)",
                       angle: -90,
                       position: "insideLeft",
                       offset: 20,
                       fontSize: 11,
-                      fill: "#6b7280",
+                      fill: chartTheme.axis,
                     }}
                   />
                   <Tooltip content={<ScatterTooltip />} />
@@ -556,14 +558,14 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                       { x: scatterDomain[0], y: scatterDomain[0] },
                       { x: scatterDomain[1], y: scatterDomain[1] },
                     ]}
-                    stroke="#9ca3af"
+                    stroke={chartTheme.reference}
                     strokeDasharray="5 5"
                     strokeWidth={1.5}
                     label={{
                       value: "y = x",
                       position: "insideTopRight",
                       fontSize: 10,
-                      fill: "#9ca3af",
+                      fill: chartTheme.reference,
                     }}
                   />
                   {scatterData.map((point) => (
@@ -591,36 +593,36 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 <div className="rounded-xl bg-[var(--color-secondary-soft)] p-2">
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
-                <h4 className="text-lg font-bold tracking-tight text-gray-900">
+                <h4 className="text-lg font-bold tracking-tight text-heading">
                   Total Loss per Scenario
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted">
                 Perbandingan Non-Climate dan Climate untuk hazard{" "}
                 {getHazardLabel(hazard)} pada semua scenario.
               </p>
             </div>
 
-            <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+            <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-gray-light)] px-3 py-1 text-xs font-semibold text-heading">
               {getHazardLabel(hazard)}
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="surface-soft rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Scenario Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
+              <p className="mt-2 text-lg font-bold text-heading">
                 {loadingLoss ? "Loading..." : lossInsight.topScenario}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="surface-soft rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Total Loss Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-900">
+              <p className="mt-2 text-lg font-bold text-heading">
                 {loadingLoss
                   ? "Loading..."
                   : formatRupiah(lossInsight.topValue)}
@@ -628,21 +630,21 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="surface-soft rounded-2xl px-4 py-3">
             {loadingLoss ? (
               <div className="animate-pulse space-y-2">
-                <div className="h-4 w-36 rounded bg-gray-200" />
-                <div className="h-4 w-52 rounded bg-gray-200" />
+                <div className="h-4 w-36 rounded bg-[var(--color-border)]" />
+                <div className="h-4 w-52 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorLoss ? (
               <p className="text-sm text-red-600">{errorLoss}</p>
             ) : !hasLossData ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Belum ada total kerugian per scenario yang dapat dianalisis.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-white p-2 shadow-sm">
+                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
                   <CloudSun className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
@@ -652,7 +654,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                     Total climate vs non-climate:{" "}
                     {lossInsight.compareInfo.label}
                   </p>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="mt-1 text-sm text-muted">
                     {lossInsight.compareInfo.description}
                   </p>
                 </div>
@@ -668,7 +670,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 description="Ringkasan kerugian climate vs non-climate sedang disiapkan."
               />
             ) : errorLoss ? (
-              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm text-red-600">
+              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] text-sm text-[var(--dashboard-status-danger-text)]">
                 {errorLoss}
               </div>
             ) : !hasLossData ? (
@@ -682,21 +684,21 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   data={sortedLossData}
                   margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis
                     dataKey="scenario"
                     tickFormatter={(v: string) => v.toUpperCase()}
-                    tick={{ fontSize: 12, fill: "#6b7280" }}
+                    tick={{ fontSize: 12, fill: chartTheme.axis }}
                   />
                   <YAxis
                     tickFormatter={formatCompact}
                     domain={lossYDomain}
                     width={72}
-                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tick={{ fontSize: 11, fill: chartTheme.axis }}
                   />
                   <Tooltip content={<LineTooltip />} />
                   <Legend
-                    wrapperStyle={{ fontSize: 12 }}
+                    wrapperStyle={{ color: chartTheme.axis, fontSize: 12 }}
                     formatter={(value: string) =>
                       value === "nonclimate" ? "Non-Climate" : "Climate"
                     }

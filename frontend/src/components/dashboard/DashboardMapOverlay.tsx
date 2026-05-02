@@ -199,15 +199,15 @@ export default function DashboardMapOverlay({
 
       {shouldShowMobileSummary ? (
         <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-[500] md:hidden">
-          <div className="pointer-events-auto rounded-2xl border border-white/80 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
+          <div className="pointer-events-auto rounded-2xl border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] px-3 py-2 shadow-lg backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-gray-900">
+                <p className="truncate text-sm font-semibold text-[var(--dashboard-text)]">
                   {props.kab_kota || "-"}
                 </p>
                 {primaryMetric ? (
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    <span className="font-medium text-gray-700">{primaryMetric.label}</span>{" "}
+                  <p className="mt-0.5 text-xs text-[var(--dashboard-text-muted)]">
+                    <span className="font-medium text-[var(--dashboard-text)]">{primaryMetric.label}</span>{" "}
                     {primaryMetric.value}
                   </p>
                 ) : null}
@@ -217,7 +217,7 @@ export default function DashboardMapOverlay({
                 <button
                   type="button"
                   onClick={onClearRegion}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] text-[var(--dashboard-text-muted)] shadow-sm"
                   aria-label="Hapus pilihan wilayah"
                 >
                   <X className="h-4 w-4" />
@@ -230,7 +230,7 @@ export default function DashboardMapOverlay({
 
       {selectedFeature && props ? (
         <div className="pointer-events-none absolute bottom-20 left-4 right-4 z-[500] hidden sm:bottom-4 sm:right-auto sm:w-80 md:block">
-          <div className="pointer-events-auto card card-accent-primary bg-white/95 p-4 backdrop-blur">
+          <div className="pointer-events-auto card card-accent-primary bg-[var(--dashboard-surface)] p-4 backdrop-blur">
 
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -253,7 +253,7 @@ export default function DashboardMapOverlay({
                     <button
                       type="button"
                       onClick={onClearRegion}
-                      className="ml-1 flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                      className="ml-1 flex h-5 w-5 items-center justify-center rounded-full text-[var(--dashboard-text-soft)] transition hover:bg-[var(--dashboard-control-hover)] hover:text-[var(--dashboard-text)]"
                       aria-label="Hapus pilihan wilayah"
                     >
                       <X className="h-3 w-3" />

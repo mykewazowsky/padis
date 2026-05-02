@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, Lock, Loader2, LocateFixed, X } from "lucide-react";
+import { Download, FileText, Lock, Loader2, LocateFixed, Maximize2, Minimize2, X } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
 
@@ -30,6 +30,8 @@ type Props = {
   onClearRegion?: () => void;
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
+  isMapExpanded?: boolean;
+  onToggleMapExpanded?: () => void;
   isMapTransitioning?: boolean;
   mobilePanel?: MobilePanel;
 };
@@ -92,6 +94,8 @@ export default function DashboardMapOverlay({
   onClearRegion,
   onDownloadCsv,
   onGenerateReport,
+  isMapExpanded = false,
+  onToggleMapExpanded,
   isMapTransitioning = false,
   mobilePanel = null,
 }: Props) {
@@ -132,8 +136,27 @@ export default function DashboardMapOverlay({
         </p>
       </div>
 
-      <div className="pointer-events-none absolute right-4 top-4 z-[500] hidden flex-col gap-2 md:flex">
+      <div className="pointer-events-none absolute right-4 top-4 z-[1070] hidden flex-col gap-2 md:flex">
         <div className="pointer-events-auto flex flex-col gap-2">
+          {onToggleMapExpanded ? (
+            <button
+              type="button"
+              onClick={onToggleMapExpanded}
+              className="btn-outline text-xs font-medium shadow-sm backdrop-blur transition-opacity"
+              aria-label={isMapExpanded ? "Keluar mode layar penuh" : "Perbesar peta"}
+              title={isMapExpanded ? "Keluar mode layar penuh" : "Perbesar peta"}
+            >
+              {isMapExpanded ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {isMapExpanded ? "Keluar Fullscreen" : "Perbesar Peta"}
+              </span>
+            </button>
+          ) : null}
+
           <button
             type="button"
             onClick={onResetView}

@@ -16,6 +16,7 @@ type Props = {
   onRegionSelect?: (region: string) => void;
   onResetView?: () => void;
   onFocusFilters?: () => void;
+  isMapExpanded?: boolean;
   onMobilePanelChange?: (panel: MobilePanel) => void;
   mobileFilterContent?: ReactNode;
 
@@ -107,6 +108,7 @@ export default function MapViewClient({
   onRegionSelect,
   onResetView,
   onFocusFilters,
+  isMapExpanded = false,
   onMobilePanelChange,
   mobileFilterContent,
   data,
@@ -188,6 +190,7 @@ export default function MapViewClient({
         onRegionSelect={onRegionSelect}
         onResetView={onResetView}
         onFocusFilters={onFocusFilters}
+        isMapExpanded={isMapExpanded}
         onMobilePanelChange={onMobilePanelChange}
         mobileFilterContent={mobileFilterContent}
         resetViewSignal={resetViewSignal}

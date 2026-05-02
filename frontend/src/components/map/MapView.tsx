@@ -31,6 +31,8 @@ type Props = {
   onDownloadCsv?: () => void;
   onGenerateReport?: () => void;
   isMapTransitioning?: boolean;
+  isMapExpanded?: boolean;
+  onToggleMapExpanded?: () => void;
   onFocusFilters?: () => void;
   mobileFilterContent?: ReactNode;
 
@@ -61,6 +63,8 @@ export default function MapView({
   onDownloadCsv,
   onGenerateReport,
   isMapTransitioning,
+  isMapExpanded = false,
+  onToggleMapExpanded,
   onFocusFilters,
   mobileFilterContent,
   resetViewSignal,
@@ -208,6 +212,7 @@ export default function MapView({
         onRegionSelect={onRegionSelect}
         onResetView={onResetView}
         onFocusFilters={onFocusFilters}
+        isMapExpanded={isMapExpanded}
         onMobilePanelChange={setMobileSheetTab}
         mobileFilterContent={mobileFilterContent}
 
@@ -233,6 +238,8 @@ export default function MapView({
         onClearRegion={onRegionSelect ? () => onRegionSelect("") : undefined}
         onDownloadCsv={onDownloadCsv}
         onGenerateReport={onGenerateReport}
+        isMapExpanded={isMapExpanded}
+        onToggleMapExpanded={onToggleMapExpanded}
         isMapTransitioning={isMapTransitioning}
         mobilePanel={mobileSheetTab}
       />

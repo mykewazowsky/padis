@@ -62,6 +62,7 @@ type MapCanvasProps = {
   onRegionSelect?: (region: string) => void;
   onResetView?: () => void;
   onFocusFilters?: () => void;
+  isMapExpanded?: boolean;
   onMobilePanelChange?: (panel: MobilePanel) => void;
   mobileFilterContent?: ReactNode;
   resetViewSignal?: number;
@@ -526,6 +527,7 @@ export default function MapCanvas({
   onRegionSelect,
   onResetView,
   onFocusFilters,
+  isMapExpanded = false,
   onMobilePanelChange,
   mobileFilterContent,
   resetViewSignal = 0,
@@ -579,6 +581,24 @@ export default function MapCanvas({
   useEffect(() => {
     onMobilePanelChange?.(mobileSheetTab);
   }, [mobileSheetTab, onMobilePanelChange]);
+
+  useEffect(() => {
+    if (!isMapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      map.invalidateSize();
+    });
+    const timer = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 220);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [isMapExpanded, isMapReady, mapRef]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

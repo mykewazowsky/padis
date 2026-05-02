@@ -252,6 +252,7 @@ export default function DashboardPage() {
 
   const [showReportPreview, setShowReportPreview] = useState(false);
   const [isMapTransitioning, setIsMapTransitioning] = useState(false);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
   const prevLoadingRegionAAL = useRef(false);
   const [showLoginNotice, setShowLoginNotice] = useState(false);
   const [loginNoticeMessage, setLoginNoticeMessage] = useState(
@@ -266,6 +267,34 @@ export default function DashboardPage() {
     aal: false,
     hazard: false,
   });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (!isMapExpanded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMapExpanded]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const query = window.matchMedia("(max-width: 767px)");
+    const closeOnMobile = () => {
+      if (query.matches) setIsMapExpanded(false);
+    };
+
+    closeOnMobile();
+    query.addEventListener("change", closeOnMobile);
+
+    return () => {
+      query.removeEventListener("change", closeOnMobile);
+    };
+  }, []);
 
   useEffect(() => {
     setRunId(null);
@@ -870,8 +899,14 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white/90 shadow-[0_20px_56px_rgba(37,99,235,0.10)]">
-              <div className="relative z-10 flex flex-col gap-2 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              className={`relative overflow-hidden rounded-[28px] border border-white/80 bg-white/90 shadow-[0_20px_56px_rgba(37,99,235,0.10)] ${
+                isMapExpanded
+                  ? "md:fixed md:inset-4 md:z-[1300] md:flex md:flex-col md:bg-white/95 md:shadow-[0_30px_90px_rgba(15,23,42,0.28)]"
+                  : ""
+              }`}
+            >
+              <div className="relative z-10 flex flex-col gap-2 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between md:flex-shrink-0">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
                     Visualisasi Wilayah
@@ -882,7 +917,13 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="relative h-[50vh] w-full sm:h-[65vh] md:h-[70vh] xl:h-[75vh]">
+              <div
+                className={`relative w-full ${
+                  isMapExpanded
+                    ? "h-[50vh] sm:h-[65vh] md:min-h-0 md:flex-1 md:h-auto"
+                    : "h-[50vh] sm:h-[65vh] md:h-[70vh] xl:h-[75vh]"
+                }`}
+              >
                 {runId !== null && (
                   <MapView
                     scenario={scenario}
@@ -895,6 +936,8 @@ export default function DashboardPage() {
                     onDownloadCsv={handleDownloadCsv}
                     onGenerateReport={handlePreviewReport}
                     isMapTransitioning={isMapTransitioning}
+                    isMapExpanded={isMapExpanded}
+                    onToggleMapExpanded={() => setIsMapExpanded((prev) => !prev)}
                     onFocusFilters={handleFocusFilters}
                     mobileFilterContent={
                       <DashboardMapFilters

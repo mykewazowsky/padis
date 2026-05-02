@@ -312,7 +312,7 @@ export default function AdvancedCharts({
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
+                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-2">
                   <MapPinned className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <h4 className="text-lg font-bold tracking-tight text-heading">
@@ -357,14 +357,14 @@ export default function AdvancedCharts({
                 <div className="h-4 w-48 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorTopRegions ? (
-              <p className="text-sm text-red-600">{errorTopRegions}</p>
+              <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorTopRegions}</p>
             ) : !hasTopRegionData ? (
               <p className="text-sm text-muted">
                 Belum ada wilayah dengan kerugian yang cukup untuk ditampilkan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
+                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] p-2 shadow-sm">
                   <Target className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
@@ -472,7 +472,7 @@ export default function AdvancedCharts({
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <div className="rounded-xl bg-[var(--color-secondary-soft)] p-2">
+                <div className="rounded-xl border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] p-2">
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
                 <h4 className="text-lg font-bold tracking-tight text-heading">
@@ -520,14 +520,14 @@ export default function AdvancedCharts({
                 <div className="h-4 w-44 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorLossDist ? (
-              <p className="text-sm text-red-600">{errorLossDist}</p>
+              <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorLossDist}</p>
             ) : !hasLossDistData ? (
               <p className="text-sm text-muted">
                 Belum ada data distribusi yang dapat divisualisasikan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
+                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] p-2 shadow-sm">
                   <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>

@@ -1,11 +1,11 @@
 export default function NotFound() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--theme-body-bg)] px-4 text-[var(--theme-body-text)]">
       <div className="text-center flex flex-col items-center">
 
         <div className="text-6xl">🗺️</div>
 
-        <h1 className="mt-4 text-5xl font-bold text-slate-900">
+        <h1 className="mt-4 text-5xl font-bold text-[var(--theme-shell-text)]">
           404
         </h1>
 
@@ -13,11 +13,11 @@ export default function NotFound() {
           PADIS SYSTEM
         </p>
 
-        <h2 className="mt-2 text-xl font-semibold text-slate-800">
+        <h2 className="mt-2 text-xl font-semibold text-[var(--theme-shell-text)]">
           Data tidak ditemukan
         </h2>
 
-        <p className="mt-2 text-sm text-slate-500 max-w-md">
+        <p className="mt-2 max-w-md text-sm text-[var(--theme-shell-text-muted)]">
           Halaman atau data yang kamu cari tidak tersedia dalam sistem.
         </p>
 
@@ -31,7 +31,7 @@ export default function NotFound() {
 
           <a
             href="/dashboard"
-            className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
+            className="rounded-xl border border-[var(--theme-shell-border)] px-5 py-2.5 text-sm font-semibold text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)]"
           >
             Dashboard
           </a>

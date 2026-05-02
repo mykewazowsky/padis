@@ -184,7 +184,7 @@ export default function MapLayerControlPanel({
         <div className="flex-shrink-0 px-3 pt-3">
           <div className="mb-3 flex items-start justify-between">
             <div className="flex gap-2">
-              <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
+              <div className="rounded-lg border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-1.5">
                 <Layers3 className="h-4 w-4 text-[var(--color-primary)]" />
               </div>
               <div>
@@ -298,7 +298,7 @@ export default function MapLayerControlPanel({
                         onClick={() => onBasemapChange?.(key)}
                         className={`flex-1 rounded-md py-2 text-[11px] font-medium transition-colors ${
                           basemap === key
-                            ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] shadow-sm"
+                            ? "bg-[var(--dashboard-active-surface)] text-[var(--color-primary)] shadow-sm"
                             : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                         }`}
                       >

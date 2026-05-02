@@ -75,19 +75,19 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[var(--color-primary-soft)] via-white to-[var(--color-secondary-soft)]">
-      <div className="flex min-h-screen items-center justify-center px-6">
+    <main className="auth-theme min-h-screen">
+      <div className="auth-page-gradient flex min-h-screen items-center justify-center px-6">
         <div className="card card-elevated w-full max-w-md p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)]">
             <div
-              className="h-7 w-7 animate-spin rounded-full border-[3px] border-gray-200 border-t-[var(--color-primary)]"
+              className="h-7 w-7 animate-spin rounded-full border-[3px] border-[var(--auth-surface-border)] border-t-[var(--color-primary)]"
               aria-hidden="true"
             />
           </div>
-          <h2 className="mt-5 text-xl font-bold text-gray-900">
+          <h2 className="mt-5 text-xl font-bold text-[var(--auth-text)]">
             Menyelesaikan login Google
           </h2>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-[var(--auth-text-muted)]">
             PADIS sedang memverifikasi akun Google Anda. Mohon tunggu sebentar.
           </p>
         </div>

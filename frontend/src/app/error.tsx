@@ -9,13 +9,13 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
   console.error(error);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--theme-body-bg)] px-4 text-[var(--theme-body-text)]">
       <div className="flex max-w-xl flex-col items-center text-center">
 
         {/* Icon */}
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-200 bg-red-50">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)]">
           <svg
-            className="h-8 w-8 text-red-600"
+            className="h-8 w-8 text-[var(--dashboard-status-danger-text)]"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -37,12 +37,12 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         </p>
 
         {/* Title */}
-        <h1 className="mt-3 text-2xl font-bold text-slate-900 md:text-3xl">
+        <h1 className="mt-3 text-2xl font-bold text-[var(--theme-shell-text)] md:text-3xl">
           Terjadi kesalahan pada aplikasi
         </h1>
 
         {/* Description */}
-        <p className="mt-3 max-w-md text-sm text-slate-500 md:text-base">
+        <p className="mt-3 max-w-md text-sm text-[var(--theme-shell-text-muted)] md:text-base">
           Sistem tidak dapat memproses halaman ini untuk sementara.
           Silakan coba kembali beberapa saat lagi.
         </p>
@@ -58,7 +58,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
           <a
             href="/dashboard"
-            className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
+            className="rounded-xl border border-[var(--theme-shell-border)] px-5 py-2.5 text-sm font-semibold text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)]"
           >
             Dashboard
           </a>

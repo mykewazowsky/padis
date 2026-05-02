@@ -43,7 +43,7 @@ export default function MapLegendPanel({
       {/* HEADER */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
-          <div className="rounded-lg bg-[var(--color-primary-soft)] p-1.5">
+          <div className="rounded-lg border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-1.5">
             <Palette className="h-3.5 w-3.5 text-[var(--color-primary)]" />
           </div>
 

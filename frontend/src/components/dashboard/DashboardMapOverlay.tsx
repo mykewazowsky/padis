@@ -246,9 +246,9 @@ export default function DashboardMapOverlay({
               <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 <div className="flex items-center gap-1">
                   {isTopRegion && (
-                    <span className="badge badge-secondary">Top 5</span>
+                    <span className="inline-flex rounded-full border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] px-2.5 py-1 text-[11px] font-semibold leading-none text-[var(--dashboard-status-warning-text)]">Top 5</span>
                   )}
-                  <span className="badge badge-primary">Aktif</span>
+                  <span className="inline-flex rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-active-surface)] px-2.5 py-1 text-[11px] font-semibold leading-none text-[var(--color-primary)]">Aktif</span>
                   {onClearRegion && (
                     <button
                       type="button"

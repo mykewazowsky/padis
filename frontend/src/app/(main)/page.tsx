@@ -159,28 +159,28 @@ export default function LandingPage() {
                 icon: Droplets,
                 title: "Banjir",
                 desc: "Menggunakan HEC-RAS 2D untuk simulasi genangan berdasarkan debit periode ulang 25–250 tahun.",
-                iconBg: "bg-[var(--color-primary)]/10",
+                iconBg: "border border-[rgba(30,99,181,0.22)] bg-[rgba(30,99,181,0.14)]",
                 iconText: "text-[var(--color-primary)]",
               },
               {
                 icon: Leaf,
                 title: "Kekeringan",
                 desc: "Menggunakan SPI berbasis curah hujan dari GPM dan MME untuk analisis kondisi kering.",
-                iconBg: "bg-[var(--color-accent)]/15",
-                iconText: "text-[var(--color-accent-dark)]",
+                iconBg: "border border-[rgba(22,163,74,0.22)] bg-[rgba(22,163,74,0.14)]",
+                iconText: "text-[var(--color-accent)]",
               },
               {
                 icon: Layers3,
                 title: "Multi-hazard",
                 desc: "Integrasi model banjir dan kekeringan untuk menghasilkan analisis risiko gabungan.",
-                iconBg: "bg-[var(--color-secondary)]/20",
-                iconText: "text-[var(--color-secondary-dark)]",
+                iconBg: "border border-[rgba(244,194,31,0.24)] bg-[rgba(244,194,31,0.14)]",
+                iconText: "text-[var(--color-secondary)]",
               },
               {
                 icon: Globe,
                 title: "Iklim & Non-Iklim",
                 desc: "Analisis berbasis data observasi dan proyeksi MME untuk berbagai periode ulang.",
-                iconBg: "bg-[var(--color-primary-soft)]",
+                iconBg: "border border-[rgba(14,165,233,0.22)] bg-[rgba(14,165,233,0.14)]",
                 iconText: "text-[var(--color-primary)]",
               },
             ].map((item, i) => {
@@ -200,7 +200,7 @@ export default function LandingPage() {
                   {/* content */}
                   <div className="flex flex-col gap-4">
                     <div
-                      className={`flex h-14 w-14 items-center justify-center rounded-2xl ${item.iconBg} transition group-hover:scale-105`}
+                      className={`flex h-14 w-14 items-center justify-center rounded-2xl ${item.iconBg} shadow-sm transition group-hover:scale-105`}
                     >
                       <Icon className={`h-6 w-6 ${item.iconText}`} />
                     </div>
@@ -247,7 +247,7 @@ export default function LandingPage() {
             
             {/* LEFT */}
             <div className="flex flex-col justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/15 shadow-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(30,99,181,0.22)] bg-[rgba(30,99,181,0.14)] shadow-sm">
                 <BarChart3 className="h-7 w-7 text-[var(--color-primary)]" />
               </div>
 
@@ -302,7 +302,7 @@ export default function LandingPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="content-surface-card rounded-3xl border border-[var(--color-border)] p-6 backdrop-blur sm:col-span-2">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/15">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(30,99,181,0.22)] bg-[rgba(30,99,181,0.14)]">
                     <TrendingUp className="h-5 w-5 text-[var(--color-primary)]" />
                   </div>
                   <div>
@@ -319,8 +319,8 @@ export default function LandingPage() {
               </div>
 
               <div className="content-surface-card rounded-3xl border border-[var(--color-border)] p-6 backdrop-blur">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-secondary)]/25">
-                  <MapPin className="h-5 w-5 text-[var(--color-secondary-dark)]" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(244,194,31,0.24)] bg-[rgba(244,194,31,0.14)]">
+                  <MapPin className="h-5 w-5 text-[var(--color-secondary)]" />
                 </div>
                 <h4 className="mt-4 font-semibold text-[var(--color-text)]">
                   Distribusi Wilayah
@@ -331,8 +331,8 @@ export default function LandingPage() {
               </div>
 
               <div className="content-surface-card rounded-3xl border border-[var(--color-border)] p-6 backdrop-blur">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-accent)]/25">
-                  <Layers3 className="h-5 w-5 text-[var(--color-accent-dark)]" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(22,163,74,0.22)] bg-[rgba(22,163,74,0.14)]">
+                  <Layers3 className="h-5 w-5 text-[var(--color-accent)]" />
                 </div>
                 <h4 className="mt-4 font-semibold text-[var(--color-text)]">
                   Perbandingan

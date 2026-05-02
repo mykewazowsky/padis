@@ -25,11 +25,11 @@ export default function AnimatedPipelineSteps({ items }: { items: PipelineItem[]
               className={`relative h-full overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg ${
                 isLast
                   ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
-                  : "border-[var(--color-border)] bg-white"
+                  : "border-[var(--color-border)] bg-[var(--content-surface)] shadow-[var(--shadow-soft)]"
               }`}
             >
               <span className={`pointer-events-none absolute right-3 top-2 select-none text-6xl font-black leading-none ${
-                isLast ? "text-white/10" : "text-[var(--color-primary)]/[0.06]"
+                isLast ? "text-white/10" : "text-[var(--color-text)]/[0.08]"
               }`}>
                 {item.step}
               </span>
@@ -38,7 +38,7 @@ export default function AnimatedPipelineSteps({ items }: { items: PipelineItem[]
                 <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 group-hover:scale-110 ${
                   isLast
                     ? "border border-white/30 bg-white/20 text-white"
-                    : "bg-[var(--color-primary)] text-white"
+                    : "border border-[rgba(30,99,181,0.22)] bg-[rgba(30,99,181,0.14)] text-[var(--color-primary)]"
                 }`}>
                   {item.step}
                 </span>
@@ -61,7 +61,7 @@ export default function AnimatedPipelineSteps({ items }: { items: PipelineItem[]
 
             {index < items.length - 1 && (
               <div className="absolute -right-6 top-1/2 z-10 hidden -translate-y-1/2 lg:block">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-md">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--content-surface)] shadow-md">
                   <ArrowRight className="h-3 w-3 text-muted" />
                 </div>
               </div>

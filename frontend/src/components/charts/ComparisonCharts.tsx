@@ -82,7 +82,9 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
 
   return {
     label: `${isUp ? "+" : "-"}${Math.abs(change).toFixed(1)}%`,
-    colorClass: isUp ? "text-red-600" : "text-green-600",
+    colorClass: isUp
+      ? "text-[var(--dashboard-status-danger-text)]"
+      : "text-[var(--dashboard-status-success-text)]",
     description: isUp
       ? "Nilai climate lebih tinggi dibanding non-climate."
       : "Nilai climate lebih rendah dibanding non-climate.",
@@ -419,7 +421,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
+                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-2">
                   <ArrowRightLeft className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <h4 className="text-lg font-bold tracking-tight text-heading">
@@ -470,18 +472,18 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 <div className="h-4 w-52 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorAAL ? (
-              <p className="text-sm text-red-600">{errorAAL}</p>
+              <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorAAL}</p>
             ) : !hasAALData ? (
               <p className="text-sm text-muted">
                 Belum ada data AAL antar hazard yang dapat divisualisasikan.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
+                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] p-2 shadow-sm">
                   {topAalHazard.changeInfo.isUp ? (
-                    <TrendingUp className="h-4 w-4 text-red-600" />
+                    <TrendingUp className="h-4 w-4 text-[var(--dashboard-status-danger-text)]" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-green-600" />
+                    <TrendingDown className="h-4 w-4 text-[var(--dashboard-status-success-text)]" />
                   )}
                 </div>
                 <div>
@@ -590,7 +592,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <div className="rounded-xl bg-[var(--color-secondary-soft)] p-2">
+                <div className="rounded-xl border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] p-2">
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
                 <h4 className="text-lg font-bold tracking-tight text-heading">
@@ -637,14 +639,14 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 <div className="h-4 w-52 rounded bg-[var(--color-border)]" />
               </div>
             ) : errorLoss ? (
-              <p className="text-sm text-red-600">{errorLoss}</p>
+              <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorLoss}</p>
             ) : !hasLossData ? (
               <p className="text-sm text-muted">
                 Belum ada total kerugian per scenario yang dapat dianalisis.
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-[var(--content-surface,var(--dashboard-surface-solid,#ffffff))] p-2 shadow-sm">
+                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] p-2 shadow-sm">
                   <CloudSun className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>

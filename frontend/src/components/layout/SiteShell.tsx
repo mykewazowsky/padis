@@ -132,8 +132,8 @@ function UserBadge({
 
   return (
     <div className="hidden xl:flex items-center gap-3">
-      <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-secondary)] bg-[var(--color-secondary-soft)] px-4 py-2">
-        <div className="rounded-xl bg-[var(--theme-shell-surface-soft)] p-2">
+      <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--theme-shell-border)] bg-[var(--theme-shell-surface-muted)] px-4 py-2">
+        <div className="rounded-xl border border-[var(--theme-shell-border-subtle)] bg-[var(--theme-shell-surface)] p-2">
           {isAdmin ? (
             <ShieldCheck
               className="h-4 w-4 text-[var(--color-secondary-dark)]"
@@ -148,7 +148,7 @@ function UserBadge({
         </div>
 
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-secondary-dark)]">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--theme-shell-text-muted)]">
             Masuk sebagai
           </p>
           <p className="mt-1 text-sm font-semibold text-[var(--theme-shell-text)]">
@@ -238,9 +238,9 @@ function MobileMenu({
             {authChecked ? (
               isAuthenticated && user ? (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-[var(--color-secondary)] bg-[var(--color-secondary-soft)] p-4">
+                  <div className="rounded-2xl border border-[var(--theme-shell-border)] bg-[var(--theme-shell-surface-muted)] p-4">
                     <div className="flex items-start gap-3">
-                      <div className="rounded-xl bg-[var(--theme-shell-surface-soft)] p-2">
+                      <div className="rounded-xl border border-[var(--theme-shell-border-subtle)] bg-[var(--theme-shell-surface)] p-2">
                         {user?.role === "admin" ? (
                           <ShieldCheck
                             className="h-4 w-4 text-[var(--color-secondary-dark)]"
@@ -255,7 +255,7 @@ function MobileMenu({
                       </div>
 
                       <div>
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-secondary-dark)]">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--theme-shell-text-muted)]">
                           Masuk sebagai
                         </p>
                         <p className="mt-1 text-sm font-semibold text-[var(--theme-shell-text)]">
@@ -566,7 +566,7 @@ export default function SiteShell({
             {/* 1. Logo & Deskripsi */}
             <div>
               <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white">
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-[var(--theme-brand-chip-bg)]">
                   <Image
                     src="/logo/padis.svg"
                     alt="PADIS"

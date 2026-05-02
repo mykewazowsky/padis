@@ -215,7 +215,7 @@ export default function DashboardMapFilters(props: Props) {
   return (
     <div className="relative z-30 rounded-2xl border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 shadow-[var(--dashboard-shadow)] backdrop-blur">
       <div className="mb-3 flex items-center gap-2">
-        <div className="rounded-xl bg-[var(--color-primary-soft)] p-2">
+        <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-2">
           <Filter className="h-4 w-4 text-[var(--color-primary)]" />
         </div>
         <div>

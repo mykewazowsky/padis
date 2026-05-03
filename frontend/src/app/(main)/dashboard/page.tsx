@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ShieldAlert, X } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
-import { fetchAllLayers, fetchLatestRunId } from "../../../services/fetchLayers";
+import { fetchAllLayers, fetchLatestRunId, type LayerItem } from "../../../services/fetchLayers";
 import { buildApiUrl } from "../../../lib/api";
 import { getToken, clearToken } from "../../../lib/auth";
 import DashboardLoadingBlock from "../../../components/dashboard/DashboardLoadingBlock";
@@ -261,6 +261,7 @@ export default function DashboardPage() {
   const [isMapTransitioning, setIsMapTransitioning] = useState(false);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const prevLoadingRegionAAL = useRef(false);
+  const regionsInitialized = useRef(false);
   const [showLoginNotice, setShowLoginNotice] = useState(false);
   const [loginNoticeMessage, setLoginNoticeMessage] = useState(
     "Silakan login terlebih dahulu."
@@ -312,39 +313,26 @@ export default function DashboardPage() {
       });
   }, [hazard]);
 
+  // Derive regions/centroids dari production data yang sudah di-fetch oleh fetchAllLayers.
+  // Menghilangkan duplikasi request ke /api/layers/values/production.
   useEffect(() => {
-    setLoadingRegions(true);
+    if (regionsInitialized.current || !layers.production?.features?.length) return;
+    regionsInitialized.current = true;
+    const items = (layers.production.features as { properties: LayerItem }[]).map((f) => f.properties);
+    setRegions(items.map((item) => ({
+      kab_kota: item.kab_kota || "",
+      prov: item.prov || "",
+    })));
+    const centroids: Record<string, [number, number]> = {};
+    for (const item of items) {
+      if (item.kab_kota && item.centroid_lat != null && item.centroid_lng != null) {
+        centroids[item.kab_kota.toLowerCase().trim()] = [item.centroid_lat, item.centroid_lng];
+      }
+    }
+    setRegionCentroids(centroids);
+    setLoadingRegions(false);
     setErrorRegions(null);
-
-    // Endpoint ini mencakup semua kabupaten terlepas dari filter hazard/skenario.
-    fetchJson(`/api/layers/values/production`)
-      .then((json: any) => {
-        const items = (json.data || []) as {
-          kab_kota: string;
-          prov: string;
-          centroid_lng?: number | null;
-          centroid_lat?: number | null;
-        }[];
-        setRegions(items.map((item) => ({
-          kab_kota: item.kab_kota || "",
-          prov: item.prov || "",
-        })));
-        const centroids: Record<string, [number, number]> = {};
-        for (const item of items) {
-          if (item.kab_kota && item.centroid_lat != null && item.centroid_lng != null) {
-            centroids[item.kab_kota.toLowerCase().trim()] = [item.centroid_lat, item.centroid_lng];
-          }
-        }
-        setRegionCentroids(centroids);
-      })
-      .catch((err) => {
-        console.error("Regions fetch error:", err);
-        setErrorRegions("Gagal memuat daftar wilayah.");
-        setRegions([]);
-        setSelectedRegion("");
-      })
-      .finally(() => setLoadingRegions(false));
-  }, []);
+  }, [layers.production]);
 
   // Validasi: jika filter berubah dan selectedRegion tidak ada di data baru, reset
   useEffect(() => {
@@ -357,17 +345,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (runId === null) return;
+    let aborted = false;
     setLoadingAAL(true);
     setErrorAAL(null);
 
     fetchJson<AalSummary>(`/api/aal-summary?hazard=${hazard}&run_id=${runId}`)
-      .then((json) => setAalSummary(json))
+      .then((json) => { if (!aborted) setAalSummary(json); })
       .catch((err) => {
+        if (aborted) return;
         console.error("AAL summary fetch error:", err);
         setErrorAAL("Gagal memuat ringkasan AAL.");
         setAalSummary(null);
       })
-      .finally(() => setLoadingAAL(false));
+      .finally(() => { if (!aborted) setLoadingAAL(false); });
+    return () => { aborted = true; };
   }, [hazard, runId]);
 
   useEffect(() => {
@@ -378,19 +369,22 @@ export default function DashboardPage() {
       return;
     }
 
+    let aborted = false;
     setLoadingRegionAAL(true);
     setErrorRegionAAL(null);
 
     const params = new URLSearchParams({ hazard, region: selectedRegion.trim(), run_id: String(runId) });
 
     fetchJson<AalSummary>(`/api/aal-summary?${params.toString()}`)
-      .then((json) => setRegionAalSummary(json))
+      .then((json) => { if (!aborted) setRegionAalSummary(json); })
       .catch((err) => {
+        if (aborted) return;
         console.error("Region AAL summary fetch error:", err);
         setErrorRegionAAL("Gagal memuat AAL wilayah terpilih.");
         setRegionAalSummary(null);
       })
-      .finally(() => setLoadingRegionAAL(false));
+      .finally(() => { if (!aborted) setLoadingRegionAAL(false); });
+    return () => { aborted = true; };
   }, [hazard, selectedRegion, runId]);
 
   // Clear transition overlay when region is deselected via any path (reset, clear button, etc.)
@@ -409,20 +403,29 @@ export default function DashboardPage() {
   // Endpoint ringan (~30 KB); rendering peta via MVT tiles dari Leaflet.
   useEffect(() => {
     if (runId === null) return;
+    let aborted = false;
     async function fetchLayerData() {
       try {
         setLoadingLayer(true);
         setErrorLayer(null);
+        if (!regionsInitialized.current) setLoadingRegions(true);
         const data = await fetchAllLayers({ hazard, scenario, climate, runId: runId! });
+        if (aborted) return;
         setLayers(data);
       } catch (err) {
+        if (aborted) return;
         console.error("Fetch layers error:", err);
         setErrorLayer("Gagal memuat layer peta.");
+        if (!regionsInitialized.current) {
+          setLoadingRegions(false);
+          setErrorRegions("Gagal memuat daftar wilayah.");
+        }
       } finally {
-        setLoadingLayer(false);
+        if (!aborted) setLoadingLayer(false);
       }
     }
     fetchLayerData();
+    return () => { aborted = true; };
   }, [hazard, scenario, climate, runId]);
 
   const regionOptions = useMemo<OptionType[]>(() => {
@@ -469,12 +472,12 @@ export default function DashboardPage() {
     }));
   }
 
-  function handleRegionChange(region: string | null) {
+  const handleRegionChange = useCallback((region: string | null) => {
     const nextRegion = region?.trim() ?? "";
     if (nextRegion.toLowerCase() === selectedRegion.toLowerCase().trim()) return;
     setSelectedRegion(nextRegion);
     if (nextRegion) setIsMapTransitioning(true);
-  }
+  }, [selectedRegion]);
 
   function handleResetView() {
     setSelectedRegion("");

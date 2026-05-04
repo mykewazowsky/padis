@@ -1,0 +1,393 @@
+ # Catatan Menjalankan PADIS
+
+Dokumen ini berisi catatan singkat untuk menjalankan **backend**, **frontend**, dan mode **debug** PADIS di local development.
+
+---
+
+## 1. Lokasi Project
+
+Contoh lokasi project lokal:
+
+```powershell
+D:\01. Project\Kuliah\TEKNIK GEODESI DAN GEOMATIKA\Capstone\PADIS
+```
+
+Masuk ke folder project:
+
+```powershell
+cd "D:\01. Project\Kuliah\TEKNIK GEODESI DAN GEOMATIKA\Capstone\PADIS"
+```
+
+---
+
+## 2. Menjalankan Backend
+
+Aktifkan virtual environment backend:
+
+```powershell
+.\backend\venv\Scripts\Activate.ps1
+```
+
+Jalankan backend:
+
+```powershell
+python -m backend.run
+```
+
+Jika berhasil, backend akan berjalan di:
+
+```text
+http://127.0.0.1:5000
+```
+
+atau pada alamat lokal jaringan, misalnya:
+
+```text
+http://192.168.x.x:5000
+```
+
+Untuk menghentikan backend:
+
+```powershell
+CTRL + C
+```
+
+---
+
+## 3. Menjalankan Frontend
+
+Buka terminal baru, lalu masuk ke folder frontend:
+
+```powershell
+cd "D:\01. Project\Kuliah\TEKNIK GEODESI DAN GEOMATIKA\Capstone\PADIS\frontend"
+```
+
+Jalankan frontend:
+
+```powershell
+npm run dev
+```
+
+Frontend biasanya berjalan di:
+
+```text
+http://localhost:3000
+```
+
+Jika port 3000 sedang dipakai, Next.js bisa memakai port lain, misalnya:
+
+```text
+http://localhost:3001
+```
+
+---
+
+## 4. Menjalankan Backend dengan Log Normal
+
+Mode normal cukup menjalankan:
+
+```powershell
+python -m backend.run
+```
+
+Log normal seharusnya hanya menampilkan informasi penting, seperti:
+
+```text
+CORS allowed origins
+Default users enforced during seed
+Flask server running
+```
+
+---
+
+## 5. Menjalankan Backend dengan Debug Log
+
+Gunakan `LOG_LEVEL=DEBUG` jika ingin melihat detail debug backend.
+
+```powershell
+$env:LOG_LEVEL="DEBUG"
+python -m backend.run
+```
+
+Mode ini berguna untuk melihat detail seperti parameter layer, tile, cache, atau proses internal lain yang sengaja disimpan di level debug.
+
+Setelah selesai, hapus environment variable agar log kembali normal:
+
+```powershell
+Remove-Item Env:LOG_LEVEL
+```
+
+---
+
+## 6. Menampilkan Daftar Routes Backend
+
+Untuk menampilkan daftar route Flask yang terdaftar:
+
+```powershell
+$env:SHOW_ROUTES="1"
+$env:LOG_LEVEL="DEBUG"
+python -m backend.run
+```
+
+Ini akan menampilkan route seperti:
+
+```text
+/api/login
+/api/layers/regions
+/api/tiles/<layer>/<z>/<x>/<y>
+/api/admin/data
+/api/generate-report-v2
+```
+
+Setelah selesai, reset environment variable:
+
+```powershell
+Remove-Item Env:SHOW_ROUTES
+Remove-Item Env:LOG_LEVEL
+```
+
+Jika hanya ingin mengembalikan log ke mode normal tanpa menghapus terminal:
+
+```powershell
+$env:LOG_LEVEL="INFO"
+$env:SHOW_ROUTES=""
+```
+
+---
+
+## 7. Cek Backend Compile
+
+Sebelum commit, jalankan compile check:
+
+```powershell
+python -m compileall backend\app backend\main.py
+```
+
+Jika hanya mengecek file tertentu:
+
+```powershell
+python -m compileall backend\app\routes\tiles\tile_routes.py backend\app\routes\admin\data_routes.py
+```
+
+---
+
+## 8. Cek Frontend Lint
+
+Masuk ke folder frontend:
+
+```powershell
+cd frontend
+```
+
+Jalankan lint:
+
+```powershell
+npm run lint
+```
+
+Atau cek file tertentu:
+
+```powershell
+npx eslint src/components/map/config/layers.ts
+```
+
+---
+
+## 9. Cek Git Sebelum Commit
+
+Cek status perubahan:
+
+```powershell
+git status
+```
+
+Lihat ringkasan perubahan:
+
+```powershell
+git diff --stat
+```
+
+Lihat detail perubahan:
+
+```powershell
+git diff
+```
+
+---
+
+## 10. Commit dan Push
+
+Stage file yang berubah:
+
+```powershell
+git add <path-file>
+```
+
+Contoh:
+
+```powershell
+git add backend/app/routes/admin/data_routes.py backend/app/routes/tiles/tile_routes.py
+```
+
+Commit:
+
+```powershell
+git commit -m "chore: describe change here"
+```
+
+Push ke GitHub:
+
+```powershell
+git push origin main
+```
+
+Cek hasil akhir:
+
+```powershell
+git status
+```
+
+Target akhir:
+
+```text
+Your branch is up to date with 'origin/main'.
+nothing to commit, working tree clean
+```
+
+---
+
+## 11. Catatan Environment Variable Penting
+
+### Backend
+
+Contoh file lokal:
+
+```text
+backend/.env
+```
+
+File `.env` jangan di-commit ke GitHub.
+
+### Frontend
+
+Contoh file lokal:
+
+```text
+frontend/.env.local
+```
+
+File `.env.local` juga jangan di-commit ke GitHub.
+
+---
+
+## 12. Troubleshooting Singkat
+
+### Log masih menampilkan DEBUG atau daftar routes
+
+Kemungkinan `LOG_LEVEL` atau `SHOW_ROUTES` masih aktif di PowerShell.
+
+Reset dengan:
+
+```powershell
+Remove-Item Env:LOG_LEVEL
+Remove-Item Env:SHOW_ROUTES
+```
+
+Lalu jalankan ulang:
+
+```powershell
+python -m backend.run
+```
+
+### Backend tidak bisa start
+
+Cek virtual environment sudah aktif:
+
+```powershell
+.\backend\venv\Scripts\Activate.ps1
+```
+
+Cek dependency:
+
+```powershell
+pip install -r requirements.txt
+```
+
+atau jika ada requirements backend khusus:
+
+```powershell
+pip install -r backend\requirements.txt
+```
+
+### Frontend tidak bisa start
+
+Masuk ke folder frontend dan install dependency:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+### Port sudah dipakai
+
+Jika port backend `5000` atau frontend `3000` sudah dipakai, hentikan proses lama atau gunakan terminal baru setelah proses lama dimatikan.
+
+---
+
+## 13. Urutan Kerja Harian yang Disarankan
+
+```powershell
+# Terminal 1 - Backend
+cd "D:\01. Project\Kuliah\TEKNIK GEODESI DAN GEOMATIKA\Capstone\PADIS"
+.\backend\venv\Scripts\Activate.ps1
+python -m backend.run
+```
+
+```powershell
+# Terminal 2 - Frontend
+cd "D:\01. Project\Kuliah\TEKNIK GEODESI DAN GEOMATIKA\Capstone\PADIS\frontend"
+npm run dev
+```
+
+Lalu buka:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## 14. Ringkasan Command Penting
+
+```powershell
+# Backend normal
+python -m backend.run
+
+# Backend debug
+$env:LOG_LEVEL="DEBUG"
+python -m backend.run
+
+# Backend show routes
+$env:SHOW_ROUTES="1"
+$env:LOG_LEVEL="DEBUG"
+python -m backend.run
+
+# Reset debug env
+Remove-Item Env:LOG_LEVEL
+Remove-Item Env:SHOW_ROUTES
+
+# Frontend
+cd frontend
+npm run dev
+
+# Compile backend
+python -m compileall backend\app backend\main.py
+
+# Git
+ git status
+ git diff --stat
+ git add <file>
+ git commit -m "message"
+ git push origin main
+```

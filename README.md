@@ -1,4 +1,4 @@
-# PADIS — Platform Analisis Dampak dan Indeks Spasial
+# PADIS — Paddy Disaster Information System
 
 Web-GIS platform for spatial risk analysis of natural hazards (flood, drought, multi-hazard) on rice production areas in Indonesia. Integrates geospatial data pipelines, interactive map visualization, and risk analytics through a unified dashboard.
 

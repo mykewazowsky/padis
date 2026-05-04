@@ -280,7 +280,90 @@ File `.env.local` juga jangan di-commit ke GitHub.
 
 ---
 
-## 12. Troubleshooting Singkat
+## 12. PADIS CLI
+
+PADIS CLI adalah command helper untuk setup, readiness check, menjalankan local development server, dan menjalankan pipeline dari terminal.
+
+### Status Saat Ini
+
+Command resmi saat ini masih menggunakan:
+
+```powershell
+python -m backend.scripts.cli.padis
+```
+
+Belum ada launcher global seperti:
+
+```powershell
+padis
+```
+
+Jadi semua contoh command CLI masih dijalankan dari root project dengan format `python -m backend.scripts.cli.padis <command>`.
+
+### Perbedaan Command
+
+- `install` = setup folder dasar, cek environment, dan cek dependency awal.
+- `check` = readiness check dasar project.
+- `start` = menjalankan backend + frontend lokal dan membuka Admin UI.
+- `run` = menjalankan pipeline dari terminal.
+
+### Contoh Command
+
+Jalankan dari root project:
+
+```powershell
+python -m backend.scripts.cli.padis install
+python -m backend.scripts.cli.padis install --with-deps
+python -m backend.scripts.cli.padis check
+python -m backend.scripts.cli.padis start
+python -m backend.scripts.cli.padis start --no-open
+python -m backend.scripts.cli.padis start --backend-only --no-open
+python -m backend.scripts.cli.padis start --frontend-only
+python -m backend.scripts.cli.padis run --mode full --hazard flood --operator nama_operator
+```
+
+### Workflow Operator/Admin
+
+Urutan kerja yang disarankan:
+
+```powershell
+# 1. Clone repo
+git clone <repo-url>
+cd PADIS
+
+# 2. Aktifkan virtual environment jika perlu
+.\backend\venv\Scripts\Activate.ps1
+
+# 3. Setup folder/env/dependency check awal
+python -m backend.scripts.cli.padis install
+
+# 4. Cek kesiapan project
+python -m backend.scripts.cli.padis check
+
+# 5. Jalankan backend + frontend lokal
+python -m backend.scripts.cli.padis start
+```
+
+Setelah `start` berhasil, Admin UI akan dibuka otomatis di:
+
+```text
+http://localhost:3000/admin
+```
+
+Pipeline harian untuk operator/admin sebaiknya dijalankan dari Admin UI setelah backend dan frontend aktif.
+
+### Catatan Penting
+
+- `padis start` bukan untuk menjalankan pipeline.
+- `padis run` digunakan jika pipeline ingin dijalankan dari terminal.
+- Gunakan `CTRL + C` untuk menghentikan backend/frontend dev server yang dijalankan oleh `padis start`.
+- `npm` harus tersedia di `PATH` agar frontend bisa dijalankan.
+- Mode `full + multi` perlu hati-hati karena memakai output flood/drought yang sudah ada.
+- Jika proses frontend/backend masih hidup setelah `CTRL + C`, tutup terminal atau hentikan process secara manual.
+
+---
+
+## 13. Troubleshooting Singkat
 
 ### Log masih menampilkan DEBUG atau daftar routes
 
@@ -335,7 +418,7 @@ Jika port backend `5000` atau frontend `3000` sudah dipakai, hentikan proses lam
 
 ---
 
-## 13. Urutan Kerja Harian yang Disarankan
+## 14. Urutan Kerja Harian yang Disarankan
 
 ```powershell
 # Terminal 1 - Backend
@@ -358,7 +441,7 @@ http://localhost:3000
 
 ---
 
-## 14. Ringkasan Command Penting
+## 15. Ringkasan Command Penting
 
 ```powershell
 # Backend normal

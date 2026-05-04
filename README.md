@@ -217,4 +217,4 @@ PADIS/
 
 ## License
 
-Academic capstone project — Teknik Geodesi dan Geomatika.
+Academic Capstone Project: PADIS — Teknik Geodesi dan Geomatika Institut Teknologi Bandung.

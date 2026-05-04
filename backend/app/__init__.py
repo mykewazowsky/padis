@@ -17,7 +17,6 @@ from .routes.auth.auth_store import seed_default_users
 from .routes.admin.output_routes import admin_output_bp
 from .routes.admin.process_routes import admin_process_bp
 from .routes.admin.user_routes import admin_user_bp
-from .routes.admin.geoserver_routes import admin_geoserver_bp
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +63,6 @@ def create_app():
     app.register_blueprint(admin_output_bp)
     app.register_blueprint(admin_process_bp)
     app.register_blueprint(admin_user_bp)
-    app.register_blueprint(admin_geoserver_bp)
 
     app.register_blueprint(layers_bp)
     app.register_blueprint(tiles_bp)

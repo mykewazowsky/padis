@@ -3,7 +3,6 @@ import csv
 import json
 
 from datetime import datetime
-from werkzeug.utils import secure_filename
 from flask import jsonify, request
 
 from ..auth.auth_utils import admin_required, login_required
@@ -14,8 +13,6 @@ from .admin_utils import (
     OUTPUT_DIR,
     PROJECT_ROOT,
     build_dataset_item,
-    is_allowed_flood_raster,
-    is_allowed_drought_raster,
 )
 
 DATA_STATE_DIR = os.path.join(PROJECT_ROOT, "data", "_admin")
@@ -606,117 +603,10 @@ def admin_data_preview():
 @login_required
 @admin_required
 def admin_upload_data():
-    data_type = (request.form.get("data_type") or "unknown").strip()
-    scenario = (request.form.get("scenario") or "").strip().lower()
-    climate_type = (request.form.get("climate_type") or "").strip().lower()
-    notes = (request.form.get("notes") or "").strip()
-    replace_existing = (request.form.get("replace_existing") or "true").strip().lower() == "true"
-    file = request.files.get("file")
-
-    if not file:
-        return jsonify({"error": "File tidak ditemukan"}), 400
-
-    if not file.filename:
-        return jsonify({"error": "Nama file tidak valid"}), 400
-
-    os.makedirs(RAW_DIR, exist_ok=True)
-    os.makedirs(PROCESSED_DIR, exist_ok=True)
-
-    original_filename = secure_filename(file.filename)
-    ext = os.path.splitext(original_filename)[1].lower()
-
-    allowed_vector_exts = {".shp", ".dbf", ".shx", ".prj", ".geojson", ".gpkg"}
-    allowed_raster_exts = {".tif", ".tiff"}
-    allowed_table_exts = {".csv"}
-
-    save_dir = None
-    save_filename = None
-
-    if data_type == "admin_boundary":
-        if ext not in allowed_vector_exts:
-            return jsonify({
-                "error": "Format file admin boundary tidak didukung. Gunakan .shp, .dbf, .shx, .prj, .geojson, atau .gpkg"
-            }), 400
-        save_dir = RAW_DIR
-        save_filename = f"batas_adm_kabkota{ext}"
-
-    elif data_type == "sawah_layer":
-        if ext not in allowed_vector_exts:
-            return jsonify({
-                "error": "Format file sawah layer tidak didukung. Gunakan .shp, .dbf, .shx, .prj, .geojson, atau .gpkg"
-            }), 400
-        save_dir = RAW_DIR
-        save_filename = f"lulc_sawah{ext}"
-
-    elif data_type == "total_prod_csv":
-        if ext not in allowed_table_exts:
-            return jsonify({"error": "Format file total produksi harus .csv"}), 400
-        save_dir = RAW_DIR
-        save_filename = "total_prod_padi.csv"
-
-    elif data_type == "flood_raster":
-        if ext not in allowed_raster_exts:
-            return jsonify({"error": "Format flood raster harus .tif atau .tiff"}), 400
-        if not is_allowed_flood_raster(original_filename):
-            return jsonify({
-                "error": "Nama flood raster tidak valid. Gunakan nama seperti R25.tif, R50.tif, RC25.tif, dst."
-            }), 400
-        save_dir = RAW_DIR
-        save_filename = original_filename
-
-    elif data_type == "drought_raster":
-        if ext not in allowed_raster_exts:
-            return jsonify({"error": "Format drought raster harus .tif atau .tiff"}), 400
-        if not is_allowed_drought_raster(original_filename):
-            return jsonify({
-                "error": "Nama drought raster tidak valid. Gunakan nama seperti mme_rp25.tif, gpm_rp25.tif, dst."
-            }), 400
-        save_dir = RAW_DIR
-        save_filename = original_filename
-
-    elif data_type == "processed_vector":
-        if ext not in {".geojson", ".gpkg"}:
-            return jsonify({"error": "Format processed vector harus .geojson atau .gpkg"}), 400
-        save_dir = PROCESSED_DIR
-        save_filename = original_filename
-
-    else:
-        return jsonify({"error": f"Data type tidak dikenali: {data_type}"}), 400
-
-    save_path = os.path.join(save_dir, save_filename)
-
-    if os.path.exists(save_path) and not replace_existing:
-        return jsonify({
-            "error": f"File sudah ada dan replace_existing=false: {save_filename}"
-        }), 409
-
-    file.save(save_path)
-
-    stat = os.stat(save_path)
-
-    state = load_data_state()
-
-    if data_type == "admin_boundary":
-        state["raw"]["admin_boundary"] = save_filename
-    elif data_type == "sawah_layer":
-        state["raw"]["sawah_layer"] = save_filename
-    elif data_type == "total_prod_csv":
-        state["raw"]["total_prod_csv"] = save_filename
-
-    save_data_state(state)
-
     return jsonify({
-        "message": "Upload berhasil",
-        "data_type": data_type,
-        "scenario": scenario,
-        "climate_type": climate_type,
-        "notes": notes,
-        "original_filename": original_filename,
-        "saved_filename": save_filename,
-        "saved_path": save_path,
-        "size_bytes": stat.st_size,
-        "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-    })
+        "error": "Endpoint upload admin sudah dinonaktifkan.",
+        "message": "Data pipeline sekarang dikelola lewat folder input dan cek kesiapan data.",
+    }), 410
 
 
 @admin_bp.route("/api/admin/data/delete", methods=["POST"])

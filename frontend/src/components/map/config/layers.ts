@@ -1,6 +1,6 @@
 // src/components/map/config/layers.ts
 
-// Gunakan string umum agar bisa menerima layer dinamis dari database/geoserver
+// Legacy WMS config. The current dashboard uses vector-tile layers from PADIS.
 export type LayerKey = "batas_adm" | "sawah" | string; 
 
 export type WmsLayerConfig = {
@@ -15,7 +15,7 @@ export type WmsLayerConfig = {
   opacity?: number; // Tambahkan opacity untuk fleksibilitas visual
 };
 
-// Gunakan environment variable untuk URL Geoserver
+// URL WMS legacy, retained for compatibility if this manager is mounted again.
 const GEOSERVER_WMS_URL = process.env.NEXT_PUBLIC_GEOSERVER_URL as string;
 
 /**
@@ -48,7 +48,7 @@ export const BASE_MAP_LAYERS: WmsLayerConfig[] = [
 
 /**
  * Helper untuk membuat konfigurasi layer dinamis
- * Gunakan fungsi ini saat menerima data 'qualified_name' dari backend /api/admin/geoserver/publish
+ * Helper untuk konfigurasi WMS dinamis legacy.
  */
 export const createDynamicLayerConfig = (
   key: string, 

@@ -11,21 +11,31 @@ analytics_bp = Blueprint("analytics_bp", __name__)
 
 @analytics_bp.route("/runs/latest", methods=["GET"])
 def get_latest_run():
-    """Return the most recent run_id that contains data for the given hazard.
+    """Return the active run_id used by the dashboard.
+
+    Resolution order:
+        1. is_active=TRUE  — admin-selected active run (one run = all hazards).
+        2. Latest successful run scoped to hazard (data presence in aal table).
+        3. Latest successful run overall.
 
     Query param:
         hazard  str  flood | drought | multi | multihazard  (optional)
-                     When provided, the search is scoped to runs that have
-                     actual rows in the aal table for that hazard so an empty
-                     map is never shown.  Omitting the param returns the
-                     absolute latest successful run (backward-compatible).
+                     Only consulted by the fallback paths (#2, #3).  When an
+                     active run is set, hazard is ignored — a single run_id
+                     contains data for every hazard.
     """
     raw = request.args.get("hazard", "").strip().lower()
     db_hazard = "multihazard" if raw in ("multi", "multihazard") else raw
 
     db = SessionLocal()
     try:
-        if db_hazard in ("flood", "drought", "multihazard"):
+        # 1. Admin-selected active run (priority).
+        row = db.execute(
+            text("SELECT id AS run_id FROM runs WHERE is_active = TRUE LIMIT 1")
+        ).fetchone()
+
+        # 2. Hazard-scoped fallback for backward compatibility.
+        if not row and db_hazard in ("flood", "drought", "multihazard"):
             row = db.execute(
                 text("""
                     SELECT a.run_id
@@ -37,7 +47,9 @@ def get_latest_run():
                 """),
                 {"hazard": db_hazard},
             ).fetchone()
-        else:
+
+        # 3. Last-resort: latest successful run, no hazard filter.
+        if not row:
             row = db.execute(
                 text("""
                     SELECT id AS run_id

@@ -6,10 +6,9 @@ import dynamic from "next/dynamic";
 import {
   Download,
   Eye,
-  FileOutput,
-  Filter,
   Map,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import { buildApiUrl } from "../../../../lib/api";
 import { getToken } from "../../../../lib/auth";
@@ -61,6 +60,15 @@ type PreviewData =
       filename: string;
       message: string;
     };
+
+type ActiveRun = {
+  id: number;
+  run_name: string;
+  created_at: string | null;
+  finished_at: string | null;
+  status: string;
+  operator_name: string | null;
+};
 
 const GEOJSON_PREVIEW_LIMIT = 10 * 1024 * 1024; // 10 MB — skip preview fetch above this size
 
@@ -126,15 +134,6 @@ function categorizeOutput(filename: string): FilterKey {
   return "other";
 }
 
-function getCategoryLabel(category: FilterKey) {
-  if (category === "flood") return "Flood";
-  if (category === "drought") return "Drought";
-  if (category === "multi") return "Multi-hazard";
-  if (category === "aal") return "AAL";
-  if (category === "report") return "Report";
-  if (category === "other") return "Other";
-  return "All";
-}
 
 export default function AdminOutputPage() {
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
@@ -149,6 +148,8 @@ export default function AdminOutputPage() {
 
   const [previewMap, setPreviewMap] = useState<Record<string, PreviewData>>({});
   const [geoJsonMap, setGeoJsonMap] = useState<Record<string, any>>({});
+
+  const [activeRun, setActiveRun] = useState<ActiveRun | null>(null);
 
   const loadOutputs = useCallback(async (showRefresh = false) => {
     try {
@@ -181,6 +182,13 @@ export default function AdminOutputPage() {
   useEffect(() => {
     loadOutputs();
   }, [loadOutputs]);
+
+  useEffect(() => {
+    fetchWithAuth("/api/admin/runs/active")
+      .then((r) => r.json())
+      .then((json) => { if (json?.run) setActiveRun(json.run); })
+      .catch(() => {});
+  }, []);
 
   const countsByCategory = useMemo(() => {
     const counts: Record<FilterKey, number> = {
@@ -368,11 +376,6 @@ export default function AdminOutputPage() {
   }
 
   const totalOutputs = outputs.length;
-  const latestFile = outputs[0];
-  const latestModified = latestFile?.modified_at;
-  const activeCategoryCount = Object.entries(countsByCategory).filter(
-    ([key, value]) => key !== "all" && value > 0
-  ).length;
 
   const summaryCards = [
     {
@@ -436,6 +439,53 @@ export default function AdminOutputPage() {
         ))}
       </section>
 
+      {activeRun && (
+        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-amber-100 p-2.5">
+                <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold tracking-[0.18em] text-amber-700">
+                  RUN AKTIF
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-slate-900">
+                  Run #{activeRun.id} —{" "}
+                  <span className="font-mono text-xs font-semibold text-slate-700">
+                    {activeRun.run_name}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Dashboard publik menggunakan run ini sebagai sumber data.
+                  Pastikan file output di bawah sesuai dengan run tersebut.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <div className="rounded-2xl bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs text-slate-500">Operator</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {activeRun.operator_name || "-"}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs text-slate-500">Mulai</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {formatDateTime(activeRun.created_at ?? "")}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs text-slate-500">Selesai</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {activeRun.finished_at ? formatDateTime(activeRun.finished_at) : "-"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="rounded-3xl border bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -460,48 +510,11 @@ export default function AdminOutputPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-xs text-gray-500">Total Hasil</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {loading ? "Loading..." : totalOutputs}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-xs text-gray-500">Latest Update</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {loading
-                ? "Loading..."
-                : latestModified
-                ? formatDateTime(latestModified)
-                : "-"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-xs text-gray-500">Kategori Aktif</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {loading ? "Loading..." : activeCategoryCount}
-            </p>
-          </div>
-        </div>
-
-        {latestFile ? (
-          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-              File Terbaru
-            </p>
-            <p className="mt-1 break-all text-sm font-semibold text-gray-900">
-              {latestFile.filename}
-            </p>
-          </div>
-        ) : null}
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          {FILTER_OPTIONS.map((item) => {
+        <div className="flex flex-wrap gap-2">
+          {FILTER_OPTIONS.filter(
+            (item) => item.key === "all" || countsByCategory[item.key] > 0
+          ).map((item) => {
             const isActive = activeFilter === item.key;
-
             return (
               <button
                 key={item.key}
@@ -569,7 +582,6 @@ export default function AdminOutputPage() {
 
                 <div className="space-y-3">
                   {group.files.map((item, index) => {
-                    const category = categorizeOutput(item.filename);
                     const isExpanded = expandedFile === item.filename;
                     const isNewest =
                       index === 0 && outputs[0]?.filename === item.filename;
@@ -636,57 +648,17 @@ export default function AdminOutputPage() {
 
                         {isExpanded ? (
                           <div className="mt-4 space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                              <div>
-                                <p className="text-xs text-gray-500">Nama File</p>
-                                <p className="mt-1 break-all text-sm font-semibold text-gray-900">
-                                  {item.filename}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="text-xs text-gray-500">Kategori</p>
-                                <p className="mt-1 text-sm font-semibold text-gray-900">
-                                  {getCategoryLabel(category)}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="text-xs text-gray-500">Ukuran</p>
-                                <p className="mt-1 text-sm font-semibold text-gray-900">
-                                  {formatBytes(item.size_bytes)}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="text-xs text-gray-500">Dimodifikasi</p>
-                                <p className="mt-1 text-sm font-semibold text-gray-900">
-                                  {formatDateTime(item.modified_at)}
-                                </p>
-                              </div>
-                            </div>
-
                             {preview ? (
                               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                                 {preview.type === "geojson" ? (
                                   <div className="space-y-4">
-                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                      <div>
-                                        <p className="text-xs text-gray-500">
-                                          Tipe Preview
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
-                                          GeoJSON
-                                        </p>
-                                      </div>
-                                      <div>
-                                        <p className="text-xs text-gray-500">
-                                          Jumlah Feature
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
-                                          {preview.feature_count}
-                                        </p>
-                                      </div>
+                                    <div>
+                                      <p className="text-xs text-gray-500">
+                                        Jumlah Feature
+                                      </p>
+                                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                                        {preview.feature_count}
+                                      </p>
                                     </div>
 
                                     {geoJsonMap[item.filename] ? (
@@ -716,13 +688,6 @@ export default function AdminOutputPage() {
                                   </div>
                                 ) : preview.type === "csv" ? (
                                   <div className="space-y-3">
-                                    <div>
-                                      <p className="text-xs text-gray-500">Tipe Preview</p>
-                                      <p className="mt-1 text-sm font-semibold text-gray-900">
-                                        CSV
-                                      </p>
-                                    </div>
-
                                     <div>
                                       <p className="text-xs text-gray-500">Kolom</p>
                                       <div className="mt-2 flex flex-wrap gap-2">

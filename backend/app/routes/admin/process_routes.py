@@ -66,11 +66,11 @@ def _fetch_latest_run(session):
     Ambil monitoring run terbaru (source='local') dari tabel runs.
     Filter source='local' mencegah ETL run (source=NULL) menyembunyikan
     monitoring run operator.
-    Fallback ke query tanpa kolom baru jika migration 002 belum dijalankan.
+    Fallback ke query tanpa kolom baru jika migration 002/004 belum dijalankan.
     """
     try:
         row = session.execute(text("""
-            SELECT id, run_name, created_at, status, is_active,
+            SELECT id, run_name, created_at, finished_at, status, is_active,
                    step, progress, message, operator_name, source
             FROM runs
             WHERE source = 'local'
@@ -78,11 +78,13 @@ def _fetch_latest_run(session):
             LIMIT 1
         """)).fetchone()
     except Exception:
-        # Kolom baru (migration 002) belum ada — rollback dulu agar session valid
+        # Kolom baru (migration 002/004) belum ada — rollback dulu agar session valid
         try:
             session.rollback()
             row = session.execute(text("""
-                SELECT id, run_name, created_at, status, is_active,
+                SELECT id, run_name, created_at,
+                       NULL AS finished_at,
+                       status, is_active,
                        NULL AS step, 0 AS progress, NULL AS message,
                        NULL AS operator_name, NULL AS source
                 FROM runs
@@ -161,6 +163,7 @@ def admin_run_status():
         "id": row.id,
         "run_name": row.run_name,
         "created_at": row.created_at.isoformat() if row.created_at else None,
+        "finished_at": row.finished_at.isoformat() if row.finished_at else None,
         "status": row.status,
         "is_active": row.is_active,
         "step": row.step,
@@ -289,14 +292,28 @@ def admin_list_runs():
         where_clause = " AND ".join(conditions)
 
         with SessionLocal() as session:
-            rows = session.execute(text(f"""
-                SELECT id, run_name, created_at, status, is_active,
-                       step, progress, message, operator_name, source
-                FROM runs
-                WHERE {where_clause}
-                ORDER BY created_at DESC, id DESC
-                LIMIT :limit
-            """), params).fetchall()
+            try:
+                rows = session.execute(text(f"""
+                    SELECT id, run_name, created_at, finished_at, status, is_active,
+                           step, progress, message, operator_name, source
+                    FROM runs
+                    WHERE {where_clause}
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT :limit
+                """), params).fetchall()
+            except Exception:
+                # Fallback jika migration 004 belum dijalankan (finished_at belum ada).
+                session.rollback()
+                rows = session.execute(text(f"""
+                    SELECT id, run_name, created_at,
+                           NULL AS finished_at,
+                           status, is_active,
+                           step, progress, message, operator_name, source
+                    FROM runs
+                    WHERE {where_clause}
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT :limit
+                """), params).fetchall()
 
     except Exception as e:
         return jsonify({"error": "Gagal mengambil daftar runs", "detail": str(e)}), 500
@@ -306,6 +323,7 @@ def admin_list_runs():
             "id":            row.id,
             "run_name":      row.run_name,
             "created_at":    row.created_at.isoformat() if row.created_at else None,
+            "finished_at":   row.finished_at.isoformat() if row.finished_at else None,
             "status":        row.status,
             "is_active":     row.is_active,
             "step":          row.step,
@@ -322,6 +340,360 @@ def admin_list_runs():
         "count": len(runs),
         "limit": limit,
     }), 200
+
+
+# =============================================================================
+# GET /api/admin/runs/active  — return the currently active run
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/active", methods=["GET"])
+@admin_required
+def admin_active_run():
+    """
+    Kembalikan run yang saat ini aktif (is_active=TRUE).
+    Dipakai oleh halaman Outputs untuk menampilkan konteks sistem.
+
+    Response:
+        200  { "run": { ...fields... } }   — ada run aktif
+        200  { "run": null }               — belum ada run yang diaktifkan
+    """
+    db = SessionLocal()
+    try:
+        try:
+            row = db.execute(text("""
+                SELECT id, run_name, created_at, finished_at, status, is_active,
+                       step, progress, message, operator_name, source
+                FROM   runs
+                WHERE  is_active = TRUE
+                LIMIT  1
+            """)).fetchone()
+        except Exception:
+            db.rollback()
+            row = db.execute(text("""
+                SELECT id, run_name, created_at,
+                       NULL AS finished_at,
+                       status, is_active,
+                       step, progress, message, operator_name, source
+                FROM   runs
+                WHERE  is_active = TRUE
+                LIMIT  1
+            """)).fetchone()
+
+        if row is None:
+            return jsonify({"run": None}), 200
+
+        return jsonify({
+            "run": {
+                "id":            row.id,
+                "run_name":      row.run_name,
+                "created_at":    row.created_at.isoformat() if row.created_at else None,
+                "finished_at":   row.finished_at.isoformat() if row.finished_at else None,
+                "status":        row.status,
+                "is_active":     row.is_active,
+                "step":          row.step,
+                "progress":      row.progress or 0,
+                "message":       row.message,
+                "operator_name": row.operator_name,
+                "source":        row.source,
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "Gagal mengambil run aktif", "detail": str(e)}), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
+# GET /api/admin/runs/<id>/validate  — record-count check before activation
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/validate", methods=["GET"])
+@admin_required
+def admin_validate_run(run_id: int):
+    """
+    Periksa kelengkapan data sebuah run sebelum diaktifkan.
+
+    Mengembalikan jumlah kabupaten dengan data per hazard pada tabel aal,
+    losses, dan zonal_kabupaten. Frontend memakai informasi ini untuk
+    menampilkan ringkasan validasi sebelum admin menekan tombol "Aktifkan".
+
+    Response shape:
+        {
+          "run_id": int,
+          "exists": bool,
+          "status": str | null,
+          "tables": {
+            "aal":              [{ "hazard": str, "regions": int, "rows": int }, ...],
+            "losses":           [...],
+            "zonal_kabupaten":  [...]
+          },
+          "all_hazards_present": bool,   # true jika flood, drought, multihazard
+                                         #   semua punya >0 region di aal
+          "complete": bool               # true jika all_hazards_present untuk
+                                         #   ketiga tabel
+        }
+    """
+    db = SessionLocal()
+    try:
+        run_row = db.execute(
+            text("SELECT id, status FROM runs WHERE id = :id"),
+            {"id": run_id},
+        ).fetchone()
+
+        if run_row is None:
+            return jsonify({"run_id": run_id, "exists": False}), 404
+
+        result: dict = {
+            "run_id": run_id,
+            "exists": True,
+            "status": run_row.status,
+            "tables": {},
+        }
+
+        for table, value_col in (
+            ("aal",             "aal"),
+            ("losses",          "loss"),
+            ("zonal_kabupaten", "mean_value"),
+        ):
+            rows = db.execute(
+                text(f"""
+                    SELECT h.name AS hazard,
+                           COUNT(DISTINCT t.id_kabkota)
+                               FILTER (WHERE t.{value_col} IS NOT NULL
+                                         AND t.{value_col} > 0) AS regions,
+                           COUNT(*) AS rows_total
+                    FROM   {table} t
+                    JOIN   hazards h ON t.hazard_id = h.id
+                    WHERE  t.run_id = :run_id
+                    GROUP  BY h.name
+                    ORDER  BY h.name
+                """),
+                {"run_id": run_id},
+            ).mappings().all()
+
+            result["tables"][table] = [
+                {
+                    "hazard":  row["hazard"],
+                    "regions": int(row["regions"] or 0),
+                    "rows":    int(row["rows_total"] or 0),
+                }
+                for row in rows
+            ]
+
+        required_hazards = {"flood", "drought", "multihazard"}
+
+        def _hazards_with_data(table_key: str) -> set:
+            return {
+                item["hazard"]
+                for item in result["tables"].get(table_key, [])
+                if item["regions"] > 0
+            }
+
+        aal_hazards    = _hazards_with_data("aal")
+        losses_hazards = _hazards_with_data("losses")
+        zonal_hazards  = _hazards_with_data("zonal_kabupaten")
+
+        result["all_hazards_present"] = required_hazards.issubset(aal_hazards)
+        result["complete"] = (
+            required_hazards.issubset(aal_hazards)
+            and required_hazards.issubset(losses_hazards)
+            and required_hazards.issubset(zonal_hazards)
+        )
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "error":  "Gagal memvalidasi run",
+            "detail": str(e),
+        }), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
+# PATCH /api/admin/runs/<id>/activate  — set this run as the active run
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/activate", methods=["PATCH"])
+@admin_required
+def admin_activate_run(run_id: int):
+    """
+    Tetapkan satu run sebagai run aktif yang dipakai dashboard.
+
+    Body JSON (opsional):
+        force  bool  jika true, lewati pengecekan status='success'
+                     (default: false)
+
+    Aturan:
+      - Hanya run dengan status='success' yang boleh diaktifkan (kecuali force=true).
+      - Atomic swap: matikan semua is_active=TRUE, lalu set target ke TRUE.
+      - Karena satu run = semua hazard, hanya boleh ada satu is_active=TRUE
+        di seluruh tabel pada satu waktu.
+
+    Response: shape sama seperti GET /api/admin/run-status untuk run target.
+    """
+    body  = request.get_json(silent=True) or {}
+    force = bool(body.get("force", False))
+
+    db = SessionLocal()
+    try:
+        target = db.execute(
+            text("SELECT id, status FROM runs WHERE id = :id"),
+            {"id": run_id},
+        ).fetchone()
+
+        if target is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan"}), 404
+
+        if not force and target.status != "success":
+            return jsonify({
+                "error": (
+                    f"Run #{run_id} belum sukses (status={target.status}). "
+                    "Aktifkan hanya run dengan status 'success', atau gunakan force=true."
+                ),
+                "status": target.status,
+            }), 409
+
+        # Atomic swap dalam satu transaksi.
+        db.execute(text("UPDATE runs SET is_active = FALSE WHERE is_active = TRUE"))
+        db.execute(
+            text("UPDATE runs SET is_active = TRUE WHERE id = :id"),
+            {"id": run_id},
+        )
+        db.commit()
+
+        # Ambil row lengkap untuk response.
+        try:
+            row = db.execute(text("""
+                SELECT id, run_name, created_at, finished_at, status, is_active,
+                       step, progress, message, operator_name, source
+                FROM   runs
+                WHERE  id = :id
+            """), {"id": run_id}).fetchone()
+        except Exception:
+            db.rollback()
+            row = db.execute(text("""
+                SELECT id, run_name, created_at,
+                       NULL AS finished_at,
+                       status, is_active,
+                       step, progress, message, operator_name, source
+                FROM   runs
+                WHERE  id = :id
+            """), {"id": run_id}).fetchone()
+
+        run = {
+            "id":            row.id,
+            "run_name":      row.run_name,
+            "created_at":    row.created_at.isoformat() if row.created_at else None,
+            "finished_at":   row.finished_at.isoformat() if row.finished_at else None,
+            "status":        row.status,
+            "is_active":     row.is_active,
+            "step":          row.step,
+            "progress":      row.progress or 0,
+            "message":       row.message,
+            "operator_name": row.operator_name,
+            "source":        row.source,
+        }
+        return jsonify({
+            "message": f"Run #{run_id} berhasil diaktifkan.",
+            "run":     run,
+        }), 200
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Gagal mengaktifkan run", "detail": str(e)}), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
+# DELETE /api/admin/runs/<id>  — hard delete run + all its child data
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>", methods=["DELETE"])
+@admin_required
+def admin_delete_run(run_id: int):
+    """
+    Hapus permanen sebuah run beserta seluruh data turunannya di tabel
+    aal, losses, dan zonal_kabupaten.
+
+    Operasi destructive — irreversible. Frontend wajib menampilkan konfirmasi
+    eksplisit beserta ringkasan jumlah baris yang akan terhapus.
+
+    Guard rules:
+      - Tolak jika run aktif (is_active=TRUE) — admin harus mengaktifkan
+        run lain dulu.
+      - Tolak jika status='running' — pipeline mungkin masih menulis ke
+        tabel-tabel turunannya.
+
+    Eksekusi dalam satu transaksi: bila salah satu DELETE gagal, seluruh
+    perubahan di-rollback agar tidak meninggalkan data orphan.
+
+    Response:
+        200  { "message": ..., "deleted": { "aal": int, "losses": int,
+                                            "zonal_kabupaten": int, "runs": 1 } }
+        404  run tidak ditemukan
+        409  run aktif atau sedang berjalan
+        500  error database
+    """
+    db = SessionLocal()
+    try:
+        target = db.execute(
+            text("SELECT id, status, is_active FROM runs WHERE id = :id"),
+            {"id": run_id},
+        ).fetchone()
+
+        if target is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan"}), 404
+
+        if target.is_active:
+            return jsonify({
+                "error": (
+                    f"Run #{run_id} sedang aktif. Aktifkan run lain "
+                    "terlebih dahulu sebelum menghapus run ini."
+                ),
+            }), 409
+
+        if target.status == "running":
+            return jsonify({
+                "error": (
+                    f"Run #{run_id} sedang berjalan. Tunggu hingga selesai "
+                    "atau gagal sebelum menghapus."
+                ),
+            }), 409
+
+        # Single transaction — child tables first, then runs row.
+        # FK belum dipasang di schema, jadi kita harus hapus manual
+        # agar tidak meninggalkan baris orphan.
+        deleted: dict[str, int] = {}
+
+        for table in ("zonal_kabupaten", "losses", "aal"):
+            res = db.execute(
+                text(f"DELETE FROM {table} WHERE run_id = :id"),
+                {"id": run_id},
+            )
+            deleted[table] = res.rowcount or 0
+
+        res = db.execute(
+            text("DELETE FROM runs WHERE id = :id"),
+            {"id": run_id},
+        )
+        deleted["runs"] = res.rowcount or 0
+
+        db.commit()
+
+        return jsonify({
+            "message": f"Run #{run_id} berhasil dihapus.",
+            "deleted": deleted,
+        }), 200
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Gagal menghapus run", "detail": str(e)}), 500
+    finally:
+        db.close()
 
 
 # =============================================================================

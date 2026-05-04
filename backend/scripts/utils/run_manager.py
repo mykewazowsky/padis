@@ -99,7 +99,14 @@ class PipelineRunManager:
         try:
             cur = self._conn.cursor()
             cur.execute(
-                "UPDATE runs SET status=%s, progress=%s, message=%s WHERE id=%s",
+                """
+                UPDATE runs
+                SET    status      = %s,
+                       progress    = %s,
+                       message     = %s,
+                       finished_at = NOW()
+                WHERE  id = %s
+                """,
                 (status, final_progress, message or status, self._run_id),
             )
             self._conn.commit()

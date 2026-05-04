@@ -16,7 +16,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [resetLink, setResetLink] = useState("");
   const [loading, setLoading] = useState(false);
 
   function validateForm() {
@@ -36,7 +35,6 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setResetLink("");
 
     const validationError = validateForm();
     if (validationError) {
@@ -65,11 +63,14 @@ export default function ForgotPasswordPage() {
 
       setSuccess(
         json.message ||
-          "Jika email terdaftar, tautan reset password telah dibuat."
+          "Jika email terdaftar, tautan reset password telah dikirim ke email."
       );
-      setResetLink(json.reset_link || "");
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat memproses permintaan.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat memproses permintaan."
+      );
     } finally {
       setLoading(false);
     }
@@ -127,11 +128,11 @@ export default function ForgotPasswordPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
-                        Siap Integrasi Email
+                        Dikirim Lewat Email
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Pada tahap sekarang, tautan reset ditampilkan langsung
-                        untuk testing end-to-end.
+                        Tautan reset dikirim ke alamat email akun tanpa
+                        ditampilkan langsung di browser.
                       </p>
                     </div>
                   </div>
@@ -155,7 +156,7 @@ export default function ForgotPasswordPage() {
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
                   Masukkan email akun PADIS Anda. Jika email terdaftar, sistem
-                  akan membuat tautan reset password.
+                  akan mengirim tautan reset password.
                 </p>
               </div>
 
@@ -186,37 +187,15 @@ export default function ForgotPasswordPage() {
                   </div>
                 ) : null}
 
-                {resetLink ? (
-                  <div className="rounded-2xl border px-4 py-3 text-sm break-all text-[var(--auth-alert-info-text)] [background:var(--auth-alert-info-bg)] [border-color:var(--auth-alert-info-border)]">
-                    <p className="font-medium">Reset link untuk testing:</p>
-                    <a
-                      href={resetLink}
-                      className="mt-1 inline-block text-[var(--color-primary)] underline"
-                    >
-                      {resetLink}
-                    </a>
-                  </div>
-                ) : null}
-
                 <button
                   type="submit"
                   disabled={loading}
                   className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <KeyRound className="h-4 w-4" />
-                  {loading ? "Memproses..." : "Buat Tautan Reset"}
+                  {loading ? "Memproses..." : "Kirim Tautan Reset"}
                 </button>
               </form>
-
-              <div className="mt-5 surface-soft p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text)]">
-                  Catatan
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                  Untuk tahap pengembangan saat ini, tautan reset password
-                  ditampilkan langsung agar mudah diuji end-to-end.
-                </p>
-              </div>
 
               <div className="mt-6 flex items-center justify-between gap-3 text-sm">
                 <Link

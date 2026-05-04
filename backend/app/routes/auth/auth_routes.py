@@ -21,9 +21,11 @@ from .auth_utils import (
     login_required,
     verify_password,
 )
+from backend.app.services.email_service import send_password_reset_email
 
 # ❗ TANPA url_prefix di sini
 auth_bp = Blueprint("auth_bp", __name__)
+logger = logging.getLogger(__name__)
 
 
 def _get_json():
@@ -240,6 +242,7 @@ def forgot_password():
         return jsonify({"error": "Email wajib diisi"}), 400
 
     user = find_user_by_email(email)
+    message = "Jika email terdaftar, tautan reset password telah dikirim ke email."
 
     if user:
         token = generate_reset_token(user)
@@ -248,15 +251,12 @@ def forgot_password():
         frontend_base_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
         reset_link = f"{frontend_base_url}/reset-password?token={token}"
 
-        return jsonify({
-            "message": "Jika email terdaftar, tautan reset password telah dibuat.",
-            "reset_token": token,
-            "reset_link": reset_link,
-        }), 200
+        try:
+            send_password_reset_email(email, reset_link)
+        except Exception:
+            logger.exception("Failed to send password reset email")
 
-    return jsonify({
-        "message": "Jika email terdaftar, tautan reset password telah dibuat."
-    }), 200
+    return jsonify({"message": message}), 200
 
 
 # =========================

@@ -292,13 +292,19 @@ Command resmi saat ini masih menggunakan:
 python -m backend.scripts.cli.padis
 ```
 
+Untuk Windows PowerShell, tersedia shortcut lokal dari root project:
+
+```powershell
+.\padis.ps1
+```
+
 Belum ada launcher global seperti:
 
 ```powershell
 padis
 ```
 
-Jadi semua contoh command CLI masih dijalankan dari root project dengan format `python -m backend.scripts.cli.padis <command>`.
+Command internal resmi tetap `python -m backend.scripts.cli.padis <command>`. File `.\padis.ps1` hanya shortcut lokal Windows yang meneruskan argumen ke command internal tersebut.
 
 ### Perbedaan Command
 
@@ -322,6 +328,15 @@ python -m backend.scripts.cli.padis start --frontend-only
 python -m backend.scripts.cli.padis run --mode full --hazard flood --operator nama_operator
 ```
 
+Shortcut lokal Windows PowerShell:
+
+```powershell
+.\padis.ps1 install
+.\padis.ps1 check
+.\padis.ps1 start
+.\padis.ps1 run --mode full --hazard flood --operator nama_operator
+```
+
 ### Workflow Operator/Admin
 
 Urutan kerja yang disarankan:
@@ -335,13 +350,13 @@ cd PADIS
 .\backend\venv\Scripts\Activate.ps1
 
 # 3. Setup folder/env/dependency check awal
-python -m backend.scripts.cli.padis install
+.\padis.ps1 install
 
 # 4. Cek kesiapan project
-python -m backend.scripts.cli.padis check
+.\padis.ps1 check
 
 # 5. Jalankan backend + frontend lokal
-python -m backend.scripts.cli.padis start
+.\padis.ps1 start
 ```
 
 Setelah `start` berhasil, Admin UI akan dibuka otomatis di:
@@ -356,6 +371,7 @@ Pipeline harian untuk operator/admin sebaiknya dijalankan dari Admin UI setelah 
 
 - `padis start` bukan untuk menjalankan pipeline.
 - `padis run` digunakan jika pipeline ingin dijalankan dari terminal.
+- `.\padis.ps1` adalah shortcut lokal Windows, bukan installer global.
 - Gunakan `CTRL + C` untuk menghentikan backend/frontend dev server yang dijalankan oleh `padis start`.
 - `npm` harus tersedia di `PATH` agar frontend bisa dijalankan.
 - Mode `full + multi` perlu hati-hati karena memakai output flood/drought yang sudah ada.

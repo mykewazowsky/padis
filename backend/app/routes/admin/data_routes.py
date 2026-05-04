@@ -80,6 +80,16 @@ def resolve_active_or_first(folder: str, configured_name: str | None, candidates
     return candidates[0] if candidates else None
 
 
+def resolve_allowed_file(base_dir: str, filename: str) -> str | None:
+    base_path = os.path.abspath(base_dir)
+    target_path = os.path.abspath(os.path.join(base_path, filename))
+
+    if target_path == base_path or not target_path.startswith(base_path + os.sep):
+        return None
+
+    return target_path
+
+
 def get_raw_datasets():
     state = load_data_state()
     datasets = []
@@ -491,8 +501,9 @@ def admin_data_preview():
     if folder not in allowed_folders:
         return jsonify({"error": "Folder tidak valid. Gunakan raw, processed, atau output"}), 400
 
-    base_dir = allowed_folders[folder]
-    file_path = os.path.join(base_dir, filename)
+    file_path = resolve_allowed_file(allowed_folders[folder], filename)
+    if not file_path:
+        return jsonify({"error": "Filename tidak valid"}), 400
 
     if not os.path.exists(file_path) or not os.path.isfile(file_path):
         return jsonify({"error": "File tidak ditemukan"}), 404
@@ -628,7 +639,9 @@ def admin_delete_data():
     if folder not in allowed_folders:
         return jsonify({"error": "Folder tidak valid. Hanya raw dan processed yang boleh dihapus"}), 400
 
-    file_path = os.path.join(allowed_folders[folder], filename)
+    file_path = resolve_allowed_file(allowed_folders[folder], filename)
+    if not file_path:
+        return jsonify({"error": "Filename tidak valid"}), 400
 
     if not os.path.exists(file_path) or not os.path.isfile(file_path):
         return jsonify({"error": "File tidak ditemukan"}), 404
@@ -668,7 +681,10 @@ def admin_set_active_data():
     if dataset_key not in allowed_dataset_keys:
         return jsonify({"error": f"dataset_key tidak didukung: {dataset_key}"}), 400
 
-    file_path = os.path.join(RAW_DIR, filename)
+    file_path = resolve_allowed_file(RAW_DIR, filename)
+    if not file_path:
+        return jsonify({"error": "Filename tidak valid"}), 400
+
     if not os.path.exists(file_path) or not os.path.isfile(file_path):
         return jsonify({"error": "File tidak ditemukan"}), 404
 

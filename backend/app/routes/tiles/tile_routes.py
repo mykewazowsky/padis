@@ -12,6 +12,7 @@ import logging
 from flask import Response, jsonify, request
 from sqlalchemy import text
 
+from ..auth.auth_utils import admin_required
 from ...db.session import SessionLocal
 from . import tiles_bp
 from .tile_cache import tile_cache
@@ -296,11 +297,13 @@ def get_tile(layer: str, z: int, x: int, y: int):
 
 
 @tiles_bp.route("/cache/stats", methods=["GET"])
+@admin_required
 def cache_stats():
     return jsonify({"size": tile_cache.size, "maxsize": tile_cache.maxsize})
 
 
 @tiles_bp.route("/cache/clear", methods=["POST"])
+@admin_required
 def cache_clear():
     prefix = request.args.get("prefix", "")
     count  = tile_cache.invalidate(prefix)
@@ -313,6 +316,7 @@ def cache_clear():
 # match your expectation (drought→2, flood→1, etc.).
 
 @tiles_bp.route("/debug/losses", methods=["GET"])
+@admin_required
 def debug_losses():
     run_id = request.args.get("run_id", type=int)
     if run_id is None:

@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+import logging
 import uuid
 
 from sqlalchemy import text
 
 from ...db.session import engine
+
+logger = logging.getLogger(__name__)
 
 
 def _row_to_user_dict(row) -> Dict[str, Any]:
@@ -458,7 +461,7 @@ def seed_default_users() -> None:
                     "now": now,
                 })
 
-        print("[seed] Default users enforced (inserted or updated)")
+        logger.info("Default users enforced during seed")
 
     except Exception as e:
-        print(f"[seed] WARNING: Could not seed default users: {e}")
+        logger.warning("Could not seed default users: %s", e)

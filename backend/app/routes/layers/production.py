@@ -4,6 +4,10 @@ from sqlalchemy import text
 from ...db.session import SessionLocal
 from . import layers_bp
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @layers_bp.route("/production", methods=["GET"])
 def get_production():
@@ -44,12 +48,12 @@ def get_production():
                 }
             })
 
-        print(f"🌾 Production sawah features: {len(features)}")
+        logger.debug("Production sawah features: %s", len(features))
 
         return jsonify({"type": "FeatureCollection", "features": features})
 
     except Exception as e:
-        print("ERROR production:", e)
+        logger.exception("Production layer request failed")
         return jsonify({"error": str(e)}), 500
 
     finally:

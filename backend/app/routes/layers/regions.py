@@ -4,13 +4,17 @@ from sqlalchemy import text
 from ...db.session import SessionLocal
 from . import layers_bp
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @layers_bp.route("/regions", methods=["GET"])
 def get_regions():
     db = SessionLocal()
     try:
         result = db.execute(text("""
-            SELECT 
+            SELECT
                 id_kabkota,
                 kab_kota,
                 prov,
@@ -36,7 +40,7 @@ def get_regions():
                 }
             })
 
-        print(f"✅ Regions loaded: {len(features)} | skipped: {skipped}")
+        logger.debug("Regions loaded: %s | skipped: %s", len(features), skipped)
 
         return jsonify({"type": "FeatureCollection", "features": features})
 

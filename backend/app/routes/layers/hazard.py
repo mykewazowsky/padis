@@ -4,6 +4,9 @@ from sqlalchemy import text
 from ...db.session import SessionLocal
 from . import layers_bp
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Shared with tile_routes.py and values.py — must stay in sync with the DB.
 # hazards: flood=1, drought=2, multihazard=3
@@ -42,16 +45,16 @@ def get_hazard():
     scenario_id = _SCENARIO_ID[scenario]
     rp_id       = _RP_ID[rp]
 
-    print({
-        "endpoint":    "layers/hazard",
-        "hazard":      hazard,
-        "hazard_id":   hazard_id,
-        "climate":     scenario,
-        "scenario_id": scenario_id,
-        "rp":          rp,
-        "rp_id":       rp_id,
-        "run_id":      run_id,
-    })
+    logger.debug(
+        "Layers hazard request: hazard=%s hazard_id=%s climate=%s scenario_id=%s rp=%s rp_id=%s run_id=%s",
+        hazard,
+        hazard_id,
+        scenario,
+        scenario_id,
+        rp,
+        rp_id,
+        run_id,
+    )
 
     db = SessionLocal()
     try:
@@ -91,11 +94,11 @@ def get_hazard():
                 },
             })
 
-        print(f"[layers/hazard] features={len(features)}")
+        logger.debug("Layers hazard features: %s", len(features))
         return jsonify({"type": "FeatureCollection", "features": features})
 
     except Exception as e:
-        print("ERROR layers/hazard:", e)
+        logger.exception("Layers hazard request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()

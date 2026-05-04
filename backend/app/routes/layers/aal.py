@@ -4,6 +4,9 @@ from sqlalchemy import text
 from ...db.session import SessionLocal
 from . import layers_bp
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Shared with tile_routes.py and values.py — must stay in sync with the DB.
 # hazards: flood=1, drought=2, multihazard=3
@@ -36,14 +39,14 @@ def get_aal():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        print({
-            "endpoint":    "layers/aal",
-            "hazard":      hazard,
-            "hazard_id":   hazard_id,
-            "climate":     climate,
-            "scenario_id": scenario_id,
-            "run_id":      run_id,
-        })
+        logger.debug(
+            "Layers AAL request: hazard=%s hazard_id=%s climate=%s scenario_id=%s run_id=%s",
+            hazard,
+            hazard_id,
+            climate,
+            scenario_id,
+            run_id,
+        )
 
         result = db.execute(text("""
             SELECT
@@ -75,10 +78,11 @@ def get_aal():
                 },
             })
 
-        print(f"[layers/aal] features={len(features)}")
+        logger.debug("Layers AAL features: %s", len(features))
         return jsonify({"type": "FeatureCollection", "features": features})
 
     except Exception as e:
+        logger.exception("Layers AAL request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()

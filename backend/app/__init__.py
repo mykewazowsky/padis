@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import logging
 import os
 
 load_dotenv()
@@ -18,8 +19,16 @@ from .routes.admin.process_routes import admin_process_bp
 from .routes.admin.user_routes import admin_user_bp
 from .routes.admin.geoserver_routes import admin_geoserver_bp
 
+logger = logging.getLogger(__name__)
+
 
 def create_app():
+    logging.basicConfig(
+        level=os.getenv("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     app = Flask(__name__)
 
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "padis-secret-key")
@@ -31,7 +40,7 @@ def create_app():
     if not allowed_origins:
         allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
-    print("[CORS] Allowed origins:", allowed_origins)
+    logger.info("CORS allowed origins: %s", allowed_origins)
 
     CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
@@ -66,9 +75,7 @@ def create_app():
     def health():
         return {"status": "ok"}
 
-    print("========== ROUTES ==========")
-    print(app.url_map)
-    print("============================")
+    logger.debug("Registered routes: %s", app.url_map)
 
     seed_default_users()
 

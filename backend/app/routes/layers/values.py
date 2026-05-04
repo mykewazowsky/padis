@@ -19,9 +19,12 @@ Returns: {
 
 from flask import jsonify, request
 from sqlalchemy import text
+import logging
 
 from ...db.session import SessionLocal
 from . import layers_bp
+
+logger = logging.getLogger(__name__)
 
 # ── Source of truth: must match the database exactly. DO NOT edit. ────────────
 # hazards table:        flood=1, drought=2, multihazard=3
@@ -86,16 +89,16 @@ def get_loss_values():
     scenario_id = _SCENARIO_ID[climate]
     rp_id       = _RP_ID[rp]
 
-    print({
-        "endpoint":    "values/loss",
-        "hazard":      hazard,
-        "hazard_id":   hazard_id,
-        "climate":     climate,
-        "scenario_id": scenario_id,
-        "rp":          rp,
-        "rp_id":       rp_id,
-        "run_id":      run_id,
-    })
+    logger.debug(
+        "Values loss request: hazard=%s hazard_id=%s climate=%s scenario_id=%s rp=%s rp_id=%s run_id=%s",
+        hazard,
+        hazard_id,
+        climate,
+        scenario_id,
+        rp,
+        rp_id,
+        run_id,
+    )
 
     params = {
         "hazard_id":   hazard_id,
@@ -142,6 +145,7 @@ def get_loss_values():
             "data_bounds": data_bounds,
         })
     except Exception as e:
+        logger.exception("Values loss request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
@@ -172,14 +176,14 @@ def get_aal_values():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        print({
-            "endpoint":    "values/aal",
-            "hazard":      hazard,
-            "hazard_id":   hazard_id,
-            "climate":     climate,
-            "scenario_id": scenario_id,
-            "run_id":      run_id,
-        })
+        logger.debug(
+            "Values AAL request: hazard=%s hazard_id=%s climate=%s scenario_id=%s run_id=%s",
+            hazard,
+            hazard_id,
+            climate,
+            scenario_id,
+            run_id,
+        )
 
         params = {"hazard_id": hazard_id, "scenario_id": scenario_id, "run_id": run_id}
 
@@ -217,6 +221,7 @@ def get_aal_values():
             "data_bounds": data_bounds,
         })
     except Exception as e:
+        logger.exception("Values AAL request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
@@ -256,16 +261,16 @@ def get_hazard_values():
     scenario_id = _SCENARIO_ID[scenario]
     rp_id       = _RP_ID[rp]
 
-    print({
-        "endpoint":    "values/hazard",
-        "hazard":      hazard,
-        "hazard_id":   hazard_id,
-        "climate":     scenario,
-        "scenario_id": scenario_id,
-        "rp":          rp,
-        "rp_id":       rp_id,
-        "run_id":      run_id,
-    })
+    logger.debug(
+        "Values hazard request: hazard=%s hazard_id=%s climate=%s scenario_id=%s rp=%s rp_id=%s run_id=%s",
+        hazard,
+        hazard_id,
+        scenario,
+        scenario_id,
+        rp,
+        rp_id,
+        run_id,
+    )
 
     params = {
         "hazard_id":   hazard_id,
@@ -312,6 +317,7 @@ def get_hazard_values():
             "data_bounds": data_bounds,
         })
     except Exception as e:
+        logger.exception("Values hazard request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
@@ -341,6 +347,7 @@ def get_production_values():
 
         return jsonify({"data": _to_list(rows, ["id_kabkota", "kab_kota", "prov", "total_prod", "centroid_lng", "centroid_lat"])})
     except Exception as e:
+        logger.exception("Values production request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()

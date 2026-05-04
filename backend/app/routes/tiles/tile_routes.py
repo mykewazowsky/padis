@@ -7,7 +7,7 @@ Zoom-adaptive simplification avoids over-detailed geometry at low zoom levels.
 """
 
 import gzip
-import traceback
+import logging
 
 from flask import Response, jsonify, request
 from sqlalchemy import text
@@ -15,6 +15,8 @@ from sqlalchemy import text
 from ...db.session import SessionLocal
 from . import tiles_bp
 from .tile_cache import tile_cache
+
+logger = logging.getLogger(__name__)
 
 # ─── Param normalization ─────────────────────────────────────────────────────
 
@@ -251,17 +253,18 @@ def get_tile(layer: str, z: int, x: int, y: int):
         scenario_id = _SCENARIO_ID[climate]  # never None — validated above
         rp_id       = _RP_ID[rp]             # never None — validated above
 
-        print({
-            "layer":       layer,
-            "raw_hazard":  raw_hazard,
-            "hazard":      hazard,
-            "hazard_id":   hazard_id,
-            "climate":     climate,
-            "scenario_id": scenario_id,
-            "rp":          rp,
-            "rp_id":       rp_id,
-            "run_id":      run_id,
-        })
+        logger.debug(
+            "Tile request: layer=%s raw_hazard=%s hazard=%s hazard_id=%s climate=%s scenario_id=%s rp=%s rp_id=%s run_id=%s",
+            layer,
+            raw_hazard,
+            hazard,
+            hazard_id,
+            climate,
+            scenario_id,
+            rp,
+            rp_id,
+            run_id,
+        )
 
         params.update({
             "hazard_id":   hazard_id,
@@ -276,7 +279,14 @@ def get_tile(layer: str, z: int, x: int, y: int):
         tile_cache.set(cache_key, compressed)
         return Response(compressed, 200, headers={**_TILE_HEADERS, "X-Cache": "MISS"})
     except Exception:
-        traceback.print_exc()
+        logger.exception(
+            "Tile generation failed: layer=%s z=%s x=%s y=%s run_id=%s",
+            layer,
+            z,
+            x,
+            y,
+            run_id,
+        )
         return jsonify({"error": "Tile generation failed"}), 500
     finally:
         db.close()

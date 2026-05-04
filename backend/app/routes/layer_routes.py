@@ -2,10 +2,11 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import text
 from ..db.session import SessionLocal
 import json
+import logging
 
 layer_bp = Blueprint("layer_bp", __name__)
-
-print("🔥 layer_routes FINAL FIXED loaded")
+logger = logging.getLogger(__name__)
+logger.debug("layer_routes loaded")
 
 
 # =========================
@@ -47,10 +48,16 @@ def get_layer():
         rp_value = get_rp_value(scenario)
         hazard_id = get_hazard_id(db, hazard)
 
-        print("🔥 PARAMS:", hazard, scenario_id, rp_value, hazard_id)
+        logger.debug(
+            "Layer request params: hazard=%s scenario_id=%s rp_value=%s hazard_id=%s",
+            hazard,
+            scenario_id,
+            rp_value,
+            hazard_id,
+        )
 
         query = """
-            SELECT 
+            SELECT
                 r.id_kabkota,
                 r.kab_kota,
                 r.prov,
@@ -58,7 +65,7 @@ def get_layer():
                 ST_AsGeoJSON(ST_SimplifyPreserveTopology(r.geom, 0.0001)) as geometry
             FROM regions_adm r
 
-            LEFT JOIN losses l 
+            LEFT JOIN losses l
                 ON r.id_kabkota = l.id_kabkota
                 AND l.scenario_id = :scenario_id
 
@@ -72,7 +79,7 @@ def get_layer():
             "rp_value": rp_value
         }
 
-        # 🔥 FILTER HAZARD (lebih cepat & aman)
+        # FILTER HAZARD (lebih cepat & aman)
         if hazard_id:
             query += " AND l.hazard_id = :hazard_id"
             params["hazard_id"] = hazard_id
@@ -83,7 +90,7 @@ def get_layer():
 
         result = db.execute(text(query), params).fetchall()
 
-        print("🔥 ROW COUNT:", len(result))
+        logger.debug("Layer query row count: %s", len(result))
 
         features = []
 
@@ -108,7 +115,7 @@ def get_layer():
         })
 
     except Exception as e:
-        print("[LAYER ERROR]", str(e))
+        logger.exception("Layer request failed")
         return jsonify({"error": str(e)}), 500
 
     finally:
@@ -124,7 +131,7 @@ def get_regions():
 
     try:
         result = db.execute(text("""
-            SELECT 
+            SELECT
                 id_kabkota,
                 kab_kota,
                 prov,
@@ -154,7 +161,7 @@ def get_regions():
         })
 
     except Exception as e:
-        print("[REGIONS ERROR]", str(e))
+        logger.exception("Regions request failed")
         return jsonify({"error": str(e)}), 500
 
     finally:

@@ -1,5 +1,6 @@
 import os
 import math
+import logging
 import matplotlib
 matplotlib.use("Agg")
 
@@ -10,6 +11,8 @@ import numpy as np
 
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+logger = logging.getLogger(__name__)
 
 
 # =========================================================
@@ -333,7 +336,7 @@ def _safe_add_basemap(ax):
     try:
         import contextily as ctx
     except ImportError:
-        print("[WARNING] contextily not available, skip basemap")
+        logger.warning("contextily not available, skip basemap")
         return
 
     providers = [
@@ -573,7 +576,7 @@ def create_map_image(
         ax.add_artist(scalebar)
 
     except ImportError:
-        print("[WARNING] matplotlib_scalebar not available, skip scalebar")
+        logger.warning("matplotlib_scalebar not available, skip scalebar")
     except Exception:
         pass
 

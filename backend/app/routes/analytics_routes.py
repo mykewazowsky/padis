@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import text
 from ..db.session import SessionLocal
+import logging
 
 analytics_bp = Blueprint("analytics_bp", __name__)
+logger = logging.getLogger(__name__)
 
 
 # ===============================
@@ -64,6 +66,7 @@ def get_latest_run():
             return jsonify({"error": "No runs found"}), 404
         return jsonify({"run_id": int(row.run_id)})
     except Exception as e:
+        logger.exception("Latest run request failed")
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
@@ -210,7 +213,7 @@ def get_aal_summary():
         })
 
     except Exception as e:
-        print("ERROR aal-summary:", e)
+        logger.exception("AAL summary request failed")
         return jsonify({"error": str(e)}), 500
 
     finally:
@@ -233,9 +236,9 @@ def get_aal_summary_all_hazards():
 
         region_count = _multi_region_count(db, "aal", run_id)
         if region_count == 0:
-            print(
-                f"WARN aal-summary-all-hazards: no spatial intersection for run_id={run_id}",
-                flush=True,
+            logger.warning(
+                "AAL summary all hazards has no spatial intersection for run_id=%s",
+                run_id,
             )
 
         results = []
@@ -447,9 +450,9 @@ def hazard_breakdown():
 
         region_count = _multi_region_count(db, "losses", run_id)
         if region_count == 0:
-            print(
-                f"WARN hazard-breakdown: no spatial intersection for run_id={run_id}",
-                flush=True,
+            logger.warning(
+                "Hazard breakdown has no spatial intersection for run_id=%s",
+                run_id,
             )
 
         rows = db.execute(text("""

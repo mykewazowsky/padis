@@ -1,8 +1,7 @@
 from flask import Blueprint, jsonify, request
-import logging # Tambahkan logging untuk memantau error di terminal
+import logging
 from ...services.geoserver_service import publish_featuretype
 
-# Inisialisasi logger
 logger = logging.getLogger(__name__)
 
 admin_geoserver_bp = Blueprint(
@@ -36,7 +35,11 @@ def publish_layer():
         )
         
         # Log keberhasilan untuk admin
-        logger.info(f"Layer {layer_name} berhasil dipublikasikan dari tabel {native_name}")
+        logger.info(
+            "Layer %s berhasil dipublikasikan dari tabel %s",
+            layer_name,
+            native_name,
+        )
         
         return jsonify({
             "status": "success",
@@ -46,10 +49,10 @@ def publish_layer():
 
     except RuntimeError as e:
         # Menangani error spesifik dari geoserver_service (misal: gagal konek ke GS)
-        logger.error(f"GeoServer Error: {str(e)}")
+        logger.exception("GeoServer publish failed")
         return jsonify({"error": "Gagal berkomunikasi dengan GeoServer", "message": str(e)}), 502
     
     except Exception as e:
         # Menangani error umum lainnya
-        logger.error(f"Unexpected Error: {str(e)}")
+        logger.exception("Unexpected GeoServer publish error")
         return jsonify({"error": "Terjadi kesalahan internal server", "message": str(e)}), 500

@@ -292,10 +292,16 @@ Command resmi saat ini masih menggunakan:
 python -m backend.scripts.cli.padis
 ```
 
-Untuk Windows PowerShell, tersedia shortcut lokal dari root project:
+Default resmi repo untuk Windows PowerShell adalah shortcut lokal dari root project:
 
 ```powershell
 .\padis.ps1
+```
+
+Contoh default resmi:
+
+```powershell
+.\padis.ps1 start
 ```
 
 Belum ada launcher global seperti:
@@ -305,6 +311,21 @@ padis
 ```
 
 Command internal resmi tetap `python -m backend.scripts.cli.padis <command>`. File `.\padis.ps1` hanya shortcut lokal Windows yang meneruskan argumen ke command internal tersebut.
+
+Jika ingin convenience command lokal di komputer sendiri, jalankan satu kali:
+
+```powershell
+.\install-padis-command.ps1
+```
+
+Setelah PowerShell direstart, command `padis` bisa dipakai sebagai alias lokal:
+
+```powershell
+padis check
+padis start
+```
+
+Alias ini berlaku di komputer user tersebut melalui PowerShell profile, bukan otomatis untuk semua clone atau semua komputer.
 
 ### Perbedaan Command
 
@@ -335,6 +356,15 @@ Shortcut lokal Windows PowerShell:
 .\padis.ps1 check
 .\padis.ps1 start
 .\padis.ps1 run --mode full --hazard flood --operator nama_operator
+```
+
+Optional convenience setelah menjalankan `.\install-padis-command.ps1` dan restart PowerShell:
+
+```powershell
+padis install
+padis check
+padis start
+padis run --mode full --hazard flood --operator nama_operator
 ```
 
 ### Workflow Operator/Admin
@@ -371,7 +401,9 @@ Pipeline harian untuk operator/admin sebaiknya dijalankan dari Admin UI setelah 
 
 - `padis start` bukan untuk menjalankan pipeline.
 - `padis run` digunakan jika pipeline ingin dijalankan dari terminal.
-- `.\padis.ps1` adalah shortcut lokal Windows, bukan installer global.
+- Default resmi repo tetap `.\padis.ps1 start`.
+- `.\install-padis-command.ps1` hanya memasang alias lokal `padis` di PowerShell profile komputer user.
+- Alias `padis` bukan installer global dan tidak otomatis berlaku untuk semua clone.
 - Gunakan `CTRL + C` untuk menghentikan backend/frontend dev server yang dijalankan oleh `padis start`.
 - `npm` harus tersedia di `PATH` agar frontend bisa dijalankan.
 - Mode `full + multi` perlu hati-hati karena memakai output flood/drought yang sudah ada.

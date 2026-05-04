@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PADIS Frontend
 
-## Getting Started
+Frontend PADIS adalah aplikasi Next.js untuk dashboard WebGIS, Admin UI, autentikasi, dan visualisasi hasil analisis risiko.
 
-First, run the development server:
+## Workflow Lokal Utama
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Jalankan frontend bersama backend dari root project menggunakan PADIS CLI:
+
+```powershell
+.\padis.ps1 check
+.\padis.ps1 start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.\padis.ps1 start` akan menjalankan backend Flask, menjalankan frontend Next.js, lalu membuka Admin UI:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000/admin
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Jika alias lokal sudah dipasang:
 
-## Learn More
+```powershell
+padis check
+padis start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Debug Frontend Langsung
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Gunakan `npm run dev` hanya jika ingin debug frontend secara terpisah dari backend launcher:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+Frontend berjalan di:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+http://localhost:3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pastikan `frontend/.env.local` mengarah ke backend lokal saat development:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+## Catatan
+
+- Workflow operator/admin utama tetap lewat `.\padis.ps1 start` dari root project.
+- `npm run dev` tidak menjalankan backend.
+- Pipeline tidak dijalankan oleh frontend secara langsung; pipeline dijalankan melalui Admin UI atau command `padis run`.

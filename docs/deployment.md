@@ -87,22 +87,42 @@ cmd = "cd frontend && npm run build && npm start"
 
 ## Local Development
 
-### Backend
+### Windows PowerShell
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env            # fill DATABASE_URL and SECRET_KEY
-python run.py
+Default workflow lokal untuk Windows adalah menjalankan PADIS CLI dari root project:
+
+```powershell
+.\padis.ps1 check
+.\padis.ps1 start
 ```
 
-Server runs at `http://localhost:5000`.
+`.\padis.ps1 check` melakukan readiness check dasar. `.\padis.ps1 start` menjalankan backend Flask, frontend Next.js, lalu membuka Admin UI di `http://localhost:3000/admin`.
 
-### Frontend
+Launcher `.\padis.ps1` memakai `backend\venv\Scripts\python.exe` jika tersedia, lalu fallback ke `python` dari PATH.
 
-```bash
+Optional convenience alias:
+
+```powershell
+.\install-padis-command.ps1
+```
+
+Restart PowerShell, lalu:
+
+```powershell
+padis check
+padis start
+```
+
+### Manual Debug
+
+Backend dan frontend masih bisa dijalankan manual jika perlu debug terpisah:
+
+```powershell
+.\backend\venv\Scripts\Activate.ps1
+python -m backend.run
+```
+
+```powershell
 cd frontend
 npm install
 # create frontend/.env.local with:
@@ -110,7 +130,7 @@ npm install
 npm run dev
 ```
 
-App runs at `http://localhost:3000`.
+Backend berjalan di `http://localhost:5000`, frontend berjalan di `http://localhost:3000`.
 
 ### Database Setup
 
@@ -140,10 +160,6 @@ CORS(app, resources={r"/api/*": {"origins": "https://your-frontend.vercel.app"}}
 
 ## Health Check
 
-Railway uses the HTTP response from the start command. Ensure the Flask app responds at `/` or add a health route:
+Untuk local development, PADIS CLI melakukan readiness check backend dengan mencoba URL backend dan fallback ke pengecekan port `5000`. CLI tidak membutuhkan endpoint health baru dan tidak menambah route backend.
 
-```python
-@app.route("/health")
-def health():
-    return {"status": "ok"}, 200
-```
+Untuk production deployment, gunakan mekanisme health check dari platform deploy yang dipakai. Jika platform membutuhkan endpoint HTTP khusus, desain endpoint tersebut sebagai perubahan backend terpisah, bukan syarat untuk menjalankan CLI lokal.

@@ -101,12 +101,17 @@ Daftar file di folder `backend/data/output/analysis/` ditampilkan di sini. File 
 
 Pipeline dapat dijalankan langsung dari terminal tanpa Admin UI:
 
-```bash
-cd backend
-python scripts/main.py --mode full --hazard multi --operator nama_operator
+```powershell
+.\padis.ps1 run --mode full --hazard flood --operator nama_operator
 ```
 
-> **Penting:** Perintah harus dijalankan dari dalam direktori `backend/` (bukan dari root proyek). Script menggunakan path relatif untuk menemukan file data dan konfigurasi.
+Jika alias lokal sudah dipasang dengan `.\install-padis-command.ps1` dan PowerShell sudah direstart:
+
+```powershell
+padis run --mode full --hazard flood --operator nama_operator
+```
+
+Jalankan command dari root project. `.\padis.ps1` akan meneruskan argumen ke CLI PADIS dan memakai Python venv project jika tersedia.
 
 Opsi `--mode`:
 - `full` — semua tahapan
@@ -118,6 +123,8 @@ Opsi `--hazard`:
 - `flood`
 - `drought`
 - `multi`
+
+> **Catatan:** Mode `full` + hazard `multi` perlu hati-hati. Multi-hazard memakai output flood dan drought yang sudah ada, jadi pastikan kedua hazard tersebut sudah diproses sebelum menjalankan multi.
 
 Ketika dijalankan via CLI, pipeline tetap menulis progress ke tabel `runs` di database, sehingga Admin UI tetap dapat memantau statusnya.
 

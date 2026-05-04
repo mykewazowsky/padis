@@ -55,35 +55,76 @@ Web-GIS platform for spatial risk analysis of natural hazards (flood, drought, m
 - Node.js 18+
 - PostgreSQL with PostGIS extension (or Supabase project)
 
-### Backend
+### Local Development on Windows
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+Jalankan dari root project:
 
-# Copy and fill environment variables
-cp .env.example .env
-
-python run.py
+```powershell
+.\padis.ps1 check
+.\padis.ps1 start
 ```
 
-Backend runs at `http://localhost:5000`.
+`.\padis.ps1` adalah launcher lokal resmi repo untuk Windows PowerShell. Launcher ini memakai `backend\venv\Scripts\python.exe` jika tersedia, lalu fallback ke `python` dari PATH.
 
-### Frontend
+`.\padis.ps1 start` akan:
 
-```bash
+- menjalankan backend Flask,
+- menjalankan frontend Next.js,
+- membuka Admin UI di `http://localhost:3000/admin`.
+
+`start` hanya untuk menjalankan aplikasi lokal. Command ini bukan untuk menjalankan pipeline.
+
+### Optional PowerShell Alias
+
+Jika ingin memakai command pendek `padis`, pasang alias lokal satu kali:
+
+```powershell
+.\install-padis-command.ps1
+```
+
+Restart PowerShell, lalu jalankan:
+
+```powershell
+padis check
+padis start
+```
+
+Alias ini berlaku di komputer user tersebut melalui PowerShell profile, bukan otomatis untuk semua clone.
+
+### Running the Pipeline
+
+Pipeline harian sebaiknya dijalankan dari Admin UI setelah `start` berhasil. Jika perlu menjalankan pipeline dari terminal:
+
+```powershell
+.\padis.ps1 run --mode full --hazard flood --operator nama_operator
+```
+
+Atau jika alias sudah dipasang:
+
+```powershell
+padis run --mode full --hazard flood --operator nama_operator
+```
+
+Perbedaan utama:
+
+- `start` = menjalankan backend + frontend + Admin UI.
+- `run` = menjalankan pipeline dari terminal.
+
+### Manual Debug
+
+Cara manual masih bisa dipakai untuk debug backend/frontend secara terpisah:
+
+```powershell
+.\backend\venv\Scripts\Activate.ps1
+python -m backend.run
+```
+
+```powershell
 cd frontend
-npm install
-
-# Copy and fill environment variables
-cp .env.local.example .env.local
-
 npm run dev
 ```
 
-Frontend runs at `http://localhost:3000`.
+Untuk workflow operator/admin sehari-hari, gunakan `.\padis.ps1 check` dan `.\padis.ps1 start`.
 
 ## Environment Variables
 

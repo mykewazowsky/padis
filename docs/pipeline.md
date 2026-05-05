@@ -23,13 +23,40 @@ Pipeline memproses data raster/vector mentah menjadi metrik risiko yang disimpan
 | `drought` | Agricultural drought hazard |
 | `multi` | Combined multi-hazard index |
 
-## Entry Point
+## Recommended Ways to Run Pipeline
+
+Untuk operator/admin, jalankan aplikasi lokal terlebih dahulu dari root project:
+
+```powershell
+.\padis.ps1 start
+```
+
+`start` menjalankan backend + frontend lokal dan membuka Admin UI. Setelah Admin UI terbuka, pipeline harian sebaiknya dijalankan dari **Admin UI → Process Control**.
+
+Jika pipeline perlu dijalankan dari terminal, gunakan `run`:
+
+```powershell
+.\padis.ps1 run --mode full --hazard flood --operator nama_operator
+```
+
+Jika alias opsional sudah dipasang dengan `.\install-padis-command.ps1` dan PowerShell sudah direstart:
+
+```powershell
+padis run --mode full --hazard flood --operator nama_operator
+```
+
+Perbedaan istilah:
+
+- `start` = menjalankan aplikasi lokal dan Admin UI.
+- `run` = menjalankan pipeline dari terminal.
+
+## Internal Entry Point
 
 ```bash
 python backend/scripts/main.py --mode <mode> --hazard <hazard> --operator <name>
 ```
 
-Flask men-spawn ini sebagai subprocess. Progress dilaporkan langsung ke tabel `runs` di database dan dapat dipantau via `GET /api/admin/run-status`.
+Command Python di atas adalah detail internal/debug, bukan workflow utama user. Flask dan PADIS CLI men-spawn entry point ini sebagai subprocess. Progress dilaporkan langsung ke tabel `runs` di database dan dapat dipantau via `GET /api/admin/run-status`.
 
 ## Script Chain
 

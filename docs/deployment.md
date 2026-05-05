@@ -89,7 +89,7 @@ cmd = "cd frontend && npm run build && npm start"
 
 ### Windows PowerShell
 
-Default workflow lokal untuk Windows adalah menjalankan PADIS CLI dari root project:
+Default workflow lokal untuk Windows adalah menjalankan PADIS launcher dari root project:
 
 ```powershell
 .\padis.ps1 check
@@ -99,6 +99,11 @@ Default workflow lokal untuk Windows adalah menjalankan PADIS CLI dari root proj
 `.\padis.ps1 check` melakukan readiness check dasar. `.\padis.ps1 start` menjalankan backend Flask, frontend Next.js, lalu membuka Admin UI di `http://localhost:3000/admin`.
 
 Launcher `.\padis.ps1` memakai `backend\venv\Scripts\python.exe` jika tersedia, lalu fallback ke `python` dari PATH.
+
+Perbedaan command utama:
+
+- `start` = menjalankan aplikasi lokal dan Admin UI.
+- `run` = menjalankan pipeline dari terminal.
 
 Optional convenience alias:
 
@@ -113,9 +118,11 @@ padis check
 padis start
 ```
 
+Alias `padis` bersifat opsional melalui PowerShell profile user. Alias ini bukan command bawaan setelah clone repo dan bukan pengganti default resmi `.\padis.ps1`.
+
 ### Manual Debug
 
-Backend dan frontend masih bisa dijalankan manual jika perlu debug terpisah:
+Backend dan frontend masih bisa dijalankan manual jika perlu debug terpisah. Ini bukan workflow lokal utama:
 
 ```powershell
 .\backend\venv\Scripts\Activate.ps1

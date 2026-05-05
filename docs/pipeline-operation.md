@@ -6,10 +6,19 @@ Dokumen ini ditujukan untuk operator yang menjalankan dan memantau pipeline anal
 
 ## Prasyarat
 
-- Python environment backend sudah aktif (`venv` terinstall dan dependencies terpenuhi)
+- Python environment backend tersedia (`venv` terinstall dan dependencies terpenuhi; `.\padis.ps1` akan memakai venv project jika tersedia)
 - File data input sudah ditempatkan di folder `raw/` sesuai standar (lihat `docs/data-requirements.md`)
 - Koneksi database aktif (variabel `DATABASE_URL` di `backend/.env` sudah diisi)
-- Backend Flask berjalan (Railway atau lokal)
+- Aplikasi lokal berjalan melalui `.\padis.ps1 start` atau backend Flask berjalan di environment deployment/lokal yang dituju
+
+Untuk workflow operator lokal, jalankan dari root project:
+
+```powershell
+.\padis.ps1 check
+.\padis.ps1 start
+```
+
+`start` menjalankan backend + frontend lokal dan membuka Admin UI. `run` digunakan hanya jika pipeline ingin dijalankan dari terminal.
 
 ---
 
@@ -99,13 +108,13 @@ Daftar file di folder `backend/data/output/analysis/` ditampilkan di sini. File 
 
 ## Menjalankan Pipeline via CLI (Tanpa Admin UI)
 
-Pipeline dapat dijalankan langsung dari terminal tanpa Admin UI:
+Pipeline dapat dijalankan langsung dari terminal tanpa Admin UI menggunakan `run` dari root project:
 
 ```powershell
 .\padis.ps1 run --mode full --hazard flood --operator nama_operator
 ```
 
-Jika alias lokal sudah dipasang dengan `.\install-padis-command.ps1` dan PowerShell sudah direstart:
+Jika alias lokal sudah dipasang dengan `.\install-padis-command.ps1` dan PowerShell sudah direstart, `padis run` bisa dipakai sebagai convenience alias:
 
 ```powershell
 padis run --mode full --hazard flood --operator nama_operator

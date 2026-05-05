@@ -57,7 +57,7 @@ Web-GIS platform for spatial risk analysis of natural hazards (flood, drought, m
 
 ### Local Development on Windows
 
-Jalankan dari root project:
+Default resmi repo untuk local development di Windows adalah menjalankan PADIS dari root project dengan launcher lokal:
 
 ```powershell
 .\padis.ps1 check
@@ -72,7 +72,7 @@ Jalankan dari root project:
 - menjalankan frontend Next.js,
 - membuka Admin UI di `http://localhost:3000/admin`.
 
-`start` hanya untuk menjalankan aplikasi lokal. Command ini bukan untuk menjalankan pipeline.
+`start` hanya untuk menjalankan aplikasi lokal dan Admin UI. Command ini bukan untuk menjalankan pipeline dari terminal.
 
 ### Optional PowerShell Alias
 
@@ -89,7 +89,7 @@ padis check
 padis start
 ```
 
-Alias ini berlaku di komputer user tersebut melalui PowerShell profile, bukan otomatis untuk semua clone.
+Alias ini berlaku di komputer user tersebut melalui PowerShell profile. `padis` bukan command bawaan setelah clone repo dan bukan pengganti default resmi `.\padis.ps1`.
 
 ### Running the Pipeline
 
@@ -107,8 +107,8 @@ padis run --mode full --hazard flood --operator nama_operator
 
 Perbedaan utama:
 
-- `start` = menjalankan backend + frontend + Admin UI.
-- `run` = menjalankan pipeline dari terminal.
+- `.\padis.ps1 start` / `padis start` = menjalankan backend + frontend lokal dan membuka Admin UI.
+- `.\padis.ps1 run` / `padis run` = menjalankan pipeline dari terminal.
 
 ### Manual Debug
 
@@ -195,25 +195,37 @@ PADIS/
 │   ├── architecture.md
 │   ├── api.md
 │   ├── database.md
+│   ├── frontend.md
 │   ├── pipeline.md
+│   ├── pipeline-operation.md
+│   ├── data-requirements.md
 │   ├── deployment.md
-│   └── frontend.md
+│   └── padis-dev-commands.md
 ├── railway.toml             # Railway deployment config
 └── README.md
 ```
 
 ## Documentation
 
+### Recommended Reading Order
+
+1. [README](README.md) - orientasi project dan workflow lokal resmi.
+2. [Pipeline Operation](docs/pipeline-operation.md) - panduan operator menjalankan dan memantau pipeline.
+3. [Data Requirements](docs/data-requirements.md) - standar folder, nama file, dan format data input.
+4. [Deployment](docs/deployment.md) - Railway/Vercel setup dan environment production.
+5. [PADIS Dev Commands](docs/padis-dev-commands.md) - command debug/developer; bukan workflow utama operator.
+
 | Doc | Description |
 |---|---|
 | [Architecture](docs/architecture.md) | Desain sistem, alur data, hierarki komponen |
 | [API Reference](docs/api.md) | Semua endpoint dengan parameter dan response shape |
 | [Database Schema](docs/database.md) | Definisi tabel, indeks, kolom spasial |
+| [Frontend](docs/frontend.md) | Struktur komponen, state management, map layers |
 | [Analysis Pipeline](docs/pipeline.md) | Tahapan pemrosesan geospasial dan rantai script |
 | [Pipeline Operation](docs/pipeline-operation.md) | Panduan operator menjalankan pipeline |
 | [Data Requirements](docs/data-requirements.md) | Standar folder, nama file, dan format data input |
 | [Deployment](docs/deployment.md) | Railway setup, konfigurasi environment, Gunicorn |
-| [Frontend](docs/frontend.md) | Struktur komponen, state management, map layers |
+| [PADIS Dev Commands](docs/padis-dev-commands.md) | Command debug/developer dan troubleshooting lokal |
 
 ## License
 

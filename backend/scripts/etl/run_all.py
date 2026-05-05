@@ -1,5 +1,8 @@
+import os
+
 from backend.scripts.utils.db import get_conn
 from backend.scripts.utils import log
+from backend.scripts.config.paths import OUTPUT_ANALYSIS_DIR
 
 from backend.scripts.etl.load_regions_adm import run as load_regions
 from backend.scripts.etl.load_sawah import run as load_sawah
@@ -7,6 +10,37 @@ from backend.scripts.etl.load_losses import run as load_losses
 from backend.scripts.etl.load_aal import run as load_aal
 from backend.scripts.etl.load_zonal_agg import run as load_zonal
 from backend.scripts.etl.load_production import run as load_production
+
+
+# Tiga file final wajib ada sebelum ETL boleh berjalan.
+_REQUIRED_FINAL_FILES = (
+    "kabkota_flood_final.geojson",
+    "kabkota_drought_final.geojson",
+    "kabkota_multihazard_final.geojson",
+)
+
+
+def _ensure_final_files_ready() -> None:
+    """
+    Fail-fast jika salah satu dari ketiga file final GeoJSON belum tersedia.
+
+    ETL membutuhkan ketiga hasil analisis (flood + drought + multihazard) untuk
+    memuat tabel losses, aal, dan zonal_kabupaten secara lengkap. Tanpa guard
+    ini, ETL akan berjalan setengah jalan dan meninggalkan run dengan data
+    parsial — sulit dideteksi belakangan.
+    """
+    missing = [
+        name for name in _REQUIRED_FINAL_FILES
+        if not os.path.exists(os.path.join(OUTPUT_ANALYSIS_DIR, name))
+    ]
+    if missing:
+        listing = "\n".join(f"  - {name}" for name in missing)
+        raise FileNotFoundError(
+            "ETL dibatalkan: file final analisis berikut belum tersedia di "
+            f"{OUTPUT_ANALYSIS_DIR}:\n{listing}\n"
+            "Jalankan pipeline penuh untuk hazard yang belum (flood / drought / "
+            "multihazard) sebelum memuat ke database."
+        )
 
 
 def run(hazard: str = "multi", run_id: int | None = None) -> None:
@@ -20,6 +54,9 @@ def run(hazard: str = "multi", run_id: int | None = None) -> None:
                   Ini mencegah duplikasi row di tabel runs.
     """
     log.header("ETL PROCESS")
+
+    # Guard: pastikan ketiga file final GeoJSON sudah tersedia.
+    _ensure_final_files_ready()
 
     # Static, idempotent tables — each manages its own connection.
     log.info("ETL", "[1/6] Loading regions_adm...")

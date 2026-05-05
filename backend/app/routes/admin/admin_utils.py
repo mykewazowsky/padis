@@ -225,6 +225,56 @@ def get_recent_outputs(minutes=10):
     return recent
 
 
+# =============================================================================
+# FINAL ANALYSIS READINESS
+# =============================================================================
+# Tiga file final yang harus tersedia sebelum ETL/load-database boleh berjalan.
+# Path harus konsisten dengan output flood_pipeline / drought_pipeline /
+# multihazard_pipeline di backend/scripts/config/analysis_registry.py.
+
+FINAL_ANALYSIS_FILES: list[dict] = [
+    {"hazard": "flood",       "filename": "kabkota_flood_final.geojson"},
+    {"hazard": "drought",     "filename": "kabkota_drought_final.geojson"},
+    {"hazard": "multihazard", "filename": "kabkota_multihazard_final.geojson"},
+]
+
+
+def get_final_analysis_status() -> dict:
+    """
+    Cek kesiapan ketiga file final GeoJSON yang dipakai sebagai input ETL.
+
+    Return:
+        ready    : True jika semua file ada
+        files    : daftar status per file (path, exists, size_bytes, modified_at)
+        missing  : daftar filename yang belum ada
+    """
+    files: list[dict] = []
+    missing: list[str] = []
+
+    for entry in FINAL_ANALYSIS_FILES:
+        path = os.path.join(OUTPUT_DIR, entry["filename"])
+        exists = os.path.exists(path)
+        info = safe_stat(path) if exists else None
+
+        files.append({
+            "hazard":      entry["hazard"],
+            "filename":    entry["filename"],
+            "path":        path,
+            "exists":      exists,
+            "size_bytes":  info["size_bytes"]  if info else 0,
+            "modified_at": info["modified_at"] if info else None,
+        })
+
+        if not exists:
+            missing.append(entry["filename"])
+
+    return {
+        "ready":   len(missing) == 0,
+        "files":   files,
+        "missing": missing,
+    }
+
+
 def is_allowed_flood_raster(filename: str) -> bool:
     allowed = {
         "r25.tif", "r50.tif", "r100.tif", "r250.tif",

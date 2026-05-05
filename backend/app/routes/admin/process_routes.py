@@ -23,7 +23,13 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import text
 
 from ..auth.auth_utils import admin_required
-from .admin_utils import BACKEND_DIR, OUTPUT_DIR, PROJECT_ROOT, SCRIPTS_DIR
+from .admin_utils import (
+    BACKEND_DIR,
+    OUTPUT_DIR,
+    PROJECT_ROOT,
+    SCRIPTS_DIR,
+    get_final_analysis_status,
+)
 from ...db.session import SessionLocal
 
 admin_process_bp = Blueprint("admin_process_bp", __name__)
@@ -838,6 +844,172 @@ def admin_start_pipeline():
         "mode":     mode,
         "hazard":   hazard,
         "operator": operator,
+    }), 202
+
+
+# =============================================================================
+# GET /api/admin/final-analysis-status
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/final-analysis-status", methods=["GET"])
+@admin_required
+def admin_final_analysis_status():
+    """
+    Kembalikan status kesiapan ketiga file final GeoJSON:
+      - kabkota_flood_final.geojson
+      - kabkota_drought_final.geojson
+      - kabkota_multihazard_final.geojson
+
+    Dipakai oleh UI untuk menentukan apakah tombol "Muat ke Database Saja"
+    sudah boleh ditekan.
+    """
+    try:
+        status = get_final_analysis_status()
+        return jsonify(status), 200
+    except Exception as e:
+        return jsonify({
+            "error":  "Gagal memeriksa status file final",
+            "detail": str(e),
+        }), 500
+
+
+# =============================================================================
+# POST /api/admin/load-database
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/load-database", methods=["POST"])
+@admin_required
+def admin_load_database():
+    """
+    Jalankan ETL/load database untuk ketiga hasil final (flood + drought +
+    multihazard) sebagai satu subprocess pipeline mode 'web'.
+
+    Endpoint ini sengaja TIDAK menerima hazard dari frontend — load database
+    selalu memuat semua hasil sekaligus. Sebelum spawn, validasi kesiapan
+    ketiga file final; jika belum lengkap, kembalikan 409 dengan daftar
+    missing file.
+
+    Returns:
+        202  pipeline ETL berhasil di-spawn
+        409  ada file final yang belum tersedia, atau pipeline lain sedang berjalan
+        500  gagal spawn subprocess
+    """
+    body     = request.get_json(silent=True) or {}
+    operator = body.get("operator", "operator")
+    operator = re.sub(r"[^\w\-]", "_", operator.strip())[:50] or "operator"
+
+    # Step 1: cek kesiapan 3 file final
+    try:
+        final_status = get_final_analysis_status()
+    except Exception as e:
+        return jsonify({
+            "error":  "Gagal memeriksa status file final",
+            "detail": str(e),
+        }), 500
+
+    if not final_status["ready"]:
+        return jsonify({
+            "error": (
+                "Belum semua file final analisis tersedia. "
+                "Jalankan pipeline penuh untuk masing-masing hazard "
+                "(flood, drought, multihazard) terlebih dahulu."
+            ),
+            "missing": final_status["missing"],
+            "files":   final_status["files"],
+        }), 409
+
+    # Step 2: cek pipeline yang sedang berjalan
+    try:
+        with SessionLocal() as session:
+            blocking = _get_blocking_run(session)
+    except Exception as e:
+        return jsonify({"error": "Gagal memeriksa status pipeline", "detail": str(e)}), 500
+
+    if blocking is not None:
+        return jsonify({
+            "error": (
+                "Pipeline sedang berjalan. "
+                "Tunggu hingga selesai sebelum memulai load database."
+            ),
+            "active_run": {
+                "id":            blocking.id,
+                "run_name":      blocking.run_name,
+                "created_at":    blocking.created_at.isoformat() if blocking.created_at else None,
+                "operator_name": blocking.operator_name,
+                "step":          blocking.step,
+                "progress":      blocking.progress or 0,
+            },
+        }), 409
+
+    # Step 3: spawn pipeline mode=web (ETL only). Hazard "multi" hanya
+    # dipakai sebagai label run_name; ETL sendiri memuat semua hazard.
+    script_path = os.path.join(SCRIPTS_DIR, "main.py")
+    python_exe  = _get_pipeline_python()
+
+    pipeline_cmd = [python_exe, "-u", script_path,
+                    "--mode", "web", "--hazard", "multi", "--operator", operator]
+
+    log_dir  = os.path.join(BACKEND_DIR, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "subprocess.log")
+
+    child_env = {
+        **os.environ,
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUNBUFFERED": "1",
+    }
+
+    try:
+        with open(log_path, "a", encoding="utf-8") as lf:
+            lf.write(
+                f"\n{'='*60}\n"
+                f"[{_now_iso()}] python={python_exe}\n"
+                f"mode=web (load-database)  operator={operator}\n"
+                f"cwd={BACKEND_DIR}\n"
+                f"{'='*60}\n"
+            )
+
+        if os.name == "nt":
+            batch_path = os.path.join(log_dir, "run_load_database.bat")
+            with open(batch_path, "w", encoding="cp1252") as bf:
+                bf.write("@echo off\n")
+                bf.write("chcp 65001 > nul\n")
+                bf.write(f"title PADIS Load Database\n")
+                bf.write(f'cd /d "{BACKEND_DIR}"\n')
+                bf.write(
+                    f'"{python_exe}" -u "{script_path}"'
+                    f" --mode web --hazard multi --operator {operator}\n"
+                )
+                bf.write("echo.\n")
+                bf.write("echo Load database selesai. Tekan sembarang tombol untuk menutup...\n")
+                bf.write("pause > nul\n")
+
+            proc = subprocess.Popen(
+                ["cmd", "/K", batch_path],
+                cwd=BACKEND_DIR,
+                env=child_env,
+                creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP,
+            )
+        else:
+            with open(log_path, "a", encoding="utf-8") as lf:
+                proc = subprocess.Popen(
+                    pipeline_cmd,
+                    cwd=BACKEND_DIR,
+                    stdout=lf,
+                    stderr=lf,
+                    env=child_env,
+                    start_new_session=True,
+                )
+
+    except Exception as e:
+        return jsonify({"error": "Gagal menjalankan load database", "detail": str(e)}), 500
+
+    return jsonify({
+        "message":  "Load database berhasil dimulai.",
+        "pid":      proc.pid,
+        "mode":     "web",
+        "operator": operator,
+        "files":    final_status["files"],
     }), 202
 
 

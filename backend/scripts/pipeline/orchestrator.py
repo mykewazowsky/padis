@@ -64,32 +64,52 @@ def _get_zonal_path(name: str, zonal_results: list[dict]) -> str:
 
 def _run_analysis_for_hazard(hazard: str, zonal_results: list[dict]) -> list[dict]:
     """
-    Jalankan analysis step sesuai hazard yang dipilih.
+    Jalankan analysis step sesuai hazard yang dipilih (single-hazard execution).
 
-    - "flood"   : flood_pipeline saja
-    - "drought" : drought_pipeline saja
-    - "multi"   : flood -> drought -> multihazard  (membaca zonal dari disk jika perlu)
+    - "flood"             : flood_pipeline saja
+    - "drought"           : drought_pipeline saja
+    - "multi"/"multihazard": multihazard_pipeline saja
+                             (membutuhkan kabkota_flood_final.geojson dan
+                              kabkota_drought_final.geojson sudah ada di disk;
+                              flood/drought TIDAK dijalankan ulang di sini)
 
     Berbeda dari run_analysis() di analysis_pipeline.py yang selalu mencoba
     semua hazard dan bisa gagal saat single-hazard run.
     """
     results = []
 
-    if hazard in ("flood", "multi"):
+    if hazard == "flood":
         zonal_path = _get_zonal_path("flood", zonal_results)
         output_path = flood_pipeline(zonal_path)
         results.append({"hazard": "flood", "output": output_path, "status": "success"})
+        return results
 
-    if hazard in ("drought", "multi"):
+    if hazard == "drought":
         zonal_path = _get_zonal_path("drought", zonal_results)
         output_path = drought_pipeline(zonal_path)
         results.append({"hazard": "drought", "output": output_path, "status": "success"})
+        return results
 
-    if hazard == "multi":
+    if hazard in ("multi", "multihazard"):
+        # Validasi eksplisit: multihazard butuh hasil flood & drought final.
+        # Jangan jalankan ulang flood/drought — operator harus melakukannya
+        # secara terpisah (mode full+flood, full+drought) sebelum ini.
+        from backend.scripts.config.paths import OUTPUT_ANALYSIS_DIR
+        flood_final   = os.path.join(OUTPUT_ANALYSIS_DIR, "kabkota_flood_final.geojson")
+        drought_final = os.path.join(OUTPUT_ANALYSIS_DIR, "kabkota_drought_final.geojson")
+        missing = [p for p in (flood_final, drought_final) if not os.path.exists(p)]
+        if missing:
+            raise FileNotFoundError(
+                "Multihazard membutuhkan file final hazard tunggal yang belum tersedia:\n"
+                + "\n".join(f"  - {p}" for p in missing)
+                + "\nJalankan terlebih dahulu 'full --hazard flood' dan 'full --hazard drought'."
+            )
+
         output_path = multihazard_pipeline("")
         results.append({"hazard": "multihazard", "output": output_path, "status": "success"})
+        return results
 
-    return results
+    raise ValueError(f"Hazard tidak dikenal: '{hazard}'")
 
 
 # =============================================================================

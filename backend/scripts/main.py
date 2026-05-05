@@ -41,13 +41,13 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Mode x Hazard -- step yang dijalankan:
-  full + flood/drought  : preprocess, zonal, analysis, etl
-  full + multi          : analysis (flood+drought+multi), etl
+  full + flood/drought  : preprocess, zonal, analysis  (TANPA etl)
+  full + multi          : analysis multihazard saja    (TANPA etl, butuh flood+drought final)
   preprocess            : preprocess saja (hazard diabaikan)
   analysis + flood      : zonal, analysis(flood)
   analysis + drought    : zonal, analysis(drought)
-  analysis + multi      : analysis(flood+drought+multi)  [baca dari disk]
-  web                   : etl saja (hazard diabaikan)
+  analysis + multi      : analysis(multihazard)        (butuh flood+drought final)
+  web                   : etl saja (hazard diabaikan, butuh ketiga final geojson)
 
 Contoh:
   python scripts/main.py --mode full --hazard flood --operator mitra_bandung
@@ -100,9 +100,13 @@ def _resolve_steps(mode: str, hazard: str) -> tuple[bool, bool, bool, bool]:
         return (False, run_zonal, True, False)
 
     # mode == "full"
+    # Mode full hanya menjalankan analisis hazard sampai menghasilkan file
+    # final GeoJSON. ETL/load database TIDAK lagi dijalankan di sini —
+    # gunakan mode "web" (atau endpoint /api/admin/load-database) setelah
+    # ketiga file final siap.
     run_preprocess = (hazard != "multi")
     run_zonal      = (hazard != "multi")
-    return (run_preprocess, run_zonal, True, True)
+    return (run_preprocess, run_zonal, True, False)
 
 
 # =============================================================================

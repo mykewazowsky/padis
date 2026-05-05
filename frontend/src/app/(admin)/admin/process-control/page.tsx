@@ -5,9 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  CircleDashed,
   Clock3,
+  Database,
   Gauge,
   GitBranch,
   PlayCircle,
@@ -28,25 +31,39 @@ type ProcessStatus = {
   hazard?: string | null;
 };
 
+type FinalFile = {
+  hazard: string;
+  filename: string;
+  path: string;
+  exists: boolean;
+  size_bytes: number;
+  modified_at: string | null;
+};
+
+type FinalAnalysisStatus = {
+  ready: boolean;
+  files: FinalFile[];
+  missing: string[];
+};
+
 const HAZARD_OPTIONS: { key: HazardKey; label: string; desc: string }[] = [
   {
     key: "flood",
     label: "Flood",
-    desc: "Jalankan proses untuk analisis banjir.",
+    desc: "Analisis hazard banjir → menghasilkan kabkota_flood_final.geojson.",
   },
   {
     key: "drought",
     label: "Drought",
-    desc: "Jalankan proses untuk analisis kekeringan.",
+    desc: "Analisis hazard kekeringan → menghasilkan kabkota_drought_final.geojson.",
   },
   {
     key: "multi",
     label: "Multi-hazard",
-    desc: "Jalankan proses gabungan multi-hazard (perlu flood & drought).",
+    desc: "Gabungkan flood + drought → menghasilkan kabkota_multihazard_final.geojson. Butuh dua file final lain sudah ada.",
   },
 ];
 
-// Maps step name to visual stage index (0-based)
 // Stages: 0=PREPROCESS, 1=ZONAL, 2=ANALYSIS, 3=ETL
 function inferStageFromScript(script?: string | null): number {
   if (!script) return -1;
@@ -84,6 +101,13 @@ function formatDateTime(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function formatBytes(n: number) {
+  if (!n) return "-";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function capitalize(text?: string | null) {
@@ -159,6 +183,7 @@ export default function AdminProcessPage() {
   const [selectedHazard, setSelectedHazard] = useState<HazardKey>("flood");
   const [operatorName, setOperatorName] = useState("operator");
   const [status, setStatus] = useState<ProcessStatus | null>(null);
+  const [finalStatus, setFinalStatus] = useState<FinalAnalysisStatus | null>(null);
   const [runningAction, setRunningAction] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -184,13 +209,37 @@ export default function AdminProcessPage() {
     }
   }, []);
 
-  useEffect(() => { loadStatus(); }, [loadStatus]);
+  const loadFinalStatus = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth("/api/admin/final-analysis-status");
+      if (!res.ok) return;
+      const json: FinalAnalysisStatus = await res.json();
+      setFinalStatus(json);
+    } catch {
+      // non-blocking — UI tetap tampil meskipun status final gagal dimuat
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStatus();
+    loadFinalStatus();
+  }, [loadStatus, loadFinalStatus]);
 
   useEffect(() => {
     if (status?.status !== "running") return;
-    const id = setInterval(() => loadStatus(false), 2000);
+    const id = setInterval(() => {
+      loadStatus(false);
+      loadFinalStatus();
+    }, 2000);
     return () => clearInterval(id);
-  }, [status?.status, loadStatus]);
+  }, [status?.status, loadStatus, loadFinalStatus]);
+
+  // Re-poll final status setelah pipeline berhasil selesai (file mungkin baru ditulis)
+  useEffect(() => {
+    if (status?.status === "success") {
+      loadFinalStatus();
+    }
+  }, [status?.status, loadFinalStatus]);
 
   async function handleRun(mode: ModeKey) {
     try {
@@ -199,14 +248,13 @@ export default function AdminProcessPage() {
       setSuccessMessage("");
       const res = await fetchWithAuth("/api/admin/start-pipeline", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, hazard: selectedHazard, operator: operatorName || "operator" }),
       });
       const json = await res.json().catch(() => ({}));
       if (res.status === 202) {
         const pid = (json as any).pid;
         setSuccessMessage(
-          `Pipeline berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
+          `Pipeline analisis berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
         );
         setHasRunThisSession(true);
         await loadStatus(false);
@@ -225,6 +273,55 @@ export default function AdminProcessPage() {
       }
     } catch (err: any) {
       setErrorMessage(err?.message || "Gagal menjalankan proses. Periksa koneksi server.");
+    } finally {
+      setRunningAction(false);
+    }
+  }
+
+  async function handleLoadDatabase() {
+    try {
+      setRunningAction(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      // Refresh status terlebih dahulu agar pesan error akurat.
+      await loadFinalStatus();
+
+      const res = await fetchWithAuth("/api/admin/load-database", {
+        method: "POST",
+        body: JSON.stringify({ operator: operatorName || "operator" }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (res.status === 202) {
+        const pid = (json as any).pid;
+        setSuccessMessage(
+          `Load database berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
+        );
+        setHasRunThisSession(true);
+        await loadStatus(false);
+      } else if (res.status === 409) {
+        const missing = (json as any).missing as string[] | undefined;
+        if (missing && missing.length > 0) {
+          setFinalStatus((prev) =>
+            prev
+              ? { ...prev, missing, ready: false }
+              : { ready: false, files: [], missing }
+          );
+          setErrorMessage(
+            `Belum bisa memuat ke database. File final berikut belum tersedia: ${missing.join(", ")}.`
+          );
+        } else {
+          setErrorMessage((json as any)?.error || "Tidak dapat menjalankan load database saat ini.");
+        }
+      } else {
+        throw new Error(
+          (json as any)?.error ||
+          `Gagal memulai load database (${res.status}). Periksa koneksi server.`
+        );
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Gagal menjalankan load database. Periksa koneksi server.");
     } finally {
       setRunningAction(false);
     }
@@ -276,7 +373,15 @@ export default function AdminProcessPage() {
   );
 
   const selectedHazardInfo = HAZARD_OPTIONS.find((o) => o.key === selectedHazard);
-  const canRun = !runningAction && status?.status !== "running";
+  const isPipelineRunning = status?.status === "running";
+  const canRun = !runningAction && !isPipelineRunning;
+  const finalReady = finalStatus?.ready === true;
+  const canLoadDatabase = canRun && finalReady;
+
+  const readyCount = finalStatus
+    ? finalStatus.files.filter((f) => f.exists).length
+    : 0;
+  const totalFinal = finalStatus?.files.length ?? 3;
 
   return (
     <main className="space-y-6">
@@ -291,13 +396,17 @@ export default function AdminProcessPage() {
               Jalankan Proses
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 md:text-base">
-              Jalankan dan pantau proses analisis data dari satu halaman.
+              Jalankan pipeline analisis hazard untuk menghasilkan file final, lalu muat ketiga
+              hasil ke database setelah semuanya siap.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() => loadStatus(true)}
+            onClick={() => {
+              loadStatus(true);
+              loadFinalStatus();
+            }}
             disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -305,11 +414,21 @@ export default function AdminProcessPage() {
             {refreshing ? "Memuat..." : "Refresh"}
           </button>
         </div>
+
+        {/* Workflow guide */}
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-700">
+          <p className="font-semibold text-slate-900">Alur kerja singkat</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-slate-600">
+            <li>Jalankan <span className="font-semibold">Pipeline Penuh</span> untuk hazard <em>flood</em>, lalu <em>drought</em>, lalu <em>multi-hazard</em>.</li>
+            <li>Setelah ketiga file final tersedia, klik <span className="font-semibold">Muat ke Database</span> untuk push hasil ke Postgres.</li>
+            <li>Setelah ETL sukses, aktifkan run baru di halaman <Link href="/admin/pipeline-monitor" className="font-semibold text-[var(--color-primary)] underline-offset-2 hover:underline">Pipeline Monitor</Link>.</li>
+          </ol>
+        </div>
       </section>
 
       {successMessage && (
         <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {successMessage} Pantau progress live di panel bawah.
+          {successMessage}
         </div>
       )}
 
@@ -317,7 +436,7 @@ export default function AdminProcessPage() {
         <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
           <GitBranch className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-semibold">Pipeline selesai dengan sukses.</p>
+            <p className="font-semibold">Proses terakhir selesai dengan sukses.</p>
             <p className="mt-1 leading-relaxed">
               Buka{" "}
               <Link
@@ -338,6 +457,80 @@ export default function AdminProcessPage() {
         </div>
       )}
 
+      {/* Final analysis readiness */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
+              KESIAPAN FILE FINAL
+            </p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
+              Status File Final Analisis
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Database hanya dapat dimuat setelah ketiga file final ini tersedia.
+            </p>
+          </div>
+          <div
+            className={
+              finalReady
+                ? "inline-flex items-center gap-2 self-start rounded-full bg-green-50 px-4 py-2 text-xs font-semibold text-green-700"
+                : "inline-flex items-center gap-2 self-start rounded-full bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700"
+            }
+          >
+            {finalReady ? <CheckCircle2 className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />}
+            {finalReady ? "Siap dimuat ke database" : `Belum lengkap (${readyCount}/${totalFinal})`}
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+          {(finalStatus?.files ?? [
+            { hazard: "flood",       filename: "kabkota_flood_final.geojson",       exists: false, path: "", size_bytes: 0, modified_at: null },
+            { hazard: "drought",     filename: "kabkota_drought_final.geojson",     exists: false, path: "", size_bytes: 0, modified_at: null },
+            { hazard: "multihazard", filename: "kabkota_multihazard_final.geojson", exists: false, path: "", size_bytes: 0, modified_at: null },
+          ]).map((file) => (
+            <div
+              key={file.filename}
+              className={
+                file.exists
+                  ? "rounded-2xl border border-green-200 bg-green-50/50 p-4"
+                  : "rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              }
+            >
+              <div className="flex items-center gap-2">
+                {file.exists ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                ) : (
+                  <CircleDashed className="h-4 w-4 text-slate-400" />
+                )}
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                  {file.hazard}
+                </p>
+              </div>
+              <p className="mt-2 break-all font-mono text-xs text-slate-600">
+                {file.filename}
+              </p>
+              <dl className="mt-3 space-y-1 text-xs text-slate-500">
+                <div className="flex justify-between">
+                  <dt>Status</dt>
+                  <dd className={file.exists ? "font-semibold text-green-700" : "font-semibold text-amber-700"}>
+                    {file.exists ? "Tersedia" : "Belum ada"}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt>Ukuran</dt>
+                  <dd>{file.exists ? formatBytes(file.size_bytes) : "-"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt>Diperbarui</dt>
+                  <dd>{file.exists ? formatDateTime(file.modified_at) : "-"}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Parameter */}
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
@@ -349,7 +542,8 @@ export default function AdminProcessPage() {
               Pilih Jenis Analisis
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Pilih hazard dan mode, lalu mulai proses.
+              Pilih hazard dan operator. Tombol Pipeline Penuh hanya menjalankan analisis
+              (tanpa load database).
             </p>
           </div>
 
@@ -364,11 +558,11 @@ export default function AdminProcessPage() {
                   key={item.key}
                   type="button"
                   onClick={() => setSelectedHazard(item.key)}
-                  disabled={status?.status === "running"}
+                  disabled={isPipelineRunning}
                   className={
                     active
                       ? "rounded-2xl border border-[var(--color-primary)] bg-[var(--color-primary-soft)] p-4 text-left shadow-sm"
-                      : "rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-[var(--color-primary)]"
+                      : "rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
                   }
                 >
                   <p className="text-sm font-semibold text-slate-900">{item.label}</p>
@@ -388,7 +582,7 @@ export default function AdminProcessPage() {
               value={operatorName}
               onChange={(e) => setOperatorName(e.target.value)}
               placeholder="contoh: mitra_bandung"
-              disabled={status?.status === "running"}
+              disabled={isPipelineRunning}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
@@ -398,37 +592,52 @@ export default function AdminProcessPage() {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 <span className="font-semibold">Perhatian:</span>{" "}
-                Multi-hazard tidak menjalankan preprocess/zonal dari awal. Proses ini memakai output flood dan drought yang sudah ada. Pastikan pipeline flood dan drought sudah berhasil dijalankan sebelumnya.
+                Multi-hazard membutuhkan kabkota_flood_final.geojson dan kabkota_drought_final.geojson sudah ada.
+                Pipeline ini hanya menjalankan langkah multi-hazard — flood dan drought tidak akan dijalankan ulang.
               </span>
             </div>
           )}
 
           {/* Primary actions */}
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => handleRun("full")}
-              disabled={!canRun}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-5 py-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <PlayCircle className="h-4 w-4 shrink-0" />
-              <span>
-                {runningAction ? "Menjalankan..." : "Jalankan Pipeline Penuh"}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRun("web")}
-              disabled={!canRun}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Activity className="h-4 w-4 shrink-0" />
-              <span>Muat ke Database Saja</span>
-            </button>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => handleRun("full")}
+                disabled={!canRun}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-5 py-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <PlayCircle className="h-4 w-4 shrink-0" />
+                <span>
+                  {runningAction ? "Menjalankan..." : "Jalankan Pipeline Penuh"}
+                </span>
+              </button>
+              <p className="text-xs leading-relaxed text-slate-500">
+                Menjalankan analisis hazard yang dipilih sampai menghasilkan file final GeoJSON.
+                <span className="font-semibold"> Tidak</span> memuat ke database.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleLoadDatabase}
+                disabled={!canLoadDatabase}
+                title={!finalReady ? "Lengkapi ketiga file final terlebih dahulu" : undefined}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-900 bg-slate-900 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500"
+              >
+                <Database className="h-4 w-4 shrink-0" />
+                <span>Muat ke Database</span>
+              </button>
+              <p className="text-xs leading-relaxed text-slate-500">
+                Memuat ketiga file final ke Postgres (flood + drought + multihazard sekaligus).
+                Aktif setelah ketiga file final tersedia.
+              </p>
+            </div>
           </div>
 
           {/* Advanced (collapsed by default) */}
-          <div className="mt-4">
+          <div className="mt-5">
             <button
               type="button"
               onClick={() => setShowAdvanced((v) => !v)}

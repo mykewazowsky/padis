@@ -9,6 +9,7 @@ import {
   Clock3,
   GitBranch,
   Layers3,
+  PlayCircle,
   Power,
   RefreshCw,
   Star,
@@ -428,30 +429,31 @@ export default function AdminPipelineMonitorPage() {
     <main className="space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-4xl">
-            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-              PIPELINE MONITOR
-            </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-              Alur Proses
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 md:text-base">
-              Pantau tahapan pipeline, status setiap skrip, dan alur per hazard secara real-time.
-            </p>
-            <p className="mt-2 text-xs text-slate-500">
-              Auto refresh setiap {POLL_MS / 1000} detik
-            </p>
-          </div>
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.18em] text-[var(--color-primary)]">PIPELINE MONITOR</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Alur Proses</h1>
+          <p className="mt-1 text-xs text-slate-500">
+            Riwayat run, aktivasi data aktif, dan status pipeline real-time ·{" "}
+            auto-refresh setiap {POLL_MS / 1000}s
+          </p>
+        </div>
+        <div className="flex items-center gap-2 self-start">
+          <Link
+            href="/admin/process-control"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+          >
+            <PlayCircle className="h-3.5 w-3.5" />
+            Jalankan Pipeline
+          </Link>
           <button
             type="button"
             onClick={() => loadData(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            {refreshing ? "Memuat..." : "Refresh"}
+            {refreshing ? "Memuat…" : "Refresh"}
           </button>
         </div>
       </section>
@@ -525,33 +527,39 @@ export default function AdminPipelineMonitorPage() {
 
       {/* ── Current run detail ───────────────────────────────────────────────── */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5">
-          <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-            STATUS SAAT INI
-          </p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Run Terbaru</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">STATUS SAAT INI</p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Run Terbaru</h2>
+          </div>
+          {currentRun && (
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(currentRun.status)}`}>
+              {capitalize(currentRun.status)}
+            </span>
+          )}
         </div>
 
         {loading ? (
           <div className="animate-pulse space-y-3">
             <div className="h-4 w-1/3 rounded bg-slate-200" />
             <div className="h-8 rounded bg-slate-200" />
-            <div className="h-4 w-2/3 rounded bg-slate-200" />
           </div>
         ) : currentRun === null ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">
-            Belum ada monitoring run. Gunakan halaman <strong>Process Control</strong> untuk menjalankan pipeline.
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+            Belum ada monitoring run.{" "}
+            <Link href="/admin/process-control" className="font-semibold text-[var(--color-primary)] hover:underline">
+              Jalankan pipeline →
+            </Link>
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Progress */}
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Progress
-                </p>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Progress</p>
                 <p className="text-sm font-bold text-slate-900">{currentRun.progress}%</p>
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
                   className={`h-full rounded-full transition-all ${getProgressBarClass(currentRun.status)}`}
                   style={{ width: `${Math.min(100, Math.max(0, currentRun.progress))}%` }}
@@ -559,49 +567,36 @@ export default function AdminPipelineMonitorPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tahap</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {capitalize(currentRun.step) || "—"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mulai</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {formatDateTime(currentRun.created_at)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Run Name</p>
-                <p className="mt-1 break-all text-xs font-medium text-slate-700">
-                  {currentRun.run_name}
-                </p>
-              </div>
+            {/* Meta row */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {[
+                { label: "Tahap",    value: capitalize(currentRun.step) || "—"     },
+                { label: "Hazard",   value: capitalize(extractHazard(currentRun.run_name)) || "—" },
+                { label: "Operator", value: currentRun.operator_name || "—"        },
+                { label: "Mulai",    value: formatDateTime(currentRun.created_at)  },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+                  <p className="mt-0.5 truncate text-xs font-semibold text-slate-800" title={value}>{value}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pesan</p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-700">
-                {currentRun.message || "Tidak ada pesan."}
-              </p>
-            </div>
+            {currentRun.message && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Keterangan</p>
+                <p className="mt-1 text-sm leading-relaxed text-slate-700">{currentRun.message}</p>
+              </div>
+            )}
 
             {(currentRun.status === "success" || currentRun.status === "failed") && (
-              <div
-                className={`rounded-2xl border px-4 py-3 text-sm ${
-                  currentRun.status === "success"
-                    ? "border-green-200 bg-green-50 text-green-700"
-                    : "border-red-200 bg-red-50 text-red-700"
-                }`}
-              >
-                {currentRun.status === "success"
-                  ? "Pipeline selesai. "
-                  : "Pipeline gagal. "}
-                <Link
-                  href="/admin/outputs"
-                  className="font-medium underline hover:opacity-80"
-                >
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${
+                currentRun.status === "success"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}>
+                <span>{currentRun.status === "success" ? "Pipeline selesai." : "Pipeline gagal."}</span>
+                <Link href="/admin/outputs" className="font-semibold underline-offset-2 hover:underline">
                   Lihat Output →
                 </Link>
               </div>
@@ -626,42 +621,21 @@ export default function AdminPipelineMonitorPage() {
         </div>
       </section>
 
-      {/* ── Hazard branches ──────────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <div>
-              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">FLOOD</p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Flood</h2>
-            </div>
-          </div>
-          <NodeCard node={floodNode} />
+      {/* ── Hazard branches — compact strip ─────────────────────────────────── */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4">
+          <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
+            JALUR HAZARD
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Status per Hazard</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Status analisis untuk masing-masing jalur hazard pada run terpilih.
+          </p>
         </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <div>
-              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">DROUGHT</p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Drought</h2>
-            </div>
-          </div>
-          <NodeCard node={droughtNode} />
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-indigo-600" />
-            <div>
-              <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">MULTI-HAZARD</p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Jalur Multi-hazard</h2>
-            </div>
-          </div>
-          <div className="mb-4 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
-            Multi-hazard bergantung pada hasil flood dan drought.
-          </div>
-          <NodeCard node={multiNode} />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {[floodNode, droughtNode, multiNode].map((node) => (
+            <NodeCard key={node.id} node={node} />
+          ))}
         </div>
       </section>
 
@@ -806,40 +780,12 @@ export default function AdminPipelineMonitorPage() {
         )}
       </section>
 
-      {/* ── Guide ────────────────────────────────────────────────────────────── */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5">
-          <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-            PANDUAN
-          </p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-            Cara Membaca Pipeline Monitor
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="font-semibold text-slate-900">Tahap Utama</p>
-            <p className="mt-2 text-sm text-slate-600">
-              Preprocess → Zonal → Analysis+ETL. Tahap ditentukan dari field{" "}
-              <code className="text-xs">step</code> di tabel runs.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="font-semibold text-slate-900">Jalur Hazard</p>
-            <p className="mt-2 text-sm text-slate-600">
-              Sub-langkah analisis per hazard ditentukan dari prefix{" "}
-              <code className="text-xs">run_name</code> (flood/drought/multi).
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="font-semibold text-slate-900">Riwayat Run</p>
-            <p className="mt-2 text-sm text-slate-600">
-              10 monitoring run terakhir dari tabel runs. Auto-refresh setiap{" "}
-              {POLL_MS / 1000} detik tanpa interaksi pengguna.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Panduan singkat — inline hint, bukan section terpisah */}
+      <p className="px-1 text-xs text-slate-400">
+        Tahap: Preprocess → Zonal → Analysis → ETL. Jalur hazard ditentukan dari prefix <code>run_name</code>.
+        Auto-refresh setiap {POLL_MS / 1000} detik.
+        Panduan lengkap di halaman <Link href="/admin/guide" className="underline hover:text-slate-700">Admin Guide</Link>.
+      </p>
 
       {/* ── Activation modal ─────────────────────────────────────────────────── */}
       {activationTarget && (

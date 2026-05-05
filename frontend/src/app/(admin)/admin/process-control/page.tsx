@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   Gauge,
+  GitBranch,
   PlayCircle,
   RefreshCw,
 } from "lucide-react";
@@ -42,29 +46,6 @@ const HAZARD_OPTIONS: { key: HazardKey; label: string; desc: string }[] = [
   },
 ];
 
-const MODE_OPTIONS: { key: ModeKey; label: string; desc: string }[] = [
-  {
-    key: "full",
-    label: "Full Pipeline",
-    desc: "Preprocess → Zonal → Analisis → ETL ke database.",
-  },
-  {
-    key: "preprocess",
-    label: "Preprocess Only",
-    desc: "Hanya jalankan preprocessing data raster.",
-  },
-  {
-    key: "analysis",
-    label: "Analysis Only",
-    desc: "Zonal stats + analisis hazard (skip preprocess).",
-  },
-  {
-    key: "web",
-    label: "Load DB Only",
-    desc: "Muat hasil analisis ke database saja.",
-  },
-];
-
 // Maps step name to visual stage index (0-based)
 // Stages: 0=PREPROCESS, 1=ZONAL, 2=ANALYSIS, 3=ETL
 function inferStageFromScript(script?: string | null): number {
@@ -83,6 +64,13 @@ const STEP_DEFS = [
   { name: "analysis",   label: "ANALYSIS"   },
   { name: "etl",        label: "ETL"        },
 ];
+
+const STEP_STATUS_LABEL: Record<StepStatus, string> = {
+  pending: "Menunggu",
+  running: "Berjalan",
+  success: "Selesai",
+  failed:  "Gagal",
+};
 
 function formatDuration(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds));
@@ -159,7 +147,7 @@ function PipelineSteps({
             </p>
           </div>
           <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
-            {step.status}
+            {STEP_STATUS_LABEL[step.status]}
           </p>
         </div>
       ))}
@@ -176,6 +164,7 @@ export default function AdminProcessPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [hasRunThisSession, setHasRunThisSession] = useState(false);
 
   const loadStatus = useCallback(async (showRefresh = false) => {
     try {
@@ -219,6 +208,7 @@ export default function AdminProcessPage() {
         setSuccessMessage(
           `Pipeline berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
         );
+        setHasRunThisSession(true);
         await loadStatus(false);
       } else if (res.status === 409) {
         const active = (json as any).active_run;
@@ -319,13 +309,26 @@ export default function AdminProcessPage() {
 
       {successMessage && (
         <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {successMessage}{" "}
-          <Link
-            href="/admin/pipeline-monitor"
-            className="font-medium underline hover:text-green-900"
-          >
-            Pantau Pipeline →
-          </Link>
+          {successMessage} Pantau progress live di panel bawah.
+        </div>
+      )}
+
+      {hasRunThisSession && status?.status === "success" && (
+        <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
+          <GitBranch className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Pipeline selesai dengan sukses.</p>
+            <p className="mt-1 leading-relaxed">
+              Buka{" "}
+              <Link
+                href="/admin/pipeline-monitor"
+                className="font-semibold underline underline-offset-2"
+              >
+                Pipeline Monitor
+              </Link>{" "}
+              untuk mengaktifkan run baru ke frontend.
+            </p>
+          </div>
         </div>
       )}
 
@@ -390,6 +393,16 @@ export default function AdminProcessPage() {
             />
           </div>
 
+          {selectedHazard === "multi" && (
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <span className="font-semibold">Perhatian:</span>{" "}
+                Multi-hazard tidak menjalankan preprocess/zonal dari awal. Proses ini memakai output flood dan drought yang sudah ada. Pastikan pipeline flood dan drought sudah berhasil dijalankan sebelumnya.
+              </span>
+            </div>
+          )}
+
           {/* Primary actions */}
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             <button
@@ -407,7 +420,7 @@ export default function AdminProcessPage() {
               type="button"
               onClick={() => handleRun("web")}
               disabled={!canRun}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Activity className="h-4 w-4 shrink-0" />
               <span>Muat ke Database Saja</span>
@@ -421,7 +434,14 @@ export default function AdminProcessPage() {
               onClick={() => setShowAdvanced((v) => !v)}
               className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
             >
-              {showAdvanced ? "▲ Sembunyikan opsi lanjutan" : "▼ Opsi lanjutan"}
+              <span className="inline-flex items-center gap-1">
+              {showAdvanced ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+              {showAdvanced ? "Sembunyikan opsi lanjutan" : "Opsi lanjutan"}
+            </span>
             </button>
             {showAdvanced && (
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">

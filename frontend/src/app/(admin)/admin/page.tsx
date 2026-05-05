@@ -352,6 +352,37 @@ export default function AdminOverviewPage() {
     };
   }, [users.length, totalAdmins, totalActiveUsers]);
 
+  const contextualCta = useMemo(() => {
+    if (processStatus?.status === "running") {
+      return {
+        label: "Pipeline sedang berjalan",
+        desc: `Progress ${processStatus.progress_percent ?? 0}% · Pantau secara live di Process Control.`,
+        href: "/admin/process-control",
+        linkLabel: "Buka Process Control",
+        tone: "amber",
+      };
+    }
+    if (processStatus?.status === "failed") {
+      return {
+        label: "Pipeline terakhir gagal",
+        desc: processStatus.message || "Tinjau log dan jalankan ulang pipeline.",
+        href: "/admin/process-control",
+        linkLabel: "Tinjau dan Jalankan Ulang",
+        tone: "red",
+      };
+    }
+    if (!processStatus || processStatus.status === "idle") {
+      return {
+        label: "Belum ada proses aktif",
+        desc: "Mulai pipeline analisis baru dari Process Control.",
+        href: "/admin/process-control",
+        linkLabel: "Mulai Pipeline",
+        tone: "blue",
+      };
+    }
+    return null;
+  }, [processStatus]);
+
   const summaryCards: SummaryCard[] = [
     {
       title: "Status Sistem",
@@ -477,7 +508,7 @@ export default function AdminOverviewPage() {
         title: "Proses terakhir berhasil",
         desc:
           processStatus.message || "Hasil terakhir berhasil diselesaikan sistem.",
-        time: lastSyncedLabel,
+        time: formatDateTime(processStatus.started_at),
         tone: "green",
       });
     }
@@ -488,7 +519,7 @@ export default function AdminOverviewPage() {
         desc:
           processStatus.message ||
           "Buka Process Control untuk meninjau proses terakhir.",
-        time: lastSyncedLabel,
+        time: formatDateTime(processStatus.started_at),
         tone: "red",
       });
     }
@@ -527,7 +558,7 @@ export default function AdminOverviewPage() {
     {
       title: "Process Control",
       href: "/admin/process-control",
-      desc: "Jalankan dan pantau proses analisis data.",
+      desc: "Pilih hazard, atur parameter, jalankan pipeline, dan pantau progress live.",
       icon: PlayCircle,
       accentClass: "border-amber-200 bg-amber-50",
       iconWrapClass: "bg-white",
@@ -536,7 +567,7 @@ export default function AdminOverviewPage() {
     {
       title: "Pipeline Monitor",
       href: "/admin/pipeline-monitor",
-      desc: "Lihat alur proses dan status setiap tahap.",
+      desc: "Riwayat semua run, aktivasi run aktif, dan manajemen data hasil.",
       icon: FolderTree,
       accentClass: "border-indigo-200 bg-indigo-50",
       iconWrapClass: "bg-white",
@@ -662,6 +693,57 @@ export default function AdminOverviewPage() {
         </div>
       </section>
 
+      {!loading && contextualCta && (
+        <section
+          className={`rounded-3xl border px-6 py-4 ${
+            contextualCta.tone === "amber"
+              ? "border-amber-200 bg-amber-50"
+              : contextualCta.tone === "red"
+              ? "border-red-200 bg-red-50"
+              : "border-blue-200 bg-blue-50"
+          }`}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p
+                className={`text-sm font-semibold ${
+                  contextualCta.tone === "amber"
+                    ? "text-amber-900"
+                    : contextualCta.tone === "red"
+                    ? "text-red-900"
+                    : "text-blue-900"
+                }`}
+              >
+                {contextualCta.label}
+              </p>
+              <p
+                className={`mt-1 text-sm ${
+                  contextualCta.tone === "amber"
+                    ? "text-amber-800"
+                    : contextualCta.tone === "red"
+                    ? "text-red-800"
+                    : "text-blue-800"
+                }`}
+              >
+                {contextualCta.desc}
+              </p>
+            </div>
+            <Link
+              href={contextualCta.href}
+              className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
+                contextualCta.tone === "amber"
+                  ? "bg-amber-600 text-white hover:bg-amber-700"
+                  : contextualCta.tone === "red"
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {contextualCta.linkLabel}
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {loading
           ? Array.from({ length: 4 }).map((_, index) => (
@@ -722,9 +804,15 @@ export default function AdminOverviewPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
-              {alerts.length} Alert
-            </div>
+            {alerts.length > 0 ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                {alerts.length} Alert
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
+                Sistem OK
+              </div>
+            )}
           </div>
 
           {alerts.length === 0 ? (

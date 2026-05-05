@@ -118,11 +118,11 @@ function getPageDescription(pathname: string) {
   }
 
   if (pathname.startsWith("/admin/process-control")) {
-    return "Atur workflow operasional, parameter proses, dan kontrol eksekusi.";
+    return "Pilih hazard, atur parameter, jalankan pipeline, dan pantau progress live.";
   }
 
   if (pathname.startsWith("/admin/pipeline-monitor")) {
-    return "Pantau status pipeline, progress job, histori proses, dan potensi error.";
+    return "Riwayat semua run, aktivasi run aktif, dan manajemen data hasil.";
   }
 
   if (pathname.startsWith("/admin/outputs")) {

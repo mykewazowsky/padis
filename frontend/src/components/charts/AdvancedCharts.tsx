@@ -101,7 +101,7 @@ function CustomTooltip({
   if (!active || !payload || !payload.length) return null;
   const fullName = (payload[0]?.payload?.name as string | undefined) ?? label;
   return (
-    <div className="rounded-2xl border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-4 py-3 shadow-[var(--chart-tooltip-shadow)]">
+    <div className="rounded-lg border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-3.5 py-3 shadow-[var(--chart-tooltip-shadow)]">
       <p className="text-xs font-semibold tracking-wide text-[var(--chart-tooltip-muted)]">
         {labelPrefix}: {fullName}
       </p>
@@ -136,7 +136,7 @@ function HistogramTooltip({
   const bucket = payload[0]?.payload as HistogramBucket | undefined;
   if (!bucket) return null;
   return (
-    <div className="rounded-2xl border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-4 py-3 shadow-[var(--chart-tooltip-shadow)]">
+    <div className="rounded-lg border border-[var(--chart-tooltip-border)] bg-[var(--chart-tooltip-bg)] px-3.5 py-3 shadow-[var(--chart-tooltip-shadow)]">
       <p className="text-xs font-semibold tracking-wide text-[var(--chart-tooltip-muted)]">
         Rp {formatCompact(bucket.lo)} – Rp {formatCompact(bucket.hi)}
       </p>
@@ -155,6 +155,31 @@ const STAT_ITEMS: { key: keyof HistogramStats; label: string }[] = [
 ];
 
 const BUCKET_COUNT = 10;
+
+const CHART_CARD_CLASS =
+  "rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] p-4 md:p-5";
+const METRIC_RAIL_CLASS =
+  "flex flex-wrap items-baseline gap-x-5 gap-y-2 border-y border-[var(--dashboard-border-soft)] py-2.5";
+const METRIC_CELL_CLASS =
+  "flex min-w-0 items-baseline gap-2";
+const STAT_RAIL_CLASS =
+  "flex flex-wrap items-baseline gap-x-4 gap-y-2 border-y border-[var(--dashboard-border-soft)] py-2.5";
+const STAT_CELL_CLASS =
+  "flex min-w-0 items-baseline gap-2";
+const INSIGHT_ROW_CLASS =
+  "border-l border-[var(--dashboard-border-solid)] py-1 pl-3";
+const CHART_CANVAS_CLASS =
+  "h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1";
+const HISTOGRAM_CANVAS_CLASS =
+  "h-72 w-full rounded-md bg-[var(--dashboard-surface)] p-1";
+const ERROR_CANVAS_CLASS =
+  "flex h-full w-full items-center justify-center rounded-lg border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] px-4 text-center text-sm text-[var(--dashboard-status-danger-text)]";
+const STATUS_BADGE_CLASS =
+  "shrink-0 border-l border-[var(--dashboard-border-solid)] pl-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]";
+const PRIMARY_ICON_CLASS =
+  "text-[var(--color-primary)]";
+const WARNING_ICON_CLASS =
+  "text-[var(--color-secondary-dark)]";
 
 export default function AdvancedCharts({
   scenario,
@@ -307,15 +332,15 @@ export default function AdvancedCharts({
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {/* ── Left: Top 10 Kabupaten/Kota ─────────────────────────────────── */}
-      <div className="card card-accent-primary p-5 md:p-6">
+      <div className={CHART_CARD_CLASS}>
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-2">
+                <div className={PRIMARY_ICON_CLASS}>
                   <MapPinned className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
-                <h4 className="text-lg font-bold tracking-tight text-heading">
+                <h4 className="text-base font-bold tracking-tight text-heading">
                   Top 10 Kabupaten/Kota
                 </h4>
               </div>
@@ -324,25 +349,25 @@ export default function AdvancedCharts({
                 {scenario.toUpperCase()} · {getClimateLabel(climate)}
               </p>
             </div>
-            <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-gray-light)] px-3 py-1 text-xs font-semibold text-heading">
+            <div className={STATUS_BADGE_CLASS}>
               Klik untuk fokus ke peta
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="surface-soft rounded-2xl p-4">
+          <div className={METRIC_RAIL_CLASS}>
+            <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Wilayah Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-heading">
+              <p className="text-sm font-semibold text-heading">
                 {loadingTopRegions ? "Loading..." : topRegionSummary.name}
               </p>
             </div>
-            <div className="surface-soft rounded-2xl p-4">
+            <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Loss Tertinggi
               </p>
-              <p className="mt-2 text-lg font-bold text-heading">
+              <p className="text-sm font-semibold text-heading">
                 {loadingTopRegions
                   ? "Loading..."
                   : formatRupiah(topRegionSummary.value)}
@@ -350,7 +375,7 @@ export default function AdvancedCharts({
             </div>
           </div>
 
-          <div className="surface-soft rounded-2xl px-4 py-3">
+          <div className={INSIGHT_ROW_CLASS}>
             {loadingTopRegions ? (
               <div className="animate-pulse space-y-2">
                 <div className="h-4 w-36 rounded bg-[var(--color-border)]" />
@@ -364,7 +389,7 @@ export default function AdvancedCharts({
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] p-2 shadow-sm">
+                <div className="mt-0.5 shrink-0 text-[var(--color-primary)]">
                   <Target className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
@@ -380,21 +405,22 @@ export default function AdvancedCharts({
             )}
           </div>
 
-          <div className="h-80 w-full">
+          <div className={CHART_CANVAS_CLASS}>
             {loadingTopRegions ? (
               <DashboardLoadingBlock
-                heightClass="h-80"
+                heightClass="h-full"
                 title="Memuat ranking wilayah..."
                 description="Sistem sedang menyusun wilayah dengan kerugian tertinggi."
               />
             ) : errorTopRegions ? (
-              <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] text-sm text-[var(--dashboard-status-danger-text)]">
+              <div className={ERROR_CANVAS_CLASS}>
                 {errorTopRegions}
               </div>
             ) : !hasTopRegionData ? (
               <DashboardEmptyState
                 message="Belum ada data top wilayah untuk kombinasi filter ini."
                 actionHint="Coba ubah hazard, scenario, atau climate condition."
+                compact
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -467,15 +493,15 @@ export default function AdvancedCharts({
       </div>
 
       {/* ── Right: Distribusi Loss (Histogram) ──────────────────────────── */}
-      <div className="card card-accent-secondary p-5 md:p-6">
+      <div className={CHART_CARD_CLASS}>
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <div className="rounded-xl border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] p-2">
+                <div className={WARNING_ICON_CLASS}>
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
-                <h4 className="text-lg font-bold tracking-tight text-heading">
+                <h4 className="text-base font-bold tracking-tight text-heading">
                   Distribusi Loss
                 </h4>
               </div>
@@ -485,22 +511,22 @@ export default function AdvancedCharts({
                 {getClimateLabel(climate)}
               </p>
             </div>
-            <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-gray-light)] px-3 py-1 text-xs font-semibold text-heading">
+            <div className={STATUS_BADGE_CLASS}>
               {scenario.toUpperCase()}
             </div>
           </div>
 
           {/* Stats: mean · median · min · max */}
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <div className={STAT_RAIL_CLASS}>
             {STAT_ITEMS.map(({ key, label }) => (
               <div
                 key={key}
-                className="surface-soft rounded-2xl p-3"
+                className={STAT_CELL_CLASS}
               >
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">
                   {label}
                 </p>
-                <p className="mt-1.5 truncate text-sm font-bold text-heading">
+                <p className="truncate text-sm font-semibold text-heading">
                   {loadingLossDist ? (
                     <span className="animate-pulse text-muted">—</span>
                   ) : histogramData.stats != null ? (
@@ -513,7 +539,7 @@ export default function AdvancedCharts({
             ))}
           </div>
 
-          <div className="surface-soft rounded-2xl px-4 py-3">
+          <div className={INSIGHT_ROW_CLASS}>
             {loadingLossDist ? (
               <div className="animate-pulse space-y-2">
                 <div className="h-4 w-32 rounded bg-[var(--color-border)]" />
@@ -527,7 +553,7 @@ export default function AdvancedCharts({
               </p>
             ) : (
               <div className="flex items-start gap-3">
-                <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] p-2 shadow-sm">
+                <div className="mt-0.5 shrink-0 text-[var(--color-primary)]">
                   <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
@@ -546,23 +572,30 @@ export default function AdvancedCharts({
 
           <div className="w-full">
             {loadingLossDist ? (
-              <DashboardLoadingBlock
-                heightClass="h-72"
-                title="Memuat distribusi kerugian..."
-                description="Data kerugian per kabupaten sedang diproses."
-              />
+              <div className={HISTOGRAM_CANVAS_CLASS}>
+                <DashboardLoadingBlock
+                  heightClass="h-full"
+                  title="Memuat distribusi kerugian..."
+                  description="Data kerugian per kabupaten sedang diproses."
+                />
+              </div>
             ) : errorLossDist ? (
-              <div className="flex h-72 w-full items-center justify-center rounded-2xl border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] text-sm text-[var(--dashboard-status-danger-text)]">
-                {errorLossDist}
+              <div className={HISTOGRAM_CANVAS_CLASS}>
+                <div className={ERROR_CANVAS_CLASS}>
+                  {errorLossDist}
+                </div>
               </div>
             ) : !hasLossDistData ? (
-              <DashboardEmptyState
-                message="Belum ada data distribusi untuk kombinasi filter ini."
-                actionHint="Coba ubah hazard, scenario, atau climate condition."
-              />
+              <div className={HISTOGRAM_CANVAS_CLASS}>
+                <DashboardEmptyState
+                  message="Belum ada data distribusi untuk kombinasi filter ini."
+                  actionHint="Coba ubah hazard, scenario, atau climate condition."
+                  compact
+                />
+              </div>
             ) : (
               <>
-                <div className="h-72 w-full">
+                <div className={HISTOGRAM_CANVAS_CLASS}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={histogramData.buckets}

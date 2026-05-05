@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Select from "react-select";
-import { Filter } from "lucide-react";
 
 type OptionType = {
   value: string;
@@ -70,11 +69,16 @@ function FilterFields({
         const isActive = activeField === fieldId || state.menuIsOpen || state.isFocused;
         return {
           ...originalControl,
-          minHeight: isInline ? 46 : originalControl.minHeight,
-          borderRadius: isInline ? 14 : originalControl.borderRadius,
-          borderColor: isActive ? "var(--color-primary)" : originalControl.borderColor,
+          minHeight: isInline ? 44 : originalControl.minHeight,
+          borderRadius: isInline ? 10 : originalControl.borderRadius,
+          borderColor: isInline
+            ? (isActive ? "var(--color-primary)" : "var(--dashboard-input-border)")
+            : originalControl.borderColor,
+          backgroundColor: isInline
+            ? "var(--dashboard-input-bg)"
+            : originalControl.backgroundColor,
           boxShadow: isActive
-            ? "0 0 0 3px rgba(30,99,181,0.14)"
+            ? "0 0 0 2px rgba(30,99,181,0.12)"
             : originalControl.boxShadow,
         };
       },
@@ -84,20 +88,32 @@ function FilterFields({
 
   const getFieldClassName = (fieldId: string) =>
     isInline
-      ? `space-y-1.5 rounded-xl border p-2.5 transition ${
+      ? `space-y-1.5 rounded-lg border p-2.5 transition ${
           activeField === fieldId
             ? "border-[var(--color-primary)] bg-[var(--dashboard-active-surface)] shadow-sm"
             : "border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-muted)]"
         }`
-      : "space-y-1";
+      : fieldId === "region"
+        ? `min-w-0 rounded-lg border-t border-[var(--dashboard-border-solid)] px-2.5 py-2 transition-colors hover:bg-[var(--dashboard-control-bg)] md:border-t-0 xl:col-span-2 xl:border-l ${
+            activeField === fieldId ? "bg-[var(--dashboard-control-bg)]" : ""
+          }`
+        : `min-w-0 rounded-lg px-2.5 py-2 transition-colors hover:bg-[var(--dashboard-control-bg)] md:border-r md:border-[var(--dashboard-border-solid)] ${
+            activeField === fieldId ? "bg-[var(--dashboard-control-bg)]" : ""
+          }`;
 
   const getLabelClassName = () =>
     isInline
       ? "block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-muted)]"
-      : "block text-xs font-semibold text-[var(--dashboard-text)]";
+      : "block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-soft)]";
 
   return (
-    <div className={`grid grid-cols-1 ${isInline ? "gap-3.5" : "gap-2.5 md:grid-cols-2 xl:grid-cols-4"}`}>
+    <div
+      className={
+        isInline
+          ? "grid grid-cols-1 gap-3"
+          : "grid grid-cols-1 gap-2 overflow-hidden rounded-xl border border-[var(--dashboard-border-solid)] bg-[linear-gradient(180deg,var(--dashboard-control-bg),var(--dashboard-surface-muted))] p-2 shadow-[0_8px_20px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.68)] md:grid-cols-2 xl:grid-cols-5"
+      }
+    >
       <div className={getFieldClassName("hazard")}>
         <label className={getLabelClassName()}>
           Jenis Bencana
@@ -198,7 +214,7 @@ export default function DashboardMapFilters(props: Props) {
 
   if (variant === "inline") {
     return (
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]">
             Filter
@@ -212,23 +228,5 @@ export default function DashboardMapFilters(props: Props) {
     );
   }
 
-  return (
-    <div className="relative z-30 rounded-2xl border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 shadow-[var(--dashboard-shadow)] backdrop-blur">
-      <div className="mb-3 flex items-center gap-2">
-        <div className="rounded-xl border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-active-surface)] p-2">
-          <Filter className="h-4 w-4 text-[var(--color-primary)]" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold leading-tight text-[var(--dashboard-text)]">
-            Filter Analisis
-          </p>
-          <p className="text-xs text-[var(--dashboard-text-muted)]">
-            Atur parameter untuk memperbarui distribusi risiko pada peta.
-          </p>
-        </div>
-      </div>
-
-      <FilterFields {...props} />
-    </div>
-  );
+  return <FilterFields {...props} />;
 }

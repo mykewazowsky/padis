@@ -150,21 +150,26 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
 const selectStyles = {
   control: (base: any, state: any) => ({
     ...base,
-    minHeight: 48,
-    borderRadius: 16,
-    borderColor: state.isFocused ? "var(--color-primary)" : "var(--dashboard-input-border)",
-    backgroundColor: "var(--dashboard-input-bg)",
-    boxShadow: state.isFocused ? "0 0 0 3px rgba(30,99,181,0.10)" : "none",
-    paddingLeft: 2,
-    paddingRight: 2,
+    minHeight: 38,
+    borderRadius: 8,
+    borderColor: state.isFocused ? "var(--color-primary)" : "transparent",
+    backgroundColor: state.isFocused
+      ? "var(--dashboard-input-bg)"
+      : "transparent",
+    boxShadow: state.isFocused ? "0 0 0 2px rgba(30,99,181,0.10)" : "none",
+    paddingLeft: 0,
+    paddingRight: 0,
     "&:hover": {
-      borderColor: state.isFocused ? "var(--color-primary)" : "var(--dashboard-input-border-hover)",
+      borderColor: state.isFocused ? "var(--color-primary)" : "var(--dashboard-border-solid)",
+      backgroundColor: "var(--dashboard-control-bg)",
     },
   }),
   valueContainer: (base: any) => ({
     ...base,
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 2,
+    paddingRight: 6,
   }),
   option: (base: any, state: any) => ({
     ...base,
@@ -175,29 +180,35 @@ const selectStyles = {
         : "var(--dashboard-input-bg)",
     color: state.isSelected ? "#ffffff" : "var(--dashboard-input-text)",
     cursor: "pointer",
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 9,
+    paddingBottom: 9,
+    fontSize: 13,
   }),
   singleValue: (base: any) => ({
     ...base,
-    color: "var(--dashboard-input-text)",
+    color: "var(--dashboard-text-strong)",
+    fontWeight: 700,
+    fontSize: 13,
+    letterSpacing: "0.01em",
   }),
   placeholder: (base: any) => ({
     ...base,
-    color: "var(--dashboard-text-muted)",
+    color: "var(--dashboard-text-soft)",
+    fontSize: 13,
   }),
   input: (base: any) => ({
     ...base,
     color: "var(--dashboard-input-text)",
+    fontSize: 13,
   }),
   menu: (base: any) => ({
     ...base,
     zIndex: 50,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "var(--dashboard-input-bg)",
     border: "1px solid var(--dashboard-border-solid)",
-    boxShadow: "var(--dashboard-shadow)",
+    boxShadow: "0 16px 34px rgba(15,23,42,0.12)",
   }),
   indicatorSeparator: () => ({
     display: "none",
@@ -760,10 +771,10 @@ export default function DashboardPage() {
       <section className="relative w-full overflow-hidden pt-10 pb-14">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--dashboard-page-bg-top)_0%,var(--dashboard-page-bg-mid)_55%,var(--dashboard-page-bg-bottom)_100%)]" />
-          <div className="absolute -top-24 -left-16 h-[28rem] w-[28rem] rounded-full bg-blue-300/30 blur-3xl" />
-          <div className="absolute -top-20 right-[-4rem] h-[26rem] w-[26rem] rounded-full bg-emerald-300/25 blur-3xl" />
-          <div className="absolute bottom-[-5rem] left-1/3 h-[22rem] w-[22rem] rounded-full bg-sky-300/20 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:32px_32px]" />
+          <div className="absolute inset-x-[6%] top-[13rem] h-[34rem] rounded-[999px] bg-white/45 blur-3xl" />
+          <div className="absolute -top-20 left-[-8rem] h-[22rem] w-[34rem] rounded-full bg-sky-200/18 blur-3xl" />
+          <div className="absolute bottom-[-8rem] right-[-8rem] h-[24rem] w-[32rem] rounded-full bg-slate-300/16 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(15,23,42,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.16)_1px,transparent_1px)] [background-size:36px_36px]" />
         </div>
 
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
@@ -885,45 +896,47 @@ export default function DashboardPage() {
             </div>
 
             <div
-              ref={filterPanelRef}
-              className="hidden md:block"
-            >
-              <DashboardMapFilters
-                hazardOptions={hazardOptions}
-                climateOptions={climateOptions}
-                scenarioOptions={scenarioOptions}
-                regionOptions={regionOptions}
-                selectedHazardOption={selectedHazardOption}
-                selectedClimateOption={selectedClimateOption}
-                selectedScenarioOption={selectedScenarioOption}
-                selectedRegionOption={selectedRegionOption}
-                loadingLayer={loadingLayer}
-                loadingRegions={loadingRegions}
-                errorRegions={errorRegions}
-                onHazardChange={(value) => setHazard(value)}
-                onClimateChange={(value) => setClimate(value)}
-                onScenarioChange={(value) => setScenario(value)}
-                onRegionChange={(value) => handleRegionChange(value)}
-                selectStyles={selectStyles}
-                selectPortalStyles={selectPortalStyles}
-              />
-            </div>
-
-            <div
               className={`relative overflow-hidden rounded-[28px] border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] shadow-[var(--dashboard-shadow-lg)] ${
                 isMapExpanded
                   ? "md:fixed md:inset-4 md:z-[1300] md:flex md:flex-col md:bg-[var(--dashboard-surface)] md:shadow-[var(--dashboard-expanded-shadow)]"
                   : ""
               }`}
             >
-              <div className="relative z-10 flex flex-col gap-2 border-b border-[var(--dashboard-border-soft)] px-5 py-3 sm:flex-row sm:items-center sm:justify-between md:flex-shrink-0">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--dashboard-text)]">
-                    Visualisasi Wilayah
-                  </p>
-                  <p className="text-xs text-[var(--dashboard-text-muted)]">
-                    Klik area peta untuk melihat detail dan indikator wilayah.
-                  </p>
+              <div className="relative z-10 border-b border-[var(--dashboard-border-soft)] md:flex-shrink-0">
+                <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--dashboard-text)]">
+                      Visualisasi Wilayah
+                    </p>
+                    <p className="text-xs text-[var(--dashboard-text-muted)]">
+                      Klik area peta untuk melihat detail dan indikator wilayah.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  ref={filterPanelRef}
+                  className="hidden border-t border-[var(--dashboard-border-soft)] px-5 py-2.5 md:block"
+                >
+                  <DashboardMapFilters
+                    hazardOptions={hazardOptions}
+                    climateOptions={climateOptions}
+                    scenarioOptions={scenarioOptions}
+                    regionOptions={regionOptions}
+                    selectedHazardOption={selectedHazardOption}
+                    selectedClimateOption={selectedClimateOption}
+                    selectedScenarioOption={selectedScenarioOption}
+                    selectedRegionOption={selectedRegionOption}
+                    loadingLayer={loadingLayer}
+                    loadingRegions={loadingRegions}
+                    errorRegions={errorRegions}
+                    onHazardChange={(value) => setHazard(value)}
+                    onClimateChange={(value) => setClimate(value)}
+                    onScenarioChange={(value) => setScenario(value)}
+                    onRegionChange={(value) => handleRegionChange(value)}
+                    selectStyles={selectStyles}
+                    selectPortalStyles={selectPortalStyles}
+                  />
                 </div>
               </div>
 
@@ -1010,27 +1023,25 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="relative w-full bg-[var(--dashboard-page-bg-bottom)] pt-8 pb-14">
+      <section className="relative w-full border-t border-[var(--dashboard-border-solid)] bg-[linear-gradient(180deg,var(--dashboard-surface-solid)_0%,var(--dashboard-surface-muted)_100%)] pt-10 pb-14">
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
-          <div className="rounded-[28px] border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-5 shadow-[var(--dashboard-shadow)] backdrop-blur sm:p-6">
-            <div className="space-y-4">
-              <DashboardSectionHeader
-                eyebrow="ANALISIS LANJUTAN"
-                title="Ringkasan Statistik dan Grafik"
-                desc="Perbandingan AAL antar jenis bencana, total kerugian skenario iklim vs non-iklim, wilayah terdampak utama, dan breakdown hazard."
-              />
+          <div className="space-y-5">
+            <DashboardSectionHeader
+              eyebrow="ANALISIS LANJUTAN"
+              title="Ringkasan Statistik dan Grafik"
+              desc="Perbandingan AAL antar jenis bencana, total kerugian skenario iklim vs non-iklim, wilayah terdampak utama, dan breakdown hazard."
+            />
 
-              <ComparisonCharts hazard={hazard} runId={runId ?? undefined} />
+            <ComparisonCharts hazard={hazard} runId={runId ?? undefined} />
 
-              <AdvancedCharts
-                hazard={hazard}
-                scenario={scenario}
-                climate={climate}
-                runId={runId ?? undefined}
-                selectedRegion={selectedRegion}
-                onRegionSelect={handleRegionChange}
-              />
-            </div>
+            <AdvancedCharts
+              hazard={hazard}
+              scenario={scenario}
+              climate={climate}
+              runId={runId ?? undefined}
+              selectedRegion={selectedRegion}
+              onRegionSelect={handleRegionChange}
+            />
           </div>
         </div>
       </section>

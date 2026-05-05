@@ -97,22 +97,22 @@
   --content-hero-glass-border: rgba(255, 255, 255, 0.16);
 
   /* DASHBOARD THEME */
-  --dashboard-page-bg-top: #ffffff;
-  --dashboard-page-bg-mid: #eff6ff;
-  --dashboard-page-bg-bottom: #dbeafe;
+  --dashboard-page-bg-top: #f8fafc;
+  --dashboard-page-bg-mid: #eef4f8;
+  --dashboard-page-bg-bottom: #e7eff6;
   --dashboard-surface: rgba(255, 255, 255, 0.9);
   --dashboard-surface-solid: #ffffff;
   --dashboard-surface-muted: rgba(249, 250, 251, 0.86);
   --dashboard-surface-soft: #f3f4f6;
-  --dashboard-border: rgba(255, 255, 255, 0.8);
+  --dashboard-border: rgba(226, 232, 240, 0.92);
   --dashboard-border-solid: #e5e7eb;
   --dashboard-border-soft: #f3f4f6;
   --dashboard-text: #111827;
   --dashboard-text-strong: #030712;
   --dashboard-text-muted: #6b7280;
   --dashboard-text-soft: #9ca3af;
-  --dashboard-shadow: 0 14px 36px rgba(37, 99, 235, 0.08);
-  --dashboard-shadow-lg: 0 20px 56px rgba(37, 99, 235, 0.1);
+  --dashboard-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  --dashboard-shadow-lg: 0 22px 58px rgba(15, 23, 42, 0.1);
   --dashboard-expanded-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
   --dashboard-control-bg: rgba(255, 255, 255, 0.95);
   --dashboard-control-hover: #f9fafb;

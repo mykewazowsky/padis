@@ -1,154 +1,215 @@
-# Geospatial Analysis Pipeline
+# Pipeline Analisis Geospasial
 
-Pipeline memproses data raster/vector mentah menjadi metrik risiko yang disimpan di database. Pipeline dijalankan sebagai subprocess Python lokal oleh operator melalui Admin UI (`POST /api/admin/start-pipeline`) atau langsung via CLI.
+Pipeline PADIS memproses data raster dan vector menjadi tiga file GeoJSON final. Setelah ketiga file final tersedia, proses ETL/load database dijalankan terpisah.
 
-> Pipeline tidak dijalankan di dalam proses Flask. Subprocess berjalan secara fire-and-forget; progress dilaporkan ke tabel `runs` di database.
+## Prinsip Terbaru
 
-## Pipeline Modes
+Pipeline analisis hazard tidak otomatis menulis ke database.
 
-| Mode | Steps Executed | Use Case |
-|---|---|---|
-| `full` | preprocess → zonal → analysis → etl | Full rerun from raw data |
-| `preprocess` | preprocess only | Normalize new raster inputs |
-| `analysis` | analysis only | Recompute risk from existing zonal stats (does not write to DB) |
-| `web` | etl only | Re-push existing results to DB |
-
-> **Catatan `full + multi`:** Mode `full` dengan hazard `multi` melewati tahap preprocess dan zonal — ia menggunakan output flood dan drought yang sudah ada. Jalankan `full flood` dan `full drought` terlebih dahulu sebelum `full multi`.
-
-## Hazard Types
-
-| Type | Description |
+| Proses | Hasil |
 |---|---|
-| `flood` | Fluvial flood hazard |
-| `drought` | Agricultural drought hazard |
-| `multi` | Combined multi-hazard index |
+| `full + flood` | `backend/data/output/analysis/kabkota_flood_final.geojson` |
+| `full + drought` | `backend/data/output/analysis/kabkota_drought_final.geojson` |
+| `full + multi` | `backend/data/output/analysis/kabkota_multihazard_final.geojson` |
+| `web` atau tombol "Muat ke Database Saja" | ETL ketiga file final ke database |
 
-## Recommended Ways to Run Pipeline
+ETL hanya boleh berjalan jika tiga file final berikut sudah tersedia:
 
-Untuk operator/admin, jalankan aplikasi lokal terlebih dahulu dari root project:
-
-```powershell
-.\padis.ps1 start
+```text
+kabkota_flood_final.geojson
+kabkota_drought_final.geojson
+kabkota_multihazard_final.geojson
 ```
 
-`start` menjalankan backend + frontend lokal dan membuka Admin UI. Setelah Admin UI terbuka, pipeline harian sebaiknya dijalankan dari **Admin UI → Process Control**.
+## Entry Point
 
-Jika pipeline perlu dijalankan dari terminal, gunakan `run`:
+Entry point internal:
+
+```powershell
+python backend/scripts/main.py --mode full --hazard flood --operator nama_operator
+```
+
+Operator biasanya tidak menjalankan command tersebut langsung. Gunakan Admin UI atau launcher:
 
 ```powershell
 .\padis.ps1 run --mode full --hazard flood --operator nama_operator
 ```
 
-Jika alias opsional sudah dipasang dengan `.\install-padis-command.ps1` dan PowerShell sudah direstart:
+## Mode Pipeline
 
-```powershell
-padis run --mode full --hazard flood --operator nama_operator
+| Mode | Hazard | Tahap yang dijalankan | Catatan |
+|---|---|---|---|
+| `full` | `flood` | preprocess, zonal, analysis | Tidak ETL. |
+| `full` | `drought` | preprocess, zonal, analysis | Tidak ETL. |
+| `full` | `multi` | analysis multihazard | Tidak preprocess, tidak zonal, tidak ETL. |
+| `analysis` | `flood` | zonal, analysis flood | Untuk recompute tanpa preprocess. |
+| `analysis` | `drought` | zonal, analysis drought | Untuk recompute tanpa preprocess. |
+| `analysis` | `multi` | analysis multihazard | Butuh flood dan drought final. |
+| `preprocess` | apa pun | preprocess saja | Menyiapkan raster dan vector. |
+| `web` | diabaikan | ETL saja | Memuat semua file final ke database. |
+
+`full + multi` tidak menjalankan ulang flood dan drought. Multi-hazard membaca `kabkota_flood_final.geojson` dan `kabkota_drought_final.geojson` dari disk.
+
+## Tahap 1 - Preprocess
+
+File terkait:
+
+- `backend/scripts/pipeline/preprocess_pipeline.py`
+- `backend/scripts/core/raster_engine.py`
+- `backend/scripts/core/vector_engine.py`
+
+Fungsi tahap ini:
+
+- Membaca raster hazard dari `backend/data/raw/hazard/`.
+- Reproject raster ke CRS kerja.
+- Normalisasi raster drought jika diperlukan.
+- Menyiapkan vector sawah dan administrasi.
+- Menghasilkan `sawah_admin_intersection.geojson` sebagai basis zonal.
+
+Input vector utama:
+
+```text
+backend/data/raw/administrasi/regions.gpkg
+backend/data/raw/exposure/sawah_selected.gpkg
 ```
 
-Perbedaan istilah:
+## Tahap 2 - Zonal Statistics
 
-- `start` = menjalankan aplikasi lokal dan Admin UI.
-- `run` = menjalankan pipeline dari terminal.
+File terkait:
 
-## Internal Entry Point
+- `backend/scripts/pipeline/zonal_pipeline.py`
+- `backend/scripts/core/zonal_engine.py`
 
-```bash
-python backend/scripts/main.py --mode <mode> --hazard <hazard> --operator <name>
+Fungsi tahap ini:
+
+- Menghitung nilai rata-rata raster hazard di tiap wilayah sawah-administrasi.
+- Menghasilkan file zonal per hazard di `backend/data/output/zonal/`.
+
+Output utama:
+
+```text
+backend/data/output/zonal/flood_stats.geojson
+backend/data/output/zonal/drought_stats.geojson
 ```
 
-Command Python di atas adalah detail internal/debug, bukan workflow utama user. Flask dan PADIS CLI men-spawn entry point ini sebagai subprocess. Progress dilaporkan langsung ke tabel `runs` di database dan dapat dipantau via `GET /api/admin/run-status`.
+Multi-hazard tidak punya raster sendiri, sehingga tidak punya file zonal tersendiri.
 
-## Script Chain
+## Tahap 3 - Analysis
 
-### 1. Preprocessing — `run_preprocess.py`
+File utama:
 
-Calls `scripts/core/raster_engine.py` and `scripts/core/vector_engine.py`.
+- `backend/scripts/pipeline/orchestrator.py`
+- `backend/scripts/config/analysis_registry.py`
+- `backend/scripts/analysis/flood/*`
+- `backend/scripts/analysis/drought/*`
+- `backend/scripts/analysis/multihazard/*`
 
-**Raster preprocessing (`raster_engine.py`):**
-- Reads raw hazard raster (GeoTIFF) via Rasterio
-- Reprojects to EPSG:4326 if needed
-- Normalizes values to 0–1 range
-  - Flood: dynamic min/max normalization
-  - Drought: fixed threshold normalization (`-6.5` to `-2.0`, P1-based)
-- Clips to study area extent
-- Writes preprocessed raster to `data/processed/`
+### Flood
 
-**Vector preprocessing (`vector_engine.py`):**
-- Reads administrative boundary shapefile via Fiona/GeoPandas
-- Validates and repairs geometries with Shapely
-- Standardizes `id_kabkota` codes
-- Writes to `data/processed/`
+Alur flood:
 
-### 2. Zonal Statistics — `run_zonal.py`
+1. Membaca `flood_stats.geojson`.
+2. Menghitung LOP flood.
+3. Menggabungkan data produksi padi.
+4. Menghitung loss per return period dan climate scenario.
+5. Menghitung AAL.
+6. Menulis `kabkota_flood_final.geojson`.
 
-Calls `scripts/core/zonal_engine.py`.
+### Drought
 
-For each kabupaten polygon, computes statistics from the preprocessed hazard raster:
-- `mean_value` — mean pixel value within polygon
+Alur drought:
 
-Uses Rasterio's `mask` module for pixel extraction. Results written to `data/zonal/`.
+1. Membaca `drought_stats.geojson`.
+2. Menghitung DI.
+3. Menghitung LOP drought.
+4. Menggabungkan data produksi padi.
+5. Menghitung loss.
+6. Menghitung AAL.
+7. Menulis `kabkota_drought_final.geojson`.
 
-### 3. Risk Analysis
+### Multi-hazard
 
-Three separate scripts, each calling hazard-specific analysis modules:
+Alur multi-hazard:
 
-#### Flood — `run_analysis_flood.py` → `scripts/analysis/flood/`
-- Loads zonal hazard statistics
-- Joins with production data to get exposed asset value
-- Applies flood damage function (depth-damage curve)
-- Computes loss per return period per kabupaten
-- Integrates across return periods for AAL (trapezoidal integration)
+1. Memastikan `kabkota_flood_final.geojson` tersedia.
+2. Memastikan `kabkota_drought_final.geojson` tersedia.
+3. Menggabungkan loss flood dan drought.
+4. Menghitung loss multi-hazard.
+5. Menghitung AAL multi-hazard.
+6. Menulis `kabkota_multihazard_final.geojson`.
 
-#### Drought — `run_analysis_drought.py` → `scripts/analysis/drought/`
-- Loads normalized SPEI/SPI raster zonal statistics
-- Applies drought exposure index to production value
-- Computes production loss per scenario
-- Integrates for AAL
+Multi-hazard juga menolak input stale jika waktu modifikasi flood dan drought final terlalu jauh berbeda.
 
-#### Multi-hazard — `run_analysis_multi.py` → `scripts/analysis/multihazard/`
-- Combines flood and drought risk indices
-- Weighted aggregation by hazard weight parameters
-- Produces composite risk index per kabupaten
+## Tahap 4 - ETL / Load Database
 
-### 4. ETL — `run_etl.py` → `scripts/etl/`
+File terkait:
 
-Loads analysis output files and writes to Supabase:
-- Creates a new record in `runs` table → gets `run_id`
-- Upserts rows into `losses` (hazard × scenario × rp × run_id)
-- Upserts rows into `aal`
-- Upserts rows into `zonal_kabupaten`
-- Upserts rows into `production` (if new production data was processed)
+- `backend/scripts/etl/run_all.py`
+- `backend/scripts/etl/load_regions_adm.py`
+- `backend/scripts/etl/load_sawah.py`
+- `backend/scripts/etl/load_production.py`
+- `backend/scripts/etl/load_losses.py`
+- `backend/scripts/etl/load_aal.py`
+- `backend/scripts/etl/load_zonal_agg.py`
 
-Uses SQLAlchemy bulk insert with conflict resolution (`ON CONFLICT DO UPDATE`).
+ETL memuat data ke:
 
-## Configuration
+- `regions_adm`
+- `regions_sawah`
+- `production`
+- `losses`
+- `aal`
+- `zonal_kabupaten`
+- `runs`
 
-Pipeline parameters are in `scripts/config/`:
-- Hazard weight coefficients for multi-hazard index
-- Damage function parameters
-- Return period integration weights (25, 50, 100, 250 years)
-- Input/output data paths
+Saat dipanggil dari tombol "Muat ke Database Saja", ETL dijalankan sebagai subprocess mode `web` dengan hazard `multi`. Hazard tersebut hanya label internal; loader membaca semua file final.
 
-## Data Directories
+## Status File Final
+
+Backend menyediakan endpoint:
+
+```text
+GET /api/admin/final-analysis-status
+```
+
+Response berisi:
+
+- `ready`: true jika semua file ada.
+- `files`: status tiap file.
+- `missing`: daftar file yang belum tersedia.
+
+Endpoint load database:
+
+```text
+POST /api/admin/load-database
+```
+
+Endpoint ini akan return `409` jika ada file final yang belum tersedia.
+
+## Urutan Aman untuk Operator
+
+1. Jalankan `full + flood`.
+2. Jalankan `full + drought`.
+3. Jalankan `full + multi`.
+4. Pastikan status file final lengkap.
+5. Jalankan "Muat ke Database Saja".
+6. Pantau status ETL di Pipeline Monitor.
+7. Aktifkan run sukses jika ingin dipakai dashboard.
+
+## Folder Data
 
 ```
 backend/data/
-├── raw/
-│   ├── administrasi/   # regions.gpkg
-│   ├── exposure/       # sawah_selected.gpkg, totalproduksipadi.csv
-│   └── hazard/         # flood_r*.tif, drought_r*.tif (16 file total)
-├── processed/          # Raster ternormalisasi, vector terproyeksi ulang
-├── zonal/              # Output zonal statistics (CSV/JSON)
-└── output/
-    └── analysis/       # Output pipeline final (GPKG, CSV) — dibaca Admin UI Outputs
+|-- raw/
+|   |-- administrasi/
+|   |-- exposure/
+|   `-- hazard/
+|-- processed/
+|   |-- hazard/
+|   `-- vector/
+`-- output/
+    |-- zonal/
+    `-- analysis/
 ```
 
-Lihat `docs/data-requirements.md` untuk daftar lengkap nama file dan format yang dibutuhkan.
-
-## Menjalankan Pipeline
-
-1. Tempatkan semua file data input di folder `raw/` sesuai standar
-2. Buka Admin UI → Process Control → pilih hazard dan mode → klik Jalankan
-3. Pantau progress di Admin UI → Pipeline Monitor
-4. Hasil tersedia di Admin UI → Outputs setelah ETL selesai
-5. `run_id` baru muncul via `GET /api/runs/latest`; frontend otomatis refetch data
+Standar nama file input dijelaskan di `docs/data-requirements.md`.

@@ -1,162 +1,183 @@
 # Panduan Operasional Pipeline
 
-Dokumen ini ditujukan untuk operator yang menjalankan dan memantau pipeline analisis PADIS secara lokal.
-
----
+Dokumen ini untuk operator yang menjalankan pipeline PADIS dari Admin UI atau launcher lokal.
 
 ## Prasyarat
 
-- Python environment backend tersedia (`venv` terinstall dan dependencies terpenuhi; `.\padis.ps1` akan memakai venv project jika tersedia)
-- File data input sudah ditempatkan di folder `raw/` sesuai standar (lihat `docs/data-requirements.md`)
-- Koneksi database aktif (variabel `DATABASE_URL` di `backend/.env` sudah diisi)
-- Aplikasi lokal berjalan melalui `.\padis.ps1 start` atau backend Flask berjalan di environment deployment/lokal yang dituju
+Pastikan hal berikut sudah siap:
 
-Untuk workflow operator lokal, jalankan dari root project:
+- Backend dan frontend dapat berjalan.
+- `DATABASE_URL` tersedia di `backend/.env`.
+- File input berada di `backend/data/raw/`.
+- User yang dipakai untuk Admin UI memiliki role `admin`.
+
+Jalankan aplikasi lokal:
 
 ```powershell
 .\padis.ps1 check
 .\padis.ps1 start
 ```
 
-`start` menjalankan backend + frontend lokal dan membuka Admin UI. `run` digunakan hanya jika pipeline ingin dijalankan dari terminal.
+Admin UI dibuka di:
 
----
+```text
+http://localhost:3000/admin
+```
 
 ## Alur Kerja Operator
 
-### 1. Persiapan Data
+Urutan yang disarankan:
 
-Tempatkan semua file data di folder `backend/data/raw/` sesuai struktur berikut:
+1. Buka Admin UI.
+2. Masuk ke Process Control.
+3. Jalankan pipeline penuh untuk `flood`.
+4. Jalankan pipeline penuh untuk `drought`.
+5. Jalankan pipeline penuh untuk `multi`.
+6. Pastikan tiga file final lengkap.
+7. Klik "Muat ke Database Saja".
+8. Pantau run di Pipeline Monitor.
+9. Aktifkan run sukses jika akan dipakai dashboard.
 
-```
-backend/data/raw/
-├── administrasi/
-│   └── regions.gpkg
-├── exposure/
-│   ├── sawah_selected.gpkg
-│   └── totalproduksipadi.csv
-└── hazard/
-    ├── flood_r25.tif
-    ├── flood_r50.tif
-    ├── flood_r100.tif
-    ├── flood_r250.tif
-    ├── flood_rc25.tif
-    ├── flood_rc50.tif
-    ├── flood_rc100.tif
-    ├── flood_rc250.tif
-    ├── drought_r25.tif
-    ├── drought_r50.tif
-    ├── drought_r100.tif
-    ├── drought_r250.tif
-    ├── drought_rc25.tif
-    ├── drought_rc50.tif
-    ├── drought_rc100.tif
-    └── drought_rc250.tif
-```
+## Menjalankan Pipeline Penuh
 
-Nama file harus persis seperti di atas. Pipeline membaca file berdasarkan nama; file dengan nama berbeda tidak akan ditemukan.
+Di halaman Process Control:
 
-### 2. Verifikasi Ketersediaan File
+1. Pilih hazard.
+2. Isi nama operator.
+3. Klik "Jalankan Pipeline Penuh".
 
-Buka **Admin UI → Data Management → Cek Ketersediaan File**.
+Tombol ini hanya menjalankan analisis sesuai hazard yang dipilih.
 
-Tombol "Cek Ketersediaan" memanggil `GET /api/admin/dependencies` dan menampilkan status masing-masing **file output dari run sebelumnya** (bukan file input raw). Jika baru pertama kali menjalankan pipeline, semua status akan menunjukkan "tidak ditemukan" — ini normal. Pipeline tetap dapat dijalankan selama file raw sudah di tempat.
-
-### 3. Menjalankan Pipeline
-
-Buka **Admin UI → Process Control**.
-
-1. Masukkan nama operator (digunakan untuk identifikasi di log)
-2. Pilih **Hazard**: `flood`, `drought`, atau `multi` (multi = flood + drought + multihazard)
-3. Pilih **Mode**:
-   - `full` — jalankan seluruh tahapan dari awal
-   - `preprocess` — hanya preprocessing raster dan vector
-   - `analysis` — hanya analisis, tanpa ETL (menggunakan output preprocess/zonal yang sudah ada; tidak menulis ke database)
-   - `web` — hanya ETL (re-push hasil ke database)
-4. Klik **Jalankan Pipeline**
-
-Jika ada pipeline yang sedang berjalan, tombol dinonaktifkan dan ditampilkan pesan peringatan.
-
-### 4. Memantau Progress
-
-Buka **Admin UI → Pipeline Monitor**.
-
-Halaman ini polling `GET /api/admin/run-status` setiap beberapa detik dan menampilkan:
-- Status run saat ini (`running`, `success`, `failed`)
-- Tahap aktif (`preprocess`, `zonal`, `analysis`, `etl`)
-- Persentase kemajuan
-- Pesan status dari pipeline
-
-Tahapan pipeline:
-
-| Tahap | Deskripsi |
+| Hazard dipilih | File yang dihasilkan |
 |---|---|
-| `preprocess` | Reprojektion raster, normalisasi, persiapan vector |
-| `zonal` | Komputasi zonal statistics per kabupaten |
-| `analysis` | Kalkulasi loss, AAL, multi-hazard index |
-| `etl` | Tulis hasil ke database Supabase |
+| Flood | `kabkota_flood_final.geojson` |
+| Drought | `kabkota_drought_final.geojson` |
+| Multi-hazard | `kabkota_multihazard_final.geojson` |
 
-### 5. Memeriksa Hasil
+Tombol ini tidak menjalankan ETL/load database.
 
-Buka **Admin UI → Outputs**.
+## Kesiapan File Final
 
-Daftar file di folder `backend/data/output/analysis/` ditampilkan di sini. File dapat di-preview (GeoJSON dan CSV) atau diunduh langsung dari UI.
+Process Control menampilkan status tiga file final:
 
-> File GeoJSON berukuran besar (>10 MB) tidak dapat di-preview; gunakan Download untuk mengunduhnya.
+```text
+backend/data/output/analysis/kabkota_flood_final.geojson
+backend/data/output/analysis/kabkota_drought_final.geojson
+backend/data/output/analysis/kabkota_multihazard_final.geojson
+```
 
----
+Status ini diambil dari:
 
-## Menjalankan Pipeline via CLI (Tanpa Admin UI)
+```text
+GET /api/admin/final-analysis-status
+```
 
-Pipeline dapat dijalankan langsung dari terminal tanpa Admin UI menggunakan `run` dari root project:
+Jika salah satu file belum ada, UI menampilkan file yang belum tersedia.
+
+## Muat ke Database Saja
+
+Tombol "Muat ke Database Saja":
+
+- Tidak bergantung pada hazard yang sedang dipilih.
+- Tidak mengirim hazard ke backend.
+- Hanya berjalan jika tiga file final lengkap.
+- Menjalankan ETL untuk flood, drought, dan multihazard sebagai satu proses.
+
+Endpoint yang dipakai:
+
+```text
+POST /api/admin/load-database
+```
+
+Jika file belum lengkap, backend mengembalikan `409` dengan daftar `missing`.
+
+## Monitoring
+
+Buka Pipeline Monitor untuk melihat:
+
+- Status run: `running`, `success`, `failed`.
+- Tahap aktif: `preprocess`, `zonal`, `analysis`, `etl`.
+- Progres dalam persen.
+- Pesan terakhir dari pipeline.
+- Riwayat run terbaru.
+- Validasi run sebelum aktivasi.
+
+Endpoint yang dipakai:
+
+```text
+GET /api/admin/run-status
+GET /api/admin/runs
+GET /api/admin/runs/{run_id}/validate
+PATCH /api/admin/runs/{run_id}/activate
+```
+
+## Menjalankan dari CLI
+
+Gunakan dari root project:
 
 ```powershell
 .\padis.ps1 run --mode full --hazard flood --operator nama_operator
+.\padis.ps1 run --mode full --hazard drought --operator nama_operator
+.\padis.ps1 run --mode full --hazard multi --operator nama_operator
 ```
 
-Jika alias lokal sudah dipasang dengan `.\install-padis-command.ps1` dan PowerShell sudah direstart, `padis run` bisa dipakai sebagai convenience alias:
+Untuk ETL saja:
 
 ```powershell
-padis run --mode full --hazard flood --operator nama_operator
+.\padis.ps1 run --mode web --hazard multi --operator nama_operator
 ```
 
-Jalankan command dari root project. `.\padis.ps1` akan meneruskan argumen ke CLI PADIS dan memakai Python venv project jika tersedia.
+Catatan: untuk operator, Admin UI lebih aman karena menampilkan status kesiapan tiga file final sebelum load database.
 
-Opsi `--mode`:
-- `full` — semua tahapan
-- `preprocess` — hanya preprocess
-- `analysis` — hanya analysis (tidak menulis ke database)
-- `web` — hanya etl
+## Mode CLI
 
-Opsi `--hazard`:
-- `flood`
-- `drought`
-- `multi`
-
-> **Catatan:** Mode `full` + hazard `multi` perlu hati-hati. Multi-hazard memakai output flood dan drought yang sudah ada, jadi pastikan kedua hazard tersebut sudah diproses sebelum menjalankan multi.
-
-Ketika dijalankan via CLI, pipeline tetap menulis progress ke tabel `runs` di database, sehingga Admin UI tetap dapat memantau statusnya.
-
----
+| Mode | Keterangan |
+|---|---|
+| `full` | Jalankan preprocess, zonal, dan analysis untuk flood/drought. Untuk multi hanya analysis multihazard. |
+| `analysis` | Jalankan zonal dan analysis untuk flood/drought. Untuk multi hanya analysis multihazard. |
+| `preprocess` | Jalankan preprocess saja. |
+| `web` | Jalankan ETL/load database saja. |
 
 ## Troubleshooting
 
-**Pipeline tidak bisa dimulai (error 409)**
+### Tombol load database disabled
 
-Ada run dengan status `running` di database. Jika run tersebut sudah lebih dari 2 jam (stale/crash), run baru dapat dimulai; backend otomatis mengabaikan run stale. Jika belum 2 jam dan dipastikan sudah tidak berjalan, update status di database secara manual:
+Minimal satu file final belum tersedia. Jalankan pipeline penuh untuk hazard yang belum selesai.
 
-```sql
-UPDATE runs SET status = 'failed' WHERE status = 'running' AND source = 'local';
+### Load database gagal dengan error 409
+
+Kemungkinan:
+
+- Ada pipeline lain sedang berjalan.
+- Salah satu file final belum ada.
+
+Cek pesan error di UI. Jika error berisi `missing`, jalankan ulang hazard yang file finalnya belum ada.
+
+### Multi-hazard gagal
+
+Multi-hazard membutuhkan:
+
+```text
+kabkota_flood_final.geojson
+kabkota_drought_final.geojson
 ```
 
-**Pipeline selesai tapi data tidak muncul di frontend**
+Jalankan `full + flood` dan `full + drought` terlebih dahulu. Jika keduanya sudah ada tetapi multi tetap gagal, cek waktu modifikasi file; pipeline menolak input flood dan drought yang terlihat berasal dari run berbeda.
 
-Pastikan tahap `etl` berhasil — status run harus `success`. Cek pesan error di Pipeline Monitor. Frontend membaca `run_id` terbaru dari `GET /api/runs/latest`; jika ETL gagal menulis ke tabel `runs`, `run_id` baru tidak akan ada.
+### Pipeline tidak bisa dimulai
 
-**File tidak ditemukan saat pipeline berjalan**
+Backend menolak run baru jika ada run `source='local'` yang masih `running` dan belum stale. Tunggu selesai, atau jika proses benar-benar mati, tandai run lama sebagai failed di database.
 
-Periksa nama file di folder `raw/`. Nama file case-sensitive dan harus persis sesuai standar. Lihat `docs/data-requirements.md`.
+```sql
+UPDATE runs
+SET status = 'failed'
+WHERE status = 'running' AND source = 'local';
+```
 
-**Error zonal statistics**
+### Data tidak muncul di dashboard setelah ETL
 
-Pastikan CRS raster valid. Pipeline melakukan reprojektion otomatis ke EPSG:4326, tapi jika raster tidak memiliki CRS terdefinisi, proses akan gagal.
+Pastikan:
+
+- ETL selesai dengan status `success`.
+- Run sudah aktif atau dashboard membaca run yang benar.
+- Tabel `losses`, `aal`, dan `zonal_kabupaten` punya data untuk flood, drought, dan multihazard.

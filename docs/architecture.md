@@ -1,181 +1,211 @@
-# Architecture
+# Arsitektur PADIS
 
-## System Overview
+Dokumen ini menjelaskan bentuk sistem PADIS saat ini: frontend Next.js, backend Flask, database PostGIS, dan pipeline geospasial lokal.
 
-PADIS is split into two independently deployed services — a Flask REST API (backend) and a Next.js frontend — both backed by a single Supabase PostgreSQL+PostGIS database.
+## Gambaran Besar
 
-```
-Browser
-  └── Next.js (Vercel / Railway)
-        ├── API requests  ──→  Flask API (Railway)
-        │                          └── SQLAlchemy ──→ Supabase PostgreSQL+PostGIS
-        └── MVT tiles     ──→  Flask /api/tiles/{layer}
-```
+PADIS terdiri dari tiga jalur utama:
 
-## Data Flow
-
-### Map Rendering (read path)
+1. Jalur baca dashboard: frontend meminta data ke backend, backend membaca database.
+2. Jalur peta: frontend mengambil vector tile MVT dari endpoint tile backend.
+3. Jalur pipeline: operator menjalankan subprocess Python untuk menghasilkan file final dan memuatnya ke database.
 
 ```
-1. User selects hazard / scenario / climate / return period filters
-2. dashboard/page.tsx calls fetchAllLayers() in parallel:
-     GET /api/layers/values/loss?...
-     GET /api/layers/values/aal?...
-     GET /api/layers/values/hazard?...
-     GET /api/layers/values/production
-3. Responses: FeatureCollections with geometry: null (attribute data only)
-4. MapViewClient builds Jenks/quantile classification breaks from these values
-5. MapCanvas mounts Leaflet.VectorGrid TileLayer for each active layer:
-     GET /api/tiles/{layer}/{z}/{x}/{y}?...
-6. Each tile request: Flask queries PostGIS ST_AsMVTGeom, returns binary MVT
-7. VectorGrid renders tiles; MapCanvas style function colors each feature using
-   breaks computed in step 4
+Frontend Next.js
+  -> Flask API
+      -> PostgreSQL + PostGIS
+
+Admin UI / PADIS CLI
+  -> backend/scripts/main.py
+      -> preprocess
+      -> zonal
+      -> analysis
+      -> output final GeoJSON
+      -> ETL/load database saat diminta terpisah
 ```
 
-### Region Selection Flow
+Pipeline tidak berjalan di thread request Flask. Endpoint admin hanya men-spawn subprocess dan statusnya dibaca dari tabel `runs`.
 
-```
-1a. User clicks polygon on map:
-    VT click handler fires → zoomSourceRef.current = "click" → onRegionSelect(name)
-    map.flyTo(ev.latlng, 9)  (immediate zoom, no ZoomToRegion effect)
-
-1b. User picks from kabupaten dropdown:
-    handleRegionChange(name) → setSelectedRegion(name)
-    ZoomToRegion useEffect fires → zoomSourceRef.current is null →
-    reads regionCentroids[name] → map.flyTo(centroid, 9)
-
-2. selectedRegion propagates to MapView:
-   - selectedFeature computed from all layer FeatureCollections (merged properties)
-   - DashboardMapOverlay renders the selected region info card
-   - MapCanvas highlights the selected polygon via VT style function
-```
-
-### Admin Pipeline Flow
-
-```
-1. Operator menempatkan file data di folder raw/ (manual, bukan upload)
-2. Admin UI mengirim POST /api/admin/start-pipeline (mode, hazard, operator)
-3. Flask men-spawn subprocess Python (fire-and-forget, stdout/stderr discarded):
-     python scripts/main.py --mode <mode> --hazard <hazard> --operator <name>
-4. Subprocess menulis progress ke tabel `runs` di database
-5. Pipeline stages:
-     preprocess → zonal → analysis → etl
-6. ETL menulis hasil ke: losses, aal, zonal_kabupaten, production
-7. Admin memantau progress via GET /api/admin/run-status (read dari tabel runs)
-8. Run baru tersedia via GET /api/runs/latest
-9. Frontend refetch semua layer dengan run_id baru
-```
-
-**Catatan blocking:** Flask memeriksa apakah ada run dengan `status='running'` di tabel `runs` sebelum men-spawn subprocess. Run yang lebih dari 2 jam dianggap stale (proses crash) dan tidak memblokir run baru.
-
-## Backend Architecture
-
-### Flask App Factory
+## Struktur Backend
 
 ```
 backend/
-├── run.py              # Entry point: from app import create_app; app = create_app()
-└── app/
-    ├── __init__.py     # create_app() — registers blueprints, CORS
-    ├── db/
-    │   └── session.py  # SQLAlchemy SessionLocal factory
-    └── routes/
-        ├── auth/       # Blueprint: /api/auth
-        ├── layers/     # Blueprint: /api/layers
-        ├── tiles/      # Blueprint: /api/tiles
-        ├── admin/      # Blueprint: /api/admin
-        ├── analytics_routes.py   # Blueprint: /api/analytics
-        └── report_routes.py      # Blueprint: /api/report
+|-- app/
+|   |-- __init__.py              # create_app, CORS, registrasi blueprint
+|   |-- routes/
+|   |   |-- auth/                # login, register, reset password
+|   |   |-- layers/              # data atribut layer dan endpoint lama
+|   |   |-- tiles/               # MVT tile endpoint
+|   |   |-- admin/               # data, process, output, user admin
+|   |   |-- analytics_routes.py  # ringkasan dan chart data
+|   |   `-- report_routes.py     # CSV, XLSX, report
+|   |-- services/                # integrasi email/geoserver
+|   `-- utils/report/            # renderer report, chart, peta
+|-- scripts/
+|   |-- main.py                  # entry point pipeline
+|   |-- cli/padis.py             # PADIS CLI
+|   |-- pipeline/                # orchestrator pipeline
+|   |-- core/                    # raster, vector, zonal engine
+|   |-- analysis/                # flood, drought, multihazard
+|   |-- etl/                     # load_regions, load_losses, load_aal, dll.
+|   `-- config/                  # path, hazard, settings, registry
+`-- data/
+    |-- raw/
+    |-- processed/
+    `-- output/analysis/
 ```
 
-### Blueprint Registration
+Blueprint utama didaftarkan di `backend/app/__init__.py`:
 
-Each blueprint is registered with a URL prefix. The `layers` blueprint contains multiple sub-modules (loss, aal, hazard, production, regions, values) imported via `__init__.py`.
+- `/api/auth/*`
+- `/api/runs/latest`
+- `/api/aal-summary*`, `/api/loss-summary*`, `/api/top-regions`, `/api/hazard-breakdown`
+- `/api/layers/*`
+- `/api/tiles/*`
+- `/api/admin/*`
+- `/api/download-csv`
+- `/api/generate-report-v2`
 
-### MVT Tile Cache
-
-Tiles are cached in-process using a Python `dict` keyed by `(layer, z, x, y, hazard, scenario, climate, run_id)`. Cache entries expire after 3600 seconds. The cache resets on server restart.
-
-```python
-# tile_cache.py
-_cache: dict[tuple, tuple[bytes, float]] = {}
-CACHE_TTL = 3600
-```
-
-## Frontend Architecture
-
-### Next.js App Router Structure
+## Struktur Frontend
 
 ```
-src/app/
-├── layout.tsx           # Root layout (fonts, global CSS)
-├── (main)/              # Route group — no shared layout prefix
-│   ├── layout.tsx       # Main layout with Navbar
-│   ├── page.tsx         # Landing page
-│   ├── dashboard/       # Main GIS dashboard
-│   ├── about/           # About page
-│   ├── cara-kerja/      # How-it-works page
-│   └── metodologi/      # Methodology page
-├── (admin)/             # Route group — admin layout
-│   ├── layout.tsx       # Admin shell wrapper
-│   └── admin/
-│       ├── page.tsx              # Overview dashboard
-│       ├── data-management/      # Cek ketersediaan file data
-│       ├── process-control/      # Trigger pipeline
-│       ├── pipeline-monitor/     # Monitor progress via DB
-│       ├── outputs/              # Preview & download hasil
-│       ├── users/                # Kelola akun pengguna
-│       └── guide/                # Panduan operator
-└── (auth)/              # Route group — auth layout
-    ├── login/
-    ├── register/
-    ├── forgot-password/
-    └── reset-password/
+frontend/src/
+|-- app/
+|   |-- (main)/                  # landing, dashboard, about, metodologi
+|   |-- (admin)/admin/           # admin dashboard dan tools operator
+|   |-- (auth)/                  # login, register, forgot/reset password
+|   |-- layout.tsx
+|   `-- globals.css
+|-- components/
+|   |-- map/                     # MapView, MapCanvas, VectorTileLayer
+|   |-- dashboard/               # filter, overlay, loading/empty state
+|   |-- charts/                  # AdvancedCharts, ComparisonCharts
+|   |-- admin/                   # AdminShell, AdminGuard
+|   |-- report/                  # Report preview dan document
+|   `-- layout/
+|-- lib/                         # API/auth/fetch helper
+|-- services/fetchLayers.ts
+`-- types/map.ts
 ```
 
-### State Management
+State dashboard utama berada di `frontend/src/app/(main)/dashboard/page.tsx`. Komponen peta dibuat client-side karena Leaflet membutuhkan browser API.
 
-All dashboard state lives in `dashboard/page.tsx` as React `useState` hooks. There is no global state library.
-
-| State | Type | Purpose |
-|---|---|---|
-| `scenario` | `string` | Selected return period (rp25/rp50/rp100/rp250) |
-| `hazard` | `string` | Selected hazard type |
-| `climate` | `string` | Climate scenario (nonclimate/climate) |
-| `runId` | `number` | Latest pipeline run ID |
-| `selectedRegion` | `string` | Lowercase kabupaten name |
-| `layers` | `object` | GeoJSON-like FeatureCollections per layer |
-| `activeLayers` | `Record<LayerKey, boolean>` | Layer visibility toggles |
-| `regionCentroids` | `Record<string, [lat, lng]>` | Centroid lookup for dropdown zoom |
-
-### Map Component Hierarchy
+## Jalur Baca Dashboard
 
 ```
-MapView (server-safe wrapper)
-└── MapViewClient (dynamic import, SSR disabled)
-    ├── computes classification breaks (Jenks via simple-statistics)
-    └── MapCanvas (react-leaflet MapContainer)
-        ├── TileLayer (basemap — OpenStreetMap)
-        ├── VectorGrid (analysis layers: loss, aal, hazard)
-        ├── VectorGrid (regions/batas administrasi)
-        ├── VectorGrid (production/sawah)
-        ├── FitBounds (one-shot initial fitBounds)
-        ├── ResetViewController (handles reset + fit-to-data)
-        ├── ZoomToRegion (handles dropdown → centroid zoom)
-        ├── Marker[] (kabupaten labels at zoom ≥ 7)
-        └── MapLegendPanel (conditional: analysis layers only)
+User memilih filter
+  -> dashboard/page.tsx menyimpan state hazard, scenario, climate, runId
+  -> fetchAllLayers() memanggil endpoint values
+  -> MapView menghitung metrik turunan dan selectedFeature
+  -> MapViewClient menghitung klasifikasi warna
+  -> MapCanvas merender MVT layer dari /api/tiles
 ```
 
-### Layer Priority Rules
+Endpoint values mengembalikan atribut tanpa geometri. Geometri peta tetap diambil dari vector tile agar dashboard ringan.
 
-When multiple layers are active simultaneously, these rules apply:
+Endpoint values utama:
 
-1. **Legend and formatting**: `hazard > loss > aal > production`
-   - Production is always flat-colored (no classification, no legend)
-2. **Tooltip values** (else-if chain in `createTooltipHtml`):
-   - hazard → `mean_value`
-   - loss → `loss`
-   - aal → `aal`
-   - production → `total_prod`
-3. **Map fitBounds priority**: `loss > aal > hazard`
-   - Uses `data_bounds` from API response (spatial extent of data-bearing regions)
+- `GET /api/layers/values/loss`
+- `GET /api/layers/values/aal`
+- `GET /api/layers/values/hazard`
+- `GET /api/layers/values/production`
+
+Endpoint tile utama:
+
+- `GET /api/tiles/loss/{z}/{x}/{y}`
+- `GET /api/tiles/aal/{z}/{x}/{y}`
+- `GET /api/tiles/hazard/{z}/{x}/{y}`
+- `GET /api/tiles/production/{z}/{x}/{y}`
+- `GET /api/tiles/regions/{z}/{x}/{y}`
+
+## Jalur Pipeline Terbaru
+
+Pipeline sekarang memisahkan analisis hazard dari ETL/load database.
+
+```
+Jalankan Pipeline Penuh
+  -> POST /api/admin/start-pipeline
+  -> scripts/main.py --mode full --hazard <hazard>
+  -> menghasilkan file final sesuai hazard
+  -> TIDAK menjalankan ETL
+
+Muat ke Database Saja
+  -> GET /api/admin/final-analysis-status
+  -> POST /api/admin/load-database
+  -> scripts/main.py --mode web --hazard multi
+  -> ETL ketiga file final ke database
+```
+
+File final yang wajib ada sebelum ETL:
+
+```text
+backend/data/output/analysis/kabkota_flood_final.geojson
+backend/data/output/analysis/kabkota_drought_final.geojson
+backend/data/output/analysis/kabkota_multihazard_final.geojson
+```
+
+`POST /api/admin/load-database` tidak menerima hazard dari frontend. Endpoint ini selalu memuat semua hazard sekaligus.
+
+## Status Run dan Aktivasi
+
+Pipeline membuat atau memperbarui baris di tabel `runs`. Kolom penting:
+
+- `status`: `running`, `success`, atau `failed`.
+- `step`: tahap aktif, misalnya `preprocess`, `zonal`, `analysis`, `etl`.
+- `progress`: persentase progres.
+- `is_active`: run yang sedang dipakai dashboard.
+- `source`: `local` untuk run yang dijalankan operator.
+
+Admin UI membaca status melalui:
+
+- `GET /api/admin/run-status`
+- `GET /api/admin/process-status`
+- `GET /api/admin/runs`
+- `GET /api/admin/runs/active`
+
+Aktivasi run dilakukan melalui:
+
+```text
+PATCH /api/admin/runs/{run_id}/activate
+```
+
+## Database
+
+Database utama adalah PostgreSQL + PostGIS. Tabel yang paling sering dipakai:
+
+- `regions_adm`: batas administrasi kabupaten/kota.
+- `regions_sawah`: wilayah sawah hasil agregasi.
+- `production`: produksi padi per wilayah.
+- `losses`: nilai kerugian per hazard, scenario, return period, dan run.
+- `aal`: Annual Average Loss per hazard, scenario, dan run.
+- `zonal_kabupaten`: statistik zonal hazard per wilayah.
+- `runs`: metadata eksekusi pipeline.
+- `app_users`: akun aplikasi.
+- `password_reset_tokens`: token reset password.
+
+## CORS dan Auth
+
+Backend memakai Flask-CORS dengan origin dari `FRONTEND_ORIGINS` atau `FRONTEND_ORIGIN`. Jika env tidak diisi, default lokal adalah:
+
+```text
+http://localhost:3000
+http://127.0.0.1:3000
+```
+
+Auth memakai JWT. Endpoint admin dilindungi oleh decorator `admin_required`.
+
+## Cache Tile
+
+Tile MVT memakai cache in-memory di backend. Cache ini mempercepat request berulang, tetapi akan hilang saat proses backend restart.
+
+Endpoint utilitas:
+
+- `GET /api/tiles/cache/stats`
+- `POST /api/tiles/cache/clear`
+
+## Prinsip Desain
+
+- Frontend tidak menyimpan state global besar; state dashboard disimpan di page.
+- Backend web hanya melayani API dan spawn subprocess, bukan menjalankan komputasi berat di request.
+- Pipeline menghasilkan artefak final dahulu, lalu ETL dijalankan sebagai langkah terpisah.
+- Dashboard membaca data dari run aktif agar hasil yang tampil konsisten lintas layer.

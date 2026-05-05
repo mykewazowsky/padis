@@ -1,106 +1,75 @@
-# PADIS Developer Debug Runbook
+# Runbook Command Developer PADIS
 
-Dokumen ini adalah runbook command untuk developer dan operator teknis PADIS. Entry point utama untuk user baru tetap `README.md`; file ini dipakai saat perlu debug, cek readiness, menjalankan command teknis, atau menelusuri masalah lokal.
+Dokumen ini berisi command teknis untuk developer dan operator teknis. Untuk orientasi umum, mulai dari `README.md`.
 
-Workflow lokal resmi untuk Windows adalah `.\padis.ps1` dari root project. Command manual seperti `python -m backend.run` dan `npm run dev` tetap berguna, tetapi hanya sebagai debug manual ketika backend atau frontend perlu dijalankan terpisah.
+## Workflow Resmi Lokal
 
----
-
-## 1. PADIS CLI Resmi
-
-Jalankan semua command dari root project:
-
-```powershell
-cd "D:\01. Project\Kuliah\TEKNIK GEODESI DAN GEOMATIKA\Capstone\PADIS"
-```
-
-Default resmi repo untuk local development di Windows:
+Jalankan dari root project:
 
 ```powershell
 .\padis.ps1 check
 .\padis.ps1 start
 ```
 
-Makna command utama:
+Makna command:
 
-- `.\padis.ps1 check` = readiness check dasar project.
-- `.\padis.ps1 start` = menjalankan backend + frontend lokal dan membuka Admin UI.
-- `.\padis.ps1 run` = menjalankan pipeline dari terminal.
+| Command | Fungsi |
+|---|---|
+| `.\padis.ps1 check` | Cek kesiapan dasar backend/frontend. |
+| `.\padis.ps1 start` | Jalankan backend dan frontend lokal, lalu buka Admin UI. |
+| `.\padis.ps1 run` | Jalankan pipeline dari terminal. |
+| `.\padis.ps1 install` | Setup dependency sesuai dukungan CLI. |
 
-Setelah `start` berhasil, Admin UI akan dibuka otomatis di:
+Admin UI lokal:
 
 ```text
 http://localhost:3000/admin
 ```
 
-`start` bukan command untuk menjalankan pipeline. Pipeline harian sebaiknya dijalankan dari Admin UI setelah backend dan frontend aktif.
+## Alias Opsional
 
----
-
-## 2. Optional PowerShell Alias
-
-Jika ingin memakai command pendek `padis`, pasang alias lokal satu kali:
+Pasang alias `padis` di PowerShell profile:
 
 ```powershell
 .\install-padis-command.ps1
 ```
 
-Restart PowerShell, lalu jalankan:
+Restart PowerShell, lalu:
 
 ```powershell
 padis check
 padis start
-```
-
-`padis` adalah alias opsional di PowerShell profile komputer user tersebut. Alias ini bukan command bawaan setelah clone repo, bukan installer global, dan tidak otomatis berlaku untuk semua clone atau semua komputer.
-
-Contoh pipeline via alias:
-
-```powershell
 padis run --mode full --hazard flood --operator nama_operator
 ```
 
----
+Alias ini opsional. Dokumentasi dan workflow resmi tetap memakai `.\padis.ps1`.
 
-## 3. Command PADIS yang Sering Dipakai
+## Menjalankan Pipeline dari CLI
 
-Shortcut lokal Windows PowerShell:
+Urutan analisis lengkap:
 
 ```powershell
-.\padis.ps1 check
-.\padis.ps1 start
 .\padis.ps1 run --mode full --hazard flood --operator nama_operator
+.\padis.ps1 run --mode full --hazard drought --operator nama_operator
+.\padis.ps1 run --mode full --hazard multi --operator nama_operator
 ```
 
-Optional alias setelah `.\install-padis-command.ps1` dan restart PowerShell:
+Load database saja:
 
 ```powershell
-padis check
-padis start
-padis run --mode full --hazard flood --operator nama_operator
-```
-
-Command tambahan untuk setup atau mode teknis:
-
-```powershell
-.\padis.ps1 install
-.\padis.ps1 start --no-open
-.\padis.ps1 start --backend-only --no-open
-.\padis.ps1 start --frontend-only
+.\padis.ps1 run --mode web --hazard multi --operator nama_operator
 ```
 
 Catatan:
 
-- `npm` harus tersedia di `PATH` agar frontend bisa dijalankan oleh `start`.
-- Gunakan `CTRL + C` untuk menghentikan dev server yang dijalankan oleh `start`.
-- Jika proses backend/frontend masih hidup setelah `CTRL + C`, tutup terminal atau hentikan proses secara manual.
-- Mode `full + multi` perlu hati-hati karena memakai output flood/drought yang sudah ada.
+- `full` tidak menjalankan ETL.
+- `web` menjalankan ETL saja.
+- `multi` membutuhkan file final flood dan drought.
+- Untuk operator, tombol "Muat ke Database Saja" di Admin UI lebih aman karena mengecek tiga file final.
 
----
+## Command Internal CLI
 
-## 4. Command Internal CLI
-
-Command internal ini adalah detail implementasi/debug. Untuk workflow normal, gunakan `.\padis.ps1`.
+`.\padis.ps1` meneruskan argumen ke CLI internal:
 
 ```powershell
 python -m backend.scripts.cli.padis check
@@ -108,92 +77,35 @@ python -m backend.scripts.cli.padis start
 python -m backend.scripts.cli.padis run --mode full --hazard flood --operator nama_operator
 ```
 
-`.\padis.ps1` meneruskan argumen ke command internal tersebut dan memakai Python venv project jika tersedia.
+Gunakan command internal hanya untuk debug.
 
----
-
-## 5. Graphify Workflow
-
-Project memakai graph terpisah untuk backend dan frontend.
-
-Update graph setelah perubahan kode backend:
-
-```powershell
-graphify update backend
-```
-
-Update graph setelah perubahan kode frontend:
-
-```powershell
-graphify update frontend
-```
-
-Lokasi output resmi:
-
-```text
-backend/graphify-out/
-frontend/graphify-out/
-```
-
-Catatan penting:
-
-- Jangan gunakan root-level `graphify-out/` sebagai sumber kebenaran jika masih ada.
-- Untuk dokumentasi Markdown, baca file Markdown langsung.
-- Jangan menjalankan Graphify docs extraction tanpa LLM API key karena proses semantic extraction membutuhkan API key.
-- Graphify update code path tidak membutuhkan API key untuk rebuild struktur kode.
-
----
-
-## 6. Debug Manual Backend
-
-Gunakan ini hanya jika ingin menjalankan backend terpisah dari PADIS launcher.
-
-Aktifkan virtual environment backend:
+## Debug Backend Manual
 
 ```powershell
 .\backend\venv\Scripts\Activate.ps1
-```
-
-Jalankan backend:
-
-```powershell
 python -m backend.run
 ```
 
-Jika berhasil, backend berjalan di:
+Backend lokal biasanya berjalan di:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-atau pada alamat lokal jaringan, misalnya:
-
-```text
-http://192.168.x.x:5000
-```
-
-Untuk menghentikan backend:
-
-```powershell
-CTRL + C
-```
-
-### Debug Log Backend
-
-Gunakan `LOG_LEVEL=DEBUG` jika ingin melihat detail backend seperti parameter layer, tile, cache, atau proses internal.
+Log debug:
 
 ```powershell
 $env:LOG_LEVEL="DEBUG"
 python -m backend.run
 ```
 
-Reset setelah selesai:
+Reset env:
 
 ```powershell
 Remove-Item Env:LOG_LEVEL
 ```
 
-### Menampilkan Daftar Routes Backend
+Menampilkan daftar route saat startup:
 
 ```powershell
 $env:SHOW_ROUTES="1"
@@ -201,25 +113,14 @@ $env:LOG_LEVEL="DEBUG"
 python -m backend.run
 ```
 
-Reset setelah selesai:
+Reset:
 
 ```powershell
 Remove-Item Env:SHOW_ROUTES
 Remove-Item Env:LOG_LEVEL
 ```
 
-Jika hanya ingin mengembalikan log ke mode normal tanpa menutup terminal:
-
-```powershell
-$env:LOG_LEVEL="INFO"
-$env:SHOW_ROUTES=""
-```
-
----
-
-## 7. Debug Manual Frontend
-
-Gunakan ini hanya jika ingin menjalankan frontend terpisah dari backend launcher.
+## Debug Frontend Manual
 
 ```powershell
 cd frontend
@@ -227,38 +128,24 @@ npm install
 npm run dev
 ```
 
-Frontend biasanya berjalan di:
-
-```text
-http://localhost:3000
-```
-
-Jika port 3000 sedang dipakai, Next.js bisa memakai port lain, misalnya:
-
-```text
-http://localhost:3001
-```
-
-Pastikan `frontend/.env.local` mengarah ke backend lokal ketika debug manual:
+Pastikan `frontend/.env.local` berisi:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 ```
 
----
+Frontend lokal biasanya berjalan di:
 
-## 8. Cek Backend dan Frontend
-
-Compile check backend:
-
-```powershell
-python -m compileall backend\app backend\main.py
+```text
+http://localhost:3000
 ```
 
-Compile check file tertentu:
+## Validasi dan Build
+
+Compile backend:
 
 ```powershell
-python -m compileall backend\app\routes\tiles\tile_routes.py backend\app\routes\admin\data_routes.py
+python -m compileall backend\app backend\scripts
 ```
 
 Lint frontend:
@@ -268,62 +155,79 @@ cd frontend
 npm run lint
 ```
 
-Lint file tertentu:
+Build frontend:
 
 ```powershell
-npx eslint src/components/map/config/layers.ts
+cd frontend
+npm run build
 ```
 
----
+## Graphify
 
-## 9. Environment Lokal
+Update graph frontend:
 
-Backend env lokal:
+```powershell
+python -m graphify update frontend
+```
+
+Update graph backend:
+
+```powershell
+python -m graphify update backend
+```
+
+Output:
 
 ```text
-backend/.env
+frontend/graphify-out/
+backend/graphify-out/
 ```
 
-Frontend env lokal:
+Graphify update kode tidak membutuhkan LLM API key.
 
-```text
-frontend/.env.local
+## Database
+
+Jalankan migration SQL dari `db/migrations/` sesuai urutan di database target.
+
+Cek PostGIS:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
-File `.env` dan `.env.local` jangan di-commit ke GitHub.
+Menandai run lama sebagai failed jika proses mati tetapi status masih running:
 
----
+```sql
+UPDATE runs
+SET status = 'failed'
+WHERE status = 'running' AND source = 'local';
+```
 
-## 10. Git Check Sebelum Commit
+## Git
 
-Cek status perubahan:
+Cek status:
 
 ```powershell
 git status
 ```
 
-Lihat ringkasan perubahan:
+Ringkasan perubahan:
 
 ```powershell
 git diff --stat
 ```
 
-Lihat detail perubahan:
+Detail perubahan:
 
 ```powershell
 git diff
 ```
 
-Stage file yang berubah:
+Stage dan commit:
 
 ```powershell
-git add <path-file>
-```
-
-Commit:
-
-```powershell
-git commit -m "chore: describe change here"
+git add <file>
+git commit -m "docs: perbarui dokumentasi padis"
 ```
 
 Push:
@@ -332,57 +236,18 @@ Push:
 git push origin main
 ```
 
-Target akhir:
+## Troubleshooting Singkat
 
-```text
-Your branch is up to date with 'origin/main'.
-nothing to commit, working tree clean
-```
-
----
-
-## 11. Troubleshooting Singkat
-
-### Log masih menampilkan DEBUG atau daftar routes
-
-Reset environment variable:
-
-```powershell
-Remove-Item Env:LOG_LEVEL
-Remove-Item Env:SHOW_ROUTES
-```
-
-Lalu jalankan ulang lewat workflow resmi:
-
-```powershell
-.\padis.ps1 start
-```
-
-### Backend tidak bisa start
-
-Jalankan readiness check:
+### Backend tidak start
 
 ```powershell
 .\padis.ps1 check
-```
-
-Jika sedang debug manual, pastikan venv dan dependency backend tersedia:
-
-```powershell
 .\backend\venv\Scripts\Activate.ps1
 pip install -r backend\requirements.txt
+python -m backend.run
 ```
 
-### Frontend tidak bisa start
-
-Pastikan `npm` tersedia di `PATH`, lalu gunakan workflow resmi:
-
-```powershell
-.\padis.ps1 check
-.\padis.ps1 start
-```
-
-Jika sedang debug manual:
+### Frontend tidak start
 
 ```powershell
 cd frontend
@@ -392,55 +257,49 @@ npm run dev
 
 ### Port sudah dipakai
 
-Jika port backend `5000` atau frontend `3000` sudah dipakai, hentikan proses lama atau gunakan terminal baru setelah proses lama dimatikan.
+Hentikan proses lama yang memakai port `5000` atau `3000`, lalu jalankan ulang.
 
----
+### Pipeline tidak bisa dimulai
 
-## 12. Ringkasan Command Debug
+Cek Pipeline Monitor. Jika ada run `running` yang sebenarnya sudah mati, tandai sebagai failed di database.
+
+### Load database tidak bisa jalan
+
+Cek status file final di Process Control. Tiga file final harus ada:
+
+```text
+kabkota_flood_final.geojson
+kabkota_drought_final.geojson
+kabkota_multihazard_final.geojson
+```
+
+## Ringkasan Command
 
 ```powershell
-# Workflow resmi
+# Lokal resmi
 .\padis.ps1 check
 .\padis.ps1 start
+
+# Pipeline
 .\padis.ps1 run --mode full --hazard flood --operator nama_operator
+.\padis.ps1 run --mode full --hazard drought --operator nama_operator
+.\padis.ps1 run --mode full --hazard multi --operator nama_operator
+.\padis.ps1 run --mode web --hazard multi --operator nama_operator
 
-# Optional alias
-.\install-padis-command.ps1
-padis check
-padis start
-
-# Backend debug manual
+# Backend manual
 .\backend\venv\Scripts\Activate.ps1
 python -m backend.run
 
-# Backend debug log
-$env:LOG_LEVEL="DEBUG"
-python -m backend.run
-
-# Backend show routes
-$env:SHOW_ROUTES="1"
-$env:LOG_LEVEL="DEBUG"
-python -m backend.run
-
-# Reset debug env
-Remove-Item Env:LOG_LEVEL
-Remove-Item Env:SHOW_ROUTES
-
-# Frontend debug manual
+# Frontend manual
 cd frontend
 npm run dev
 
-# Graphify code graph
-graphify update backend
-graphify update frontend
+# Validasi
+python -m compileall backend\app backend\scripts
+cd frontend
+npm run lint
 
-# Compile backend
-python -m compileall backend\app backend\main.py
-
-# Git
-git status
-git diff --stat
-git add <file>
-git commit -m "message"
-git push origin main
+# Graphify
+python -m graphify update frontend
+python -m graphify update backend
 ```

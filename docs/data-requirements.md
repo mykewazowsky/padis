@@ -1,149 +1,147 @@
 # Standar Data Input Pipeline
 
-Data input pipeline ditempatkan secara manual di folder `backend/data/raw/`. Tidak ada mekanisme upload via UI — operator bertanggung jawab menempatkan file dengan nama dan format yang benar sebelum menjalankan pipeline.
-
----
+Data input pipeline ditempatkan di `backend/data/raw/`. Nama file harus konsisten karena pipeline membaca file berdasarkan path dan prefix.
 
 ## Struktur Folder
 
 ```
 backend/data/raw/
-├── administrasi/
-│   └── regions.gpkg
-├── exposure/
-│   ├── sawah_selected.gpkg
-│   └── totalproduksipadi.csv
-└── hazard/
-    ├── flood_r25.tif
-    ├── flood_r50.tif
-    ├── flood_r100.tif
-    ├── flood_r250.tif
-    ├── flood_rc25.tif
-    ├── flood_rc50.tif
-    ├── flood_rc100.tif
-    ├── flood_rc250.tif
-    ├── drought_r25.tif
-    ├── drought_r50.tif
-    ├── drought_r100.tif
-    ├── drought_r250.tif
-    ├── drought_rc25.tif
-    ├── drought_rc50.tif
-    ├── drought_rc100.tif
-    └── drought_rc250.tif
+|-- administrasi/
+|   `-- regions.gpkg
+|-- exposure/
+|   |-- sawah_selected.gpkg
+|   `-- totalproduksipadi.csv
+`-- hazard/
+    |-- flood_r25.tif
+    |-- flood_r50.tif
+    |-- flood_r100.tif
+    |-- flood_r250.tif
+    |-- flood_rc25.tif
+    |-- flood_rc50.tif
+    |-- flood_rc100.tif
+    |-- flood_rc250.tif
+    |-- drought_r25.tif
+    |-- drought_r50.tif
+    |-- drought_r100.tif
+    |-- drought_r250.tif
+    |-- drought_rc25.tif
+    |-- drought_rc50.tif
+    |-- drought_rc100.tif
+    `-- drought_rc250.tif
 ```
 
----
+## Administrasi
 
-## Dataset: Admin Boundary
-
-| Atribut | Nilai |
+| Item | Nilai |
 |---|---|
-| Nama file | `regions.gpkg` |
-| Folder | `raw/administrasi/` |
-| Format | GeoPackage (`.gpkg`) |
-| Geometri | MultiPolygon |
-| CRS | Bebas — pipeline mereprojekan ke EPSG:4326 otomatis |
+| File | `regions.gpkg` |
+| Folder | `backend/data/raw/administrasi/` |
+| Format | GeoPackage |
+| Geometri | Polygon atau MultiPolygon |
+| CRS | Bebas, tetapi metadata CRS harus valid |
 
-**Kolom wajib:**
+Kolom wajib:
 
-| Kolom | Tipe | Keterangan |
+| Kolom | Keterangan |
+|---|---|
+| `id_kabkota` | Kode wilayah, contoh `32.01`. |
+| `kab_kota` | Nama kabupaten/kota. |
+| `prov` | Nama provinsi. |
+
+## Sawah
+
+| Item | Nilai |
+|---|---|
+| File | `sawah_selected.gpkg` |
+| Folder | `backend/data/raw/exposure/` |
+| Format | GeoPackage |
+| Geometri | Polygon atau MultiPolygon |
+| CRS | Bebas, tetapi metadata CRS harus valid |
+
+Layer sawah dioverlay dengan administrasi untuk membentuk `sawah_admin_intersection.geojson`.
+
+## Produksi Padi
+
+| Item | Nilai |
+|---|---|
+| File | `totalproduksipadi.csv` |
+| Folder | `backend/data/raw/exposure/` |
+| Format | CSV UTF-8 |
+| Separator | Koma |
+
+Kolom wajib:
+
+| Kolom | Keterangan |
+|---|---|
+| `id_kabkota` | Kode wilayah yang konsisten dengan `regions.gpkg`. |
+| `total_prod` | Nilai produksi padi. |
+
+Kolom `kab_kota` dan `prov` disarankan untuk audit dan preview.
+
+## Raster Flood
+
+Folder:
+
+```text
+backend/data/raw/hazard/
+```
+
+Nama file:
+
+| File | Scenario | Return period |
 |---|---|---|
-| `id_kabkota` | string / integer | Kode unik kabupaten/kota (e.g. `"32.01"`) |
-| `kab_kota` | string | Nama kabupaten/kota untuk tampilan |
-| `prov` | string | Nama provinsi |
+| `flood_r25.tif` | nonclimate | 25 |
+| `flood_r50.tif` | nonclimate | 50 |
+| `flood_r100.tif` | nonclimate | 100 |
+| `flood_r250.tif` | nonclimate | 250 |
+| `flood_rc25.tif` | climate | 25 |
+| `flood_rc50.tif` | climate | 50 |
+| `flood_rc100.tif` | climate | 100 |
+| `flood_rc250.tif` | climate | 250 |
 
----
+Pipeline flood membaca prefix `flood_`.
 
-## Dataset: Sawah Layer
+## Raster Drought
 
-| Atribut | Nilai |
-|---|---|
-| Nama file | `sawah_selected.gpkg` |
-| Folder | `raw/exposure/` |
-| Format | GeoPackage (`.gpkg`) |
-| Geometri | Polygon / MultiPolygon |
-| CRS | Bebas — pipeline mereprojekan otomatis |
+Folder:
 
-Layer ini merepresentasikan area sawah yang digunakan untuk overlay analisis exposure. Tidak ada kolom atribut wajib selain geometri.
+```text
+backend/data/raw/hazard/
+```
 
----
+Nama file:
 
-## Dataset: Total Produksi Padi
-
-| Atribut | Nilai |
-|---|---|
-| Nama file | `totalproduksipadi.csv` |
-| Folder | `raw/exposure/` |
-| Format | CSV, encoding UTF-8 |
-| Separator | Koma (`,`) |
-
-**Kolom wajib:**
-
-| Kolom | Tipe | Keterangan |
+| File | Scenario | Return period |
 |---|---|---|
-| `id_kabkota` | string / integer | Kode wilayah, harus konsisten dengan `regions.gpkg` |
-| `kab_kota` | string | Nama kabupaten/kota |
-| `total_prod` | number | Total produksi padi (ton) |
+| `drought_r25.tif` | nonclimate | 25 |
+| `drought_r50.tif` | nonclimate | 50 |
+| `drought_r100.tif` | nonclimate | 100 |
+| `drought_r250.tif` | nonclimate | 250 |
+| `drought_rc25.tif` | climate | 25 |
+| `drought_rc50.tif` | climate | 50 |
+| `drought_rc100.tif` | climate | 100 |
+| `drought_rc250.tif` | climate | 250 |
 
-`prov` disarankan ada untuk validasi tambahan.
+Pipeline drought membaca prefix `drought_` dan melakukan normalisasi.
 
----
+## Output yang Diharapkan
 
-## Dataset: Flood Raster Set
+Setelah pipeline analisis, file final berada di:
 
-| Atribut | Nilai |
-|---|---|
-| Folder | `raw/hazard/` |
-| Format | GeoTIFF (`.tif`) |
-| CRS | Bebas — pipeline mereprojekan ke EPSG:4326 otomatis |
-| Nilai | Kedalaman banjir atau intensitas hazard (float) |
+```text
+backend/data/output/analysis/kabkota_flood_final.geojson
+backend/data/output/analysis/kabkota_drought_final.geojson
+backend/data/output/analysis/kabkota_multihazard_final.geojson
+```
 
-**Nama file dan konvensi:**
+ETL/load database hanya boleh dijalankan jika ketiganya lengkap.
 
-| Nama File | Skenario | Return Period |
-|---|---|---|
-| `flood_r25.tif` | Non-climate (current) | 25 tahun |
-| `flood_r50.tif` | Non-climate | 50 tahun |
-| `flood_r100.tif` | Non-climate | 100 tahun |
-| `flood_r250.tif` | Non-climate | 250 tahun |
-| `flood_rc25.tif` | Climate | 25 tahun |
-| `flood_rc50.tif` | Climate | 50 tahun |
-| `flood_rc100.tif` | Climate | 100 tahun |
-| `flood_rc250.tif` | Climate | 250 tahun |
+## Catatan Validasi
 
-Prefix `r` = return period (non-climate). Prefix `rc` = return period climate scenario.
-
----
-
-## Dataset: Drought Raster Set
-
-| Atribut | Nilai |
-|---|---|
-| Folder | `raw/hazard/` |
-| Format | GeoTIFF (`.tif`) |
-| CRS | Bebas — pipeline mereprojekan ke EPSG:4326 otomatis |
-| Nilai | SPI/SPEI atau indeks kekeringan (float, biasanya negatif) |
-
-**Nama file dan konvensi:**
-
-| Nama File | Skenario | Return Period |
-|---|---|---|
-| `drought_r25.tif` | Non-climate | 25 tahun |
-| `drought_r50.tif` | Non-climate | 50 tahun |
-| `drought_r100.tif` | Non-climate | 100 tahun |
-| `drought_r250.tif` | Non-climate | 250 tahun |
-| `drought_rc25.tif` | Climate | 25 tahun |
-| `drought_rc50.tif` | Climate | 50 tahun |
-| `drought_rc100.tif` | Climate | 100 tahun |
-| `drought_rc250.tif` | Climate | 250 tahun |
-
-**Normalisasi drought:** Pipeline menggunakan threshold tetap `-6.5` hingga `-2.0` (P1-based) untuk normalisasi reverse min-max. Nilai di luar range ini akan di-clip sebelum normalisasi.
-
----
-
-## Catatan Umum
-
-- **Nama file case-sensitive.** `Flood_R25.tif` ≠ `flood_r25.tif`.
-- **CRS tidak harus EPSG:4326.** Pipeline mereprojekan semua input secara otomatis. Yang penting CRS terdefinisi dengan benar di metadata file.
-- **Raster harus valid.** File yang terpotong atau korup akan menyebabkan pipeline gagal. Uji raster dengan QGIS atau `gdalinfo` sebelum menempatkan di folder.
-- **Semua 16 file raster hazard tidak harus ada sekaligus.** Jika menjalankan mode `flood` saja, hanya 8 file flood yang dibutuhkan. Mode `drought` hanya 8 file drought. Mode `multi` tidak membaca raster baru — ia menggunakan output analisis flood dan drought yang sudah ada; pastikan kedua hazard sudah diproses sebelum menjalankan `multi`.
+- Nama file case-sensitive.
+- CRS harus terdefinisi di metadata file.
+- Raster korup atau tanpa CRS dapat membuat preprocess gagal.
+- Flood hanya membutuhkan delapan raster flood.
+- Drought hanya membutuhkan delapan raster drought.
+- Multi-hazard tidak membaca raster baru; ia membaca file final flood dan drought.
+- Untuk upload/manajemen data dari Admin UI, backend membatasi folder dan nama file yang boleh diakses.

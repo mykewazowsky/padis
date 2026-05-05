@@ -1,246 +1,269 @@
-# Frontend Reference
+# Dokumentasi Frontend
 
-## Tech Stack
+Frontend PADIS adalah aplikasi Next.js App Router dengan React, TypeScript, Tailwind CSS, Leaflet, dan Recharts.
 
-| Package | Version | Purpose |
+## Stack
+
+| Paket | Versi | Fungsi |
 |---|---|---|
-| Next.js | 16.1.7 | App Router, SSR, routing |
-| React | 19.2.3 | UI framework |
+| Next.js | 16.1.7 | Routing, build, App Router |
+| React | 19.2.3 | UI |
 | TypeScript | 5.x | Type safety |
-| Tailwind CSS | 4.x | Utility-first styling |
-| Leaflet | 1.9.4 | Interactive map |
-| react-leaflet | 5.0.0 | React bindings for Leaflet |
-| Leaflet.VectorGrid | 1.3.0 | MVT tile rendering |
-| Recharts | 3.8.0 | Charts |
-| simple-statistics | 7.8.9 | Jenks natural breaks classification |
-| chroma-js | 3.2.0 | Color interpolation |
-| react-select | 5.10.2 | Kabupaten dropdown |
-| lucide-react | 1.7.0 | Icons |
+| Tailwind CSS | 4.x | Styling |
+| Leaflet | 1.9.4 | Peta interaktif |
+| React Leaflet | 5.0.0 | Binding Leaflet untuk React |
+| Leaflet.VectorGrid | 1.3.0 | Render MVT |
+| Recharts | 3.8.0 | Grafik |
+| simple-statistics | 7.8.9 | Klasifikasi Jenks |
+| chroma-js | 3.2.0 | Palet warna |
+| lucide-react | 1.7.0 | Ikon |
+| Supabase JS | 2.104.1 | Integrasi Supabase client-side jika diperlukan |
 
----
-
-## Route Structure
+## Struktur Route
 
 ```
-(main)/
-  page.tsx                       ← Landing page
-  dashboard/page.tsx             ← Main GIS dashboard (semua state ada di sini)
-  about/page.tsx
-  cara-kerja/page.tsx
-  metodologi/page.tsx
-
-(admin)/                         ← Seluruh grup ini membutuhkan JWT role=admin
-  admin/page.tsx                 ← Overview dashboard
-  admin/data-management/         ← Cek ketersediaan file data input
-  admin/process-control/         ← Trigger pipeline, pilih hazard dan mode
-  admin/pipeline-monitor/        ← Monitor progress pipeline via DB
-  admin/outputs/                 ← Preview dan download hasil pipeline
-  admin/users/                   ← Kelola akun pengguna
-  admin/guide/                   ← Panduan operator
-
-(auth)/
-  login/page.tsx
-  register/page.tsx
-  forgot-password/page.tsx
-  reset-password/page.tsx
+src/app/
+|-- (main)/
+|   |-- page.tsx                 # Landing page
+|   |-- dashboard/page.tsx       # Dashboard Web-GIS
+|   |-- about/page.tsx
+|   |-- cara-kerja/page.tsx
+|   |-- metodologi/page.tsx
+|   `-- kebijakan-privasi/page.tsx
+|-- (admin)/
+|   `-- admin/
+|       |-- page.tsx             # Ringkasan admin
+|       |-- data-management/
+|       |-- process-control/
+|       |-- pipeline-monitor/
+|       |-- outputs/
+|       |-- artifacts/
+|       |-- users/
+|       `-- guide/
+|-- (auth)/
+|   |-- login/
+|   |-- register/
+|   |-- forgot-password/
+|   `-- reset-password/
+|-- auth/callback/
+|-- layout.tsx
+|-- loading.tsx
+|-- error.tsx
+`-- not-found.tsx
 ```
 
----
+Route admin dilindungi oleh `AdminGuard` dan membutuhkan JWT dengan role `admin`.
 
-## Dashboard State (`dashboard/page.tsx`)
+## Helper API dan Auth
 
-The dashboard page is the single source of truth for all map and analytics state.
+File penting:
 
-```typescript
-const [scenario, setScenario]     = useState("rp100");
-const [hazard, setHazard]         = useState("flood");
-const [climate, setClimate]       = useState("nonclimate");
-const [runId, setRunId]           = useState(0);
-const [selectedRegion, setSelectedRegion] = useState("");
-const [layers, setLayers]         = useState({ regions, production, loss, aal, hazard });
-const [activeLayers, setActiveLayers] = useState<Record<LayerKey, boolean>>({ ... });
-const [regionCentroids, setRegionCentroids] = useState<Record<string, [number, number]>>({});
-const [resetViewSignal, setResetViewSignal] = useState(0);
+- `src/lib/api.ts`: membangun base URL API.
+- `src/lib/fetcher.ts`: fetch JSON umum.
+- `src/lib/fetcher-auth.ts`: fetch dengan token JWT.
+- `src/lib/auth.ts`: simpan, baca, decode, dan hapus token.
+- `src/services/fetchLayers.ts`: fetch layer dashboard dan tile URL.
+
+Node graphify yang paling terhubung di frontend adalah `buildApiUrl()`, `getToken()`, `clearToken()`, `fetchWithAuth()`, dan `fetchJson()`. Itu berarti helper ini menjadi jalur utama komunikasi UI dengan backend.
+
+## Dashboard Web-GIS
+
+Route:
+
+```text
+src/app/(main)/dashboard/page.tsx
 ```
 
-### Data Fetching
+State utama:
 
-On mount and whenever `scenario`, `hazard`, `climate`, or `runId` changes:
-
-```typescript
-useEffect(() => {
-  fetchAllLayers({ hazard, scenario, climate, runId }).then(setLayers);
-}, [hazard, scenario, climate, runId]);
-```
-
-`regionCentroids` is extracted from the production layer response (which includes `centroid_lng`, `centroid_lat` from PostGIS).
-
----
-
-## Map Components
-
-### MapView (`components/map/MapView.tsx`)
-
-Server-safe wrapper. Performs all derived computations from the layer data:
-
-- `selectedFeature` — merges properties from all four layers for the selected region
-- `totalLoss` / `totalAal` — sum across all features
-- `selectedRegionShare` / `selectedRegionAalShare` — percentage of selected vs. total
-- `dataBounds` — spatial extent for Fit-to-Data (from `data_bounds` in API response)
-- `isTopRegion` — whether selected region is in top 5 by loss
-
-Renders: `<MapViewClient>` + `<DashboardMapOverlay>`.
-
-### MapViewClient (`components/map/MapViewClient.tsx`)
-
-Dynamic-imported with `ssr: false`. Handles classification:
-
-- Extracts numeric values from FeatureCollections
-- Computes Jenks natural breaks via `simple-statistics` (`jenks(values, 5)`)
-- Generates color palette using `chroma-js` (5-class sequential)
-- Passes `breaks` and `palette` down to MapCanvas
-
-Layer types: `loss`, `aal`, `hazard` use classification. `production` uses flat color.
-
-### MapCanvas (`components/map/core/MapCanvas.tsx`)
-
-The Leaflet `MapContainer` with all child components:
-
-#### VectorGrid Layers
-
-Each active analytical layer mounts a `VectorGrid.Protobuf` pointing to `/api/tiles/{layer}`.
-
-The `vectorTileLayerStyles` function receives feature properties and returns Leaflet path styles:
-```typescript
-function getColor(value: number, breaks: number[], palette: string[]): string { ... }
-```
-
-Selected region is highlighted with a distinct `fillColor` and `weight`.
-
-#### Internal Components
-
-| Component | Purpose |
+| State | Fungsi |
 |---|---|
-| `FitBounds` | Fires `map.fitBounds(all_regions)` once on initial mount |
-| `ResetViewController` | Handles reset button + Fit-to-Data using `dataBounds` |
-| `ZoomToRegion` | Watches `selectedRegion` from dropdown → `map.flyTo(centroid, 9)` |
-| `Marker[]` | Kabupaten name labels, visible at zoom ≥ 7 with adaptive font size |
-| `MapLegendPanel` | Rendered only when analysis layer is active with data |
+| `hazard` | Hazard aktif: flood, drought, multihazard. |
+| `scenario` | Return period: rp25, rp50, rp100, rp250. |
+| `climate` | Climate scenario: nonclimate atau climate. |
+| `runId` | Run yang sedang dipakai dashboard. |
+| `selectedRegion` | Wilayah yang dipilih user. |
+| `layers` | Data atribut untuk regions, production, loss, aal, hazard. |
+| `activeLayers` | Toggle layer peta. |
+| `regionCentroids` | Centroid wilayah untuk zoom dropdown. |
 
-#### zoomSourceRef Pattern
+Data diambil melalui `fetchAllLayers()` dari `src/services/fetchLayers.ts`.
 
-Prevents double-zoom when user clicks directly on the map:
+## Komponen Peta
 
-```typescript
-const zoomSourceRef = useRef<"click" | null>(null);
-
-// In VT click handler:
-zoomSourceRef.current = "click";
-onRegionSelect(name);
-map.flyTo(ev.latlng, 9);
-
-// In ZoomToRegion effect:
-if (zoomSourceRef.current === "click") {
-  zoomSourceRef.current = null;
-  return; // skip — map click already zoomed
-}
-map.flyTo(centroid, 9);
+```
+MapView
+  -> MapViewClient
+      -> MapCanvas
+          -> VectorTileLayer
+          -> GeoServerLayerManager
+          -> MapLayerControlPanel
+          -> MapLegendPanel
+          -> LayerItem
 ```
 
-#### Kabupaten Labels
+### MapView
 
-Appear at zoom ≥ 7 when any tile layer is active, or zoom ≥ 8 for regions-only.
+`MapView` adalah wrapper yang aman untuk SSR. Komponen ini menghitung:
 
-Font size and opacity scale with zoom level:
-```typescript
-const fontSize = zoom < 8 ? 7 : zoom < 9 ? 8 : zoom < 10 ? 9 : 10;
-const opacity  = zoom < 8 ? 0.6 : zoom < 9 ? 0.75 : zoom < 10 ? 0.9 : 1.0;
+- selected feature dari wilayah yang dipilih.
+- total loss dan total AAL.
+- persentase kontribusi wilayah.
+- data bounds untuk fit-to-data.
+- metrik utama overlay dashboard.
+
+### MapViewClient
+
+Komponen client-only yang mengatur klasifikasi layer:
+
+- loss
+- AAL
+- hazard index
+
+Klasifikasi memakai Jenks natural breaks dan palet warna dari `chroma-js`.
+
+### MapCanvas
+
+Komponen Leaflet utama. Fungsi:
+
+- Menampilkan basemap.
+- Menampilkan MVT layer dari `/api/tiles`.
+- Menangani klik wilayah.
+- Menangani zoom ke centroid wilayah.
+- Menampilkan label kabupaten/kota pada zoom tertentu.
+- Menampilkan legend layer analisis.
+
+## Layer Dashboard
+
+Layer yang dipakai:
+
+| Layer | Sumber data | Rendering |
+|---|---|---|
+| `regions` | `/api/tiles/regions` | Batas administrasi. |
+| `production` | `/api/layers/values/production` dan `/api/tiles/production` | Produksi padi. |
+| `loss` | `/api/layers/values/loss` dan `/api/tiles/loss` | Kerugian ekonomi. |
+| `aal` | `/api/layers/values/aal` dan `/api/tiles/aal` | Annual Average Loss. |
+| `hazard` | `/api/layers/values/hazard` dan `/api/tiles/hazard` | Indeks hazard. |
+
+Prioritas legend dan format saat beberapa layer aktif:
+
+```text
+hazard > loss > aal > production
 ```
 
-Labels use a `DivIcon` with multi-layer `text-shadow` for a halo effect on dark backgrounds.
+## Chart
 
----
+Komponen chart utama:
 
-## Layer Control
+- `AdvancedCharts.tsx`: top regions dan distribusi loss.
+- `ComparisonCharts.tsx`: perbandingan AAL dan loss antar hazard/scenario.
+- `chartTheme.ts`: warna dan tema chart.
 
-### MapLayerControlPanel (`components/map/core/MapLayerControlPanel.tsx`)
+Chart mengambil data dari endpoint analitik seperti:
 
-Toggle panel for layer visibility. `LayerKey` type:
+- `/api/top-regions`
+- `/api/aal-summary-all-hazards`
+- `/api/loss-summary-compare-climate`
 
-```typescript
-type LayerKey = "regions" | "production" | "loss" | "aal" | "hazard";
-```
+## Report
 
-`activeLayers` is `Record<LayerKey, boolean>`. Parent state in `dashboard/page.tsx`.
+Komponen report:
 
-### MapLegendPanel (`components/map/core/MapLegendPanel.tsx`)
+- `ReportPreviewModal.tsx`
+- `ReportDocument.tsx`
 
-Rendered only when `hasAnalysisLayer && legendItems.length > 0`.
+Report dapat mengambil data dashboard, menampilkan preview, dan memicu download dari backend. Download yang membutuhkan auth memakai helper protected download.
 
-Props:
-- `legendItems: { color: string; label: string }[]`
-- `title: string` — dynamic, matches active layer
-- `showTop5Indicator: boolean` — shown only when loss layer is active
+## Admin UI
 
----
+Route admin utama:
 
-## Overlay
-
-### DashboardMapOverlay (`components/dashboard/DashboardMapOverlay.tsx`)
-
-Floating card over the map. Contains:
-- Reset View / Fit to Data buttons
-- "Wilayah Terpilih" card (visible when region selected)
-  - Shows: kab_kota, province, loss (IDR), aal (IDR), mean_value, region share %
-  - Production value intentionally excluded
-- Download CSV button
-- Generate Report button
-
-Buttons collapse to icon-only on mobile (`<span className="hidden sm:inline">`).
-
----
-
-## Services
-
-### fetchLayers.ts (`services/fetchLayers.ts`)
-
-| Export | Description |
+| Route | Fungsi |
 |---|---|
-| `fetchLatestRunId()` | GET /api/runs/latest → `run_id: number` |
-| `fetchAllLayers(params)` | Parallel fetch of all 4 layer value endpoints |
-| `buildTileUrl(layer, ...)` | Constructs Leaflet tile URL template string |
-| `BASE_URL` | `process.env.NEXT_PUBLIC_API_BASE_URL` (throws if missing or localhost) |
+| `/admin` | Ringkasan admin. |
+| `/admin/data-management` | Kesiapan data raw, processed, dan output. |
+| `/admin/process-control` | Jalankan pipeline analisis dan load database. |
+| `/admin/pipeline-monitor` | Monitoring run, validasi, aktivasi, hapus run. |
+| `/admin/outputs` | Preview dan download output analisis. |
+| `/admin/users` | Kelola user. |
+| `/admin/guide` | Panduan operator di UI. |
 
-`fetchAllLayers` returns `{ regions: null, production, loss, aal, hazard }` as FeatureCollections with `geometry: null`.
+### Process Control
 
----
+File:
 
-## Types
-
-### `types/map.ts`
-
-```typescript
-type DataBounds = {
-  min_lng: number; min_lat: number;
-  max_lng: number; max_lat: number;
-};
-
-type GeoJsonData = {
-  type: "FeatureCollection";
-  features: Array<{
-    type: "Feature";
-    geometry: null;
-    properties: LayerItem;
-  }>;
-  data_bounds?: DataBounds | null;
-};
+```text
+src/app/(admin)/admin/process-control/page.tsx
 ```
 
----
+Perilaku terbaru:
 
-## Styling Conventions
+- `handleRun(mode)` memanggil `/api/admin/start-pipeline`.
+- Tombol "Jalankan Pipeline Penuh" mengirim `mode=full` dan hazard terpilih.
+- `handleLoadDatabase()` memanggil `/api/admin/load-database`.
+- Tombol "Muat ke Database Saja" tidak mengirim hazard.
+- UI memanggil `/api/admin/final-analysis-status` untuk menampilkan kesiapan tiga file final.
+- Tombol load database disabled jika file final belum lengkap.
 
-- Tailwind CSS v4 utility classes throughout
-- Responsive breakpoints used: `sm` (640px), `md` (768px), `lg` (1024px), `xl` (1280px)
-- Map container uses `h-full w-full` — height is set by parent grid row in dashboard layout
-- Mobile: overlay buttons icon-only, filter grid single-column, summary cards 1-column
+### Pipeline Monitor
+
+File:
+
+```text
+src/app/(admin)/admin/pipeline-monitor/page.tsx
+```
+
+Fungsi:
+
+- Polling status run.
+- Menampilkan tahap pipeline.
+- Menampilkan riwayat run.
+- Validasi kelengkapan run.
+- Aktivasi run.
+- Hapus run dengan konfirmasi.
+
+## Styling
+
+Frontend memakai Tailwind CSS 4 dan CSS variable di `globals.css`. Konvensi umum:
+
+- Layout admin menggunakan `AdminShell`.
+- Icon memakai `lucide-react`.
+- Komponen dashboard padat dan informatif.
+- Kartu dipakai untuk item berulang, status, dan panel alat.
+- Responsif untuk mobile, tablet, dan desktop.
+
+## Environment Frontend
+
+File:
+
+```text
+frontend/.env.local
+```
+
+Isi lokal:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+Untuk production:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://url-backend-production
+```
+
+## Command Frontend
+
+```powershell
+cd frontend
+npm install
+npm run dev
+npm run lint
+npm run build
+```
+
+Script dev memakai:
+
+```text
+next dev --webpack
+```

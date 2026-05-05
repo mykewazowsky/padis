@@ -1,152 +1,215 @@
-# Database Schema
+# Dokumentasi Database
 
-PostgreSQL 15+ with PostGIS extension. Hosted on Supabase.
+PADIS memakai PostgreSQL + PostGIS. Database menyimpan batas administrasi, wilayah sawah, produksi padi, hasil analisis hazard, metadata run, dan user aplikasi.
 
-## Tables
+## Tabel Referensi
 
-### regions_adm
-Administrative boundary polygons for all kabupaten/kota.
+### `hazards`
 
-| Column | Type | Description |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id_kabkota` | `varchar` PK | e.g. `"32.01"` — province.kabupaten code |
-| `kab_kota` | `varchar` | Display name, e.g. `"Kab. Bogor"` |
-| `prov` | `varchar` | Province name |
-| `geom` | `geometry(MultiPolygon, 4326)` | Administrative boundary |
+| `id` | integer | Primary key. |
+| `name` | varchar | `flood`, `drought`, `multihazard`. |
 
-Spatial index on `geom`. This table is the join base for all analytical layers.
+Lookup yang dipakai aplikasi:
 
-### hazards
+```text
+flood = 1
+drought = 2
+multihazard = 3
+```
 
-| Column | Type | Values |
+### `scenarios`
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK | |
-| `name` | `varchar` | `flood`, `drought`, `multihazard` |
+| `id` | integer | Primary key. |
+| `name` | varchar | `nonclimate` atau `climate`. |
 
-Lookup: flood=1, drought=2, multihazard=3.
+### `return_periods`
 
-### scenarios
-
-| Column | Type | Values |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK | |
-| `name` | `varchar` | `nonclimate`, `climate` |
+| `id` | integer | Primary key. |
+| `rp` | integer | 25, 50, 100, 250. |
 
-Lookup: nonclimate=1, climate=2.
+## Tabel Spasial dan Produksi
 
-### return_periods
+### `regions_adm`
 
-| Column | Type | Values |
+Batas administrasi kabupaten/kota.
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK | |
-| `rp` | `integer` | 25, 50, 100, 250 |
+| `id_kabkota` | varchar | Kode wilayah, contoh `32.01`. |
+| `kab_kota` | varchar | Nama kabupaten/kota. |
+| `prov` | varchar | Nama provinsi. |
+| `geom` | geometry | MultiPolygon EPSG:4326. |
 
-Lookup: 25→1, 50→2, 100→3, 250→4.
+Tabel ini menjadi basis join untuk tile, values, report, dan analitik.
 
-### runs
-Rekaman eksekusi pipeline.
+### `regions_sawah`
 
-| Column | Type | Description |
+Wilayah sawah hasil proses vector atau agregasi exposure.
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK (serial) | Run ID |
-| `run_name` | `varchar` | Nama run, e.g. `multi_full_20250427_operator` |
-| `created_at` | `timestamp with time zone` | Waktu pipeline dimulai |
-| `status` | `varchar` | `running`, `success`, `failed` |
-| `is_active` | `boolean` | Apakah run sedang aktif |
-| `step` | `varchar` | Tahap saat ini: `preprocess`, `zonal`, `analysis`, `etl` |
-| `progress` | `integer` | Persentase kemajuan (0–100) |
-| `message` | `text` | Pesan status terakhir dari pipeline |
-| `operator_name` | `varchar` | Nama operator yang menjalankan |
-| `source` | `varchar` | `local` untuk monitoring run, `NULL` untuk ETL run |
+| `id_kabkota` | varchar | Kode wilayah. |
+| `geom` | geometry | Geometri sawah/agregasi sawah. |
 
-Filter `source = 'local'` digunakan untuk memisahkan monitoring run dari ETL run internal.
+### `production`
 
-### losses
-Economic loss per kabupaten per scenario.
+Produksi padi per wilayah.
 
-| Column | Type | Description |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK (serial) | |
-| `id_kabkota` | `varchar` FK | References regions_adm |
-| `hazard_id` | `integer` FK | |
-| `scenario_id` | `integer` FK | Climate scenario |
-| `rp_id` | `integer` FK | Return period |
-| `run_id` | `integer` FK | |
-| `loss` | `float` | Economic loss in IDR |
+| `id` | integer | Primary key. |
+| `id_kabkota` | varchar | Kode wilayah. |
+| `total_prod` | float | Total produksi padi. |
+| `year` | integer | Tahun data jika tersedia. |
 
-Unique constraint on `(id_kabkota, hazard_id, scenario_id, rp_id, run_id)`.
+Endpoint production melakukan agregasi per `id_kabkota`.
 
-### aal
-Annual Average Loss per kabupaten.
+## Tabel Hasil Analisis
 
-| Column | Type | Description |
+### `losses`
+
+Nilai kerugian ekonomi per wilayah, hazard, scenario, return period, dan run.
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK (serial) | |
-| `id_kabkota` | `varchar` FK | |
-| `hazard_id` | `integer` FK | |
-| `scenario_id` | `integer` FK | |
-| `aal` | `float` | Annual Average Loss in IDR |
+| `id` | integer | Primary key. |
+| `id_kabkota` | varchar | Kode wilayah. |
+| `hazard_id` | integer | FK ke `hazards`. |
+| `scenario_id` | integer | FK ke `scenarios`. |
+| `rp_id` | integer | FK ke `return_periods`. |
+| `run_id` | integer | FK ke `runs`. |
+| `loss` | float | Nilai kerugian. |
 
-Note: AAL does not have a `run_id` or `rp_id` — it is an integrated metric across return periods.
+Unique constraint:
 
-### zonal_kabupaten
-Zonal statistics of hazard intensity per kabupaten.
+```text
+(id_kabkota, hazard_id, scenario_id, rp_id, run_id)
+```
 
-| Column | Type | Description |
+### `aal`
+
+Annual Average Loss per wilayah, hazard, scenario, dan run.
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK (serial) | |
-| `id_kabkota` | `varchar` FK | |
-| `hazard_id` | `integer` FK | |
-| `scenario_id` | `integer` FK | |
-| `rp_id` | `integer` FK | |
-| `run_id` | `integer` FK | |
-| `mean_value` | `float` | Mean hazard intensity (normalized 0–1) |
-| `max_value` | `float` | Max hazard intensity |
-| `min_value` | `float` | Min hazard intensity |
+| `id` | integer | Primary key. |
+| `id_kabkota` | varchar | Kode wilayah. |
+| `hazard_id` | integer | FK ke `hazards`. |
+| `scenario_id` | integer | FK ke `scenarios`. |
+| `run_id` | integer | FK ke `runs`. |
+| `aal` | float | Nilai Annual Average Loss. |
 
-### production
-Rice production per kabupaten (aggregated across crop types/seasons).
+Unique constraint:
 
-| Column | Type | Description |
+```text
+(id_kabkota, hazard_id, scenario_id, run_id)
+```
+
+### `zonal_kabupaten`
+
+Statistik zonal hazard per wilayah, hazard, scenario, return period, dan run.
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK (serial) | |
-| `id_kabkota` | `varchar` FK | |
-| `total_prod` | `float` | Rice production in tons |
-| `year` | `integer` | Data year |
+| `id` | integer | Primary key. |
+| `id_kabkota` | varchar | Kode wilayah. |
+| `hazard_id` | integer | FK ke `hazards`. |
+| `scenario_id` | integer | FK ke `scenarios`. |
+| `rp_id` | integer | FK ke `return_periods`. |
+| `run_id` | integer | FK ke `runs`. |
+| `mean_value` | float | Nilai rata-rata hazard. |
+| `max_value` | float | Nilai maksimum jika tersedia. |
+| `min_value` | float | Nilai minimum jika tersedia. |
 
-The production endpoint aggregates `SUM(total_prod) GROUP BY id_kabkota`.
+Unique constraint:
 
-### app_users
-Application user accounts.
+```text
+(id_kabkota, hazard_id, scenario_id, rp_id, run_id)
+```
 
-| Column | Type | Description |
+## Tabel Run
+
+### `runs`
+
+Metadata eksekusi pipeline.
+
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | `integer` PK (serial) | |
-| `email` | `varchar` UNIQUE | |
-| `name` | `varchar` | |
-| `password_hash` | `varchar` | bcrypt hash |
-| `role` | `varchar` | `user` or `admin` |
-| `created_at` | `timestamp` | |
-| `reset_token` | `varchar` NULLABLE | Password reset token |
-| `reset_token_expiry` | `timestamp` NULLABLE | |
+| `id` | integer | Primary key. |
+| `run_name` | varchar | Nama run. |
+| `created_at` | timestamptz | Waktu mulai. |
+| `finished_at` | timestamp | Waktu selesai. |
+| `status` | varchar | `running`, `success`, `failed`. |
+| `is_active` | boolean | Run yang dipakai dashboard. |
+| `step` | varchar | Tahap aktif. |
+| `progress` | integer | Progres 0-100. |
+| `message` | text | Pesan status terakhir. |
+| `operator_name` | varchar | Nama operator. |
+| `source` | varchar | `local` untuk run operator, `etl` untuk ETL standalone jika ada. |
 
-## Key Spatial Operations
+Satu run aktif dipilih melalui `is_active=true`. Migration `004_runs_active_management.sql` menambahkan `finished_at` dan index partial untuk run aktif.
 
-### MVT Generation (tiles endpoint)
+## Tabel User
+
+### `app_users`
+
+Akun aplikasi.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | uuid/integer sesuai schema aktif | Primary key. |
+| `email` | varchar | Email unik. |
+| `name` | varchar | Nama user. |
+| `password_hash` | varchar | Hash password. |
+| `role` | varchar | `admin` atau `user`. |
+| `status` | varchar | Status user jika kolom tersedia. |
+| `created_at` | timestamp | Waktu dibuat. |
+
+### `password_reset_tokens`
+
+Token reset password.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | uuid | Primary key. |
+| `user_id` | uuid | FK ke user. |
+| `token_hash` | text | Hash token reset. |
+| `created_at` | timestamptz | Waktu dibuat. |
+| `expires_at` | timestamptz | Waktu kedaluwarsa. |
+| `used_at` | timestamptz | Waktu dipakai. |
+
+## Pola Query Utama
+
+### Tile MVT
+
+Endpoint tile melakukan join `regions_adm` dengan tabel analisis, lalu membentuk MVT memakai PostGIS:
+
 ```sql
-SELECT ST_AsMVT(q, 'layer', 4096, 'geom') FROM (
+SELECT ST_AsMVT(q, 'layer', 4096, 'geom')
+FROM (
   SELECT
-    r.id_kabkota, r.kab_kota, r.prov,
+    r.id_kabkota,
+    r.kab_kota,
+    r.prov,
     COALESCE(l.loss, 0) AS loss,
     (l.id_kabkota IS NOT NULL) AS has_data,
     ST_AsMVTGeom(r.geom, ST_TileEnvelope(:z, :x, :y), 4096, 64, true) AS geom
   FROM regions_adm r
-  LEFT JOIN losses l ON r.id_kabkota = l.id_kabkota AND ...
+  LEFT JOIN losses l ON ...
   WHERE r.geom && ST_TileEnvelope(:z, :x, :y)
-) q
+) q;
 ```
 
-### Data Bounds (auto-fit map)
+### Data Bounds
+
+Backend menghitung extent wilayah yang punya data untuk fitur Fit to Data:
+
 ```sql
 SELECT
   ST_XMin(ST_Extent(r.geom)) AS min_lng,
@@ -154,20 +217,23 @@ SELECT
   ST_XMax(ST_Extent(r.geom)) AS max_lng,
   ST_YMax(ST_Extent(r.geom)) AS max_lat
 FROM regions_adm r
-INNER JOIN losses l ON r.id_kabkota = l.id_kabkota AND ...
+JOIN losses l ON ...
 ```
 
-### Region Centroids (dropdown zoom)
-```sql
-SELECT
-  ST_X(ST_Centroid(r.geom)) AS centroid_lng,
-  ST_Y(ST_Centroid(r.geom)) AS centroid_lat
-FROM regions_adm r
+## Migration
+
+File migration manual ada di:
+
+```text
+db/migrations/
 ```
 
-## Indexes
+Migration penting:
 
-- `regions_adm.geom` — GIST spatial index (used by `&&` tile envelope filter)
-- `losses(id_kabkota, hazard_id, scenario_id, rp_id, run_id)` — composite for filter queries
-- `aal(id_kabkota, hazard_id, scenario_id)` — composite
-- `zonal_kabupaten(id_kabkota, hazard_id, scenario_id, rp_id, run_id)` — composite
+- `001_mvt_indexes.sql`: index untuk tile MVT.
+- `002_runs_tracking_columns.sql`: kolom tracking run.
+- `003_runs_created_at_index.sql`: index waktu run.
+- `004_runs_active_management.sql`: `finished_at` dan index run aktif.
+- `005_password_reset_tokens.sql`: tabel token reset password.
+
+Jalankan migration sesuai kebutuhan environment database.

@@ -1,353 +1,468 @@
-# API Reference
+# Referensi API PADIS
 
-Base URL: `NEXT_PUBLIC_API_BASE_URL` (configured per environment)
+Base URL backend di frontend diatur melalui:
 
-All endpoints return JSON. Errors return `{"error": "<message>"}` with an appropriate HTTP status code.
-
----
-
-## Authentication
-
-### POST /api/auth/login
-Authenticate a user and receive a JWT token.
-
-**Request body:**
-```json
-{ "email": "user@example.com", "password": "password123" }
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 ```
 
-**Response:**
-```json
-{ "token": "<jwt>", "role": "admin" | "user" }
+Semua endpoint admin membutuhkan token JWT admin. Token dikirim dengan header:
+
+```http
+Authorization: Bearer <token>
 ```
 
-Token is HS256, expires in 8 hours. Store in `localStorage` and send as `Authorization: Bearer <token>`.
+## Auth
 
-### POST /api/auth/register
-Register a new user account.
+### POST `/api/register`
 
-**Request body:**
-```json
-{ "email": "user@example.com", "password": "password123", "name": "Full Name" }
-```
+Mendaftarkan user baru.
 
-### POST /api/auth/forgot-password
-Send a password reset email.
+Body:
 
-**Request body:**
-```json
-{ "email": "user@example.com" }
-```
-
-### POST /api/auth/reset-password
-Reset password using token from email.
-
-**Request body:**
-```json
-{ "token": "<reset-token>", "password": "newpassword123" }
-```
-
----
-
-## Runs
-
-### GET /api/runs/latest
-Returns the most recent pipeline run ID.
-
-**Response:**
-```json
-{ "run_id": 42 }
-```
-
----
-
-## Layer Values (geometry-free)
-
-All layer value endpoints return attribute data without geometry. Used by the frontend for classification and overlay card display. Actual map rendering uses MVT tiles (see below).
-
-### GET /api/layers/values/loss
-
-**Query params:**
-
-| Param | Required | Example | Description |
-|---|---|---|---|
-| `hazard` | yes | `flood` | `flood`, `drought`, `multihazard` |
-| `scenario` | yes | `rp100` | Return period: `rp25`, `rp50`, `rp100`, `rp250` |
-| `climate` | yes | `nonclimate` | `nonclimate` or `climate` |
-| `run_id` | yes | `42` | Pipeline run ID |
-
-**Response:**
 ```json
 {
-  "data": [
-    { "id_kabkota": "32.01", "kab_kota": "Kab. Bogor", "prov": "Jawa Barat",
-      "loss": 125000000.0, "has_data": true }
-  ],
-  "data_bounds": { "min_lng": 106.0, "min_lat": -7.5, "max_lng": 108.0, "max_lat": -6.0 }
+  "email": "user@example.com",
+  "password": "password",
+  "name": "Nama User"
 }
 ```
 
-`has_data: false` when the region has no data for the current filter combination. `data_bounds` is the spatial extent of data-bearing regions (used by frontend for map `fitBounds`).
+### POST `/api/login`
 
-### GET /api/layers/values/aal
+Login dan menerima token JWT.
 
-**Query params:**
+Body:
 
-| Param | Required | Example |
-|---|---|---|
-| `hazard` | yes | `flood` |
-| `climate` | yes | `nonclimate` |
-
-**Response:**
 ```json
 {
-  "data": [
-    { "id_kabkota": "32.01", "kab_kota": "Kab. Bogor", "prov": "Jawa Barat",
-      "aal": 45000000.0, "has_data": true }
-  ],
-  "data_bounds": { ... }
+  "email": "user@example.com",
+  "password": "password"
 }
 ```
 
-### GET /api/layers/values/hazard
+Response berisi token, data user, dan role.
 
-> **Note on param naming:** `scenario` param carries the climate value; `rp` param carries the return period. This matches the database column semantics for `zonal_kabupaten`.
+### GET `/api/me`
 
-**Query params:**
+Mengambil user saat ini dari token.
 
-| Param | Required | Example | Description |
-|---|---|---|---|
-| `hazard` | yes | `flood` | Hazard type |
-| `scenario` | yes | `nonclimate` | Climate scenario (nonclimate/climate) |
-| `rp` | yes | `rp100` | Return period |
-| `run_id` | yes | `42` | Run ID |
+### POST `/api/logout`
 
-**Response:**
-```json
-{
-  "data": [
-    { "id_kabkota": "32.01", "kab_kota": "Kab. Bogor", "prov": "Jawa Barat",
-      "mean_value": 1.23, "has_data": true }
-  ],
-  "data_bounds": { ... }
-}
-```
+Logout sisi client. Backend mengembalikan status sukses.
 
-### GET /api/layers/values/production
-No query params. Returns aggregated rice production totals + region centroids.
+### POST `/api/forgot-password`
 
-**Response:**
-```json
-{
-  "data": [
-    { "id_kabkota": "32.01", "kab_kota": "Kab. Bogor", "prov": "Jawa Barat",
-      "total_prod": 185000.0, "centroid_lng": 106.82, "centroid_lat": -6.53 }
-  ]
-}
-```
+Meminta email reset password.
 
-### GET /api/layers/values/regions
-Returns all kabupaten/kota names and provinces (no geometry).
+### POST `/api/reset-password`
 
----
+Mengganti password memakai token reset.
 
-## MVT Tiles
+## Run Aktif dan Analitik
 
-MVT tiles are served as binary Protocol Buffer data. Leaflet.VectorGrid fetches these automatically using the tile URL template.
+### GET `/api/runs/latest`
 
-### GET /api/tiles/{layer}/{z}/{x}/{y}
+Mengembalikan `run_id` aktif yang dipakai dashboard. Backend memprioritaskan run aktif (`is_active=true`) dan fallback ke run terbaru jika diperlukan.
 
-**Path params:**
+### GET `/api/aal-summary`
 
-| Param | Values |
+Ringkasan AAL untuk hazard dan run tertentu.
+
+Query umum:
+
+| Param | Contoh |
 |---|---|
-| `layer` | `loss`, `aal`, `hazard`, `production`, `regions` |
-| `z`, `x`, `y` | Standard tile coordinates |
+| `hazard` | `flood`, `drought`, `multihazard` |
+| `run_id` | `12` |
 
-**Query params:** Same as corresponding `/values/` endpoint (hazard, scenario, climate, run_id).
+### GET `/api/aal-summary-all-hazards`
 
-**Response:** `Content-Type: application/x-protobuf`, binary MVT data.
+Ringkasan AAL lintas hazard untuk chart perbandingan.
 
-Tiles include all region polygons. Regions without data for the current filter have `has_data=false` in the tile properties — the frontend styles these gray.
+### GET `/api/loss-summary`
 
-Tile URL template used by frontend:
-```
-{BASE_URL}/api/tiles/{layer}/{z}/{x}/{y}?hazard=...&scenario=...&climate=...&run_id=...
-```
+Ringkasan loss untuk hazard, scenario, climate, dan run.
 
----
+### GET `/api/loss-summary-compare-climate`
 
-## Analytics
+Membandingkan total loss non-climate dan climate untuk hazard terpilih.
 
-### GET /api/analytics/summary
+### GET `/api/top-regions`
 
-Returns aggregate statistics for the current filter combination.
+Daftar wilayah dengan loss tertinggi.
 
-**Query params:** `hazard`, `scenario`, `climate`, `run_id`
+Query umum:
 
-**Response:**
+| Param | Contoh |
+|---|---|
+| `hazard` | `flood` |
+| `scenario` | `rp100` |
+| `climate` | `nonclimate` |
+| `run_id` | `12` |
+| `limit` | `10` |
+
+### GET `/api/hazard-breakdown`
+
+Breakdown nilai hazard/loss untuk kebutuhan analitik.
+
+## Layer Values
+
+Endpoint values mengembalikan atribut tanpa geometri. Frontend memakai data ini untuk klasifikasi warna, overlay, chart, dan dropdown. Geometri peta tetap diambil dari endpoint tile.
+
+### GET `/api/layers/values/loss`
+
+Query:
+
+| Param | Wajib | Contoh |
+|---|---|---|
+| `hazard` | Ya | `flood` |
+| `scenario` | Ya | `rp100` |
+| `climate` | Ya | `nonclimate` |
+| `run_id` | Ya | `12` |
+
+Response ringkas:
+
 ```json
 {
-  "total_loss": 5200000000.0,
-  "total_aal": 980000000.0,
-  "total_production": 45000000.0,
-  "region_count": 198
+  "data": [
+    {
+      "id_kabkota": "32.01",
+      "kab_kota": "Kab. Bogor",
+      "prov": "Jawa Barat",
+      "loss": 125000000,
+      "has_data": true
+    }
+  ],
+  "data_bounds": {
+    "min_lng": 106.0,
+    "min_lat": -7.5,
+    "max_lng": 108.0,
+    "max_lat": -6.0
+  }
 }
 ```
 
-### GET /api/analytics/top-regions
+### GET `/api/layers/values/aal`
 
-Returns top kabupaten/kota by loss value.
+Query:
 
-**Query params:** `hazard`, `scenario`, `climate`, `run_id`, `limit` (default 5)
+| Param | Wajib | Contoh |
+|---|---|---|
+| `hazard` | Ya | `flood` |
+| `climate` | Ya | `nonclimate` |
+| `run_id` | Disarankan | `12` |
 
-### GET /api/analytics/download-csv
+### GET `/api/layers/values/hazard`
 
-Returns a CSV file with all region data for the current filter.
+Query:
 
-**Query params:** `hazard`, `scenario`, `climate`, `run_id`
+| Param | Wajib | Contoh | Catatan |
+|---|---|---|---|
+| `hazard` | Ya | `flood` | Hazard target. |
+| `scenario` | Ya | `nonclimate` | Di endpoint ini berarti climate scenario. |
+| `rp` | Ya | `rp100` | Return period. |
+| `run_id` | Ya | `12` | Run aktif. |
 
-**Response:** `Content-Type: text/csv`, file download.
+Response memakai kolom `mean_value`.
 
----
+### GET `/api/layers/values/production`
 
-## Reports
+Mengembalikan produksi padi dan centroid wilayah untuk zoom dropdown.
 
-### POST /api/report/generate
+### GET `/api/layers/values/regions`
 
-Generates a PDF report using ReportLab.
+Mengembalikan daftar wilayah administrasi tanpa geometri.
 
-**Request body:**
-```json
-{
-  "hazard": "flood",
-  "scenario": "rp100",
-  "climate": "nonclimate",
-  "run_id": 42
-}
+## Vector Tile
+
+### GET `/api/tiles/{layer}/{z}/{x}/{y}`
+
+Layer yang didukung:
+
+- `loss`
+- `aal`
+- `hazard`
+- `production`
+- `regions`
+
+Response berupa MVT binary:
+
+```http
+Content-Type: application/x-protobuf
 ```
 
-**Response:** `Content-Type: application/pdf`, binary PDF file.
+Query mengikuti layer terkait. Untuk layer analisis biasanya memakai:
 
----
+```text
+hazard=flood&scenario=rp100&climate=nonclimate&run_id=12
+```
 
-## Admin (JWT required, admin role)
+Endpoint utilitas tile:
 
-Semua endpoint admin membutuhkan `Authorization: Bearer <token>` dengan token yang diterbitkan untuk user ber-role `admin`.
+- `GET /api/tiles/cache/stats`
+- `POST /api/tiles/cache/clear`
+- `GET /api/tiles/debug/losses`
 
-> **Catatan arsitektur:** Pipeline tidak dijalankan via HTTP request ke Flask. `POST /api/admin/start-pipeline` men-spawn subprocess Python secara fire-and-forget. Progress pipeline dibaca dari tabel `runs` di database, bukan dari state in-memory Flask.
+## Report dan Download
 
-### GET /api/admin/run-status
-Status pipeline terbaru (read dari tabel `runs`).
+### GET `/api/download-csv`
 
-**Response:**
+Mengunduh CSV untuk filter dashboard.
+
+Query:
+
+```text
+hazard=flood&scenario=rp100&climate=nonclimate&run_id=12
+```
+
+### GET `/api/generate-report-v2`
+
+Menghasilkan report berdasarkan filter. Response berupa file report dari backend.
+
+Query umum:
+
+| Param | Contoh |
+|---|---|
+| `hazard` | `flood` |
+| `scenario` | `rp100` |
+| `climate` | `nonclimate` |
+| `run_id` | `12` |
+| `region` | `Kab. Bogor` |
+
+## Admin - Status Pipeline
+
+### GET `/api/admin/run-status`
+
+Mengembalikan run monitoring terbaru dari tabel `runs`.
+
+Response:
+
 ```json
 {
   "run": {
-    "id": 5,
-    "run_name": "multi_full_20250427_operator",
-    "created_at": "2025-04-27T08:30:00+00:00",
+    "id": 12,
+    "run_name": "flood_full_operator",
+    "created_at": "2026-05-06T01:00:00+00:00",
+    "finished_at": null,
     "status": "running",
-    "is_active": true,
-    "step": "zonal",
-    "progress": 42,
-    "message": "Zonal statistics flood selesai",
+    "is_active": false,
+    "step": "analysis",
+    "progress": 55,
+    "message": "Analysis dimulai (flood)",
     "operator_name": "operator",
     "source": "local"
   }
 }
 ```
 
-`run: null` jika belum ada run.
+### GET `/api/admin/process-status`
 
-### GET /api/admin/process-status
-Status pipeline dalam format lama (backward compat). Shape berbeda dari `run-status`.
+Endpoint kompatibilitas untuk UI lama. Bentuk response lebih sederhana:
 
-**Response:**
 ```json
 {
-  "status": "running" | "success" | "failed" | "idle",
-  "message": "...",
-  "progress_percent": 42,
-  "current_script": "zonal",
-  "hazard": "multi"
+  "status": "running",
+  "message": "Analysis dimulai",
+  "progress_percent": 55,
+  "current_script": "analysis",
+  "hazard": "flood"
 }
 ```
 
-### GET /api/admin/runs
-Daftar monitoring run terbaru (hanya `source='local'`).
+### GET `/api/admin/runs`
 
-**Query params:**
+Daftar run monitoring terbaru.
 
-| Param | Default | Deskripsi |
+Query:
+
+| Param | Default | Keterangan |
 |---|---|---|
-| `limit` | `10` | Jumlah run (max 50) |
-| `operator_name` | — | Filter exact match |
-| `hazard` | — | Filter: `flood`, `drought`, `multi` |
+| `limit` | `10` | Maksimum 50. |
+| `operator_name` | kosong | Filter nama operator. |
+| `hazard` | kosong | `flood`, `drought`, atau `multi`. |
 
-**Response:**
+### GET `/api/admin/runs/active`
+
+Mengembalikan run yang sedang aktif (`is_active=true`).
+
+### GET `/api/admin/runs/{run_id}/validate`
+
+Memeriksa kelengkapan data run pada tabel:
+
+- `aal`
+- `losses`
+- `zonal_kabupaten`
+
+Response menyertakan `all_hazards_present` dan `complete`.
+
+### PATCH `/api/admin/runs/{run_id}/activate`
+
+Mengaktifkan run tertentu sebagai sumber data dashboard.
+
+Body opsional:
+
 ```json
-{ "runs": [...], "count": 5, "limit": 10 }
+{ "force": false }
 ```
 
-### POST /api/admin/start-pipeline
-Jalankan pipeline sebagai subprocess lokal (fire-and-forget).
+### DELETE `/api/admin/runs/{run_id}`
 
-**Request body:**
+Menghapus run dan data turunannya dari `zonal_kabupaten`, `losses`, dan `aal`. Tidak boleh menghapus run aktif atau run yang masih running.
+
+## Admin - Process Control
+
+### POST `/api/admin/start-pipeline`
+
+Menjalankan pipeline analisis sebagai subprocess.
+
+Body:
+
 ```json
 {
-  "mode": "full" | "preprocess" | "analysis" | "web",
-  "hazard": "flood" | "drought" | "multi",
+  "mode": "full",
+  "hazard": "flood",
   "operator": "nama_operator"
 }
 ```
 
-**Response:**
-- `202` — pipeline berhasil di-spawn, berisi `pid`, `mode`, `hazard`, `operator`
-- `409` — ada pipeline yang sedang berjalan (belum stale), berisi `active_run`
-- `400` — parameter tidak valid
-- `500` — gagal spawn subprocess
+Mode yang didukung:
 
-### GET /api/admin/dependencies
-Cek ketersediaan file output per hazard.
+- `full`
+- `analysis`
+- `preprocess`
+- `web`
 
-**Query params:** `hazard` (`flood`, `drought`, `multi`)
+Catatan penting:
 
-**Response:**
+- `full` tidak menjalankan ETL.
+- Untuk load database dari UI, gunakan `/api/admin/load-database`, bukan `start-pipeline` mode `web`.
+- Backend menolak run baru jika masih ada run non-stale yang running.
+
+### GET `/api/admin/final-analysis-status`
+
+Memeriksa kesiapan tiga file final:
+
+```text
+kabkota_flood_final.geojson
+kabkota_drought_final.geojson
+kabkota_multihazard_final.geojson
+```
+
+Response:
+
 ```json
 {
-  "hazard": "multi",
-  "all_ok": true,
-  "checks": [
-    { "type": "output", "label": "Flood AAL", "exists": true },
-    ...
+  "ready": false,
+  "missing": ["kabkota_multihazard_final.geojson"],
+  "files": [
+    {
+      "hazard": "flood",
+      "filename": "kabkota_flood_final.geojson",
+      "path": "backend/data/output/analysis/kabkota_flood_final.geojson",
+      "exists": true,
+      "size_bytes": 169801922,
+      "modified_at": "2026-05-01T02:44:00+00:00"
+    }
   ]
 }
 ```
 
-### GET /api/admin/outputs
-Daftar file di folder output pipeline.
+### POST `/api/admin/load-database`
 
-### GET /api/admin/outputs/preview
-Preview isi file output (GeoJSON atau CSV).
+Menjalankan ETL/load database untuk tiga file final. Endpoint ini tidak menerima hazard.
 
-**Query params:** `filename`
+Body:
 
-### GET /api/admin/outputs/download
+```json
+{
+  "operator": "nama_operator"
+}
+```
+
+Response sukses:
+
+```json
+{
+  "message": "Load database berhasil dimulai.",
+  "pid": 12345,
+  "mode": "web",
+  "operator": "nama_operator",
+  "files": []
+}
+```
+
+Jika file belum lengkap, response `409`:
+
+```json
+{
+  "error": "Belum semua file final analisis tersedia.",
+  "missing": ["kabkota_drought_final.geojson"],
+  "files": []
+}
+```
+
+### GET `/api/admin/dependencies`
+
+Endpoint legacy untuk cek output tertentu per hazard. Untuk kesiapan ETL terbaru, gunakan `/api/admin/final-analysis-status`.
+
+## Admin - Data dan Output
+
+### GET `/api/admin/data/readiness`
+
+Memeriksa kesiapan file input raw.
+
+### GET `/api/admin/data`
+
+Ringkasan dataset raw, processed, dan output.
+
+### GET `/api/admin/data/preview`
+
+Preview file data dari folder yang diizinkan.
+
+### POST `/api/admin/upload-data`
+
+Upload data admin jika UI mengaktifkan flow tersebut.
+
+### POST `/api/admin/data/delete`
+
+Menghapus file data dari folder yang diizinkan.
+
+### POST `/api/admin/data/set-active`
+
+Menandai data raw tertentu sebagai aktif.
+
+### GET `/api/admin/outputs`
+
+Daftar file di `backend/data/output/analysis`.
+
+### GET `/api/admin/outputs/preview`
+
+Preview file output.
+
+### GET `/api/admin/outputs/download`
+
 Download file output.
 
-**Query params:** `filename`
+## Admin - User
 
-### GET /api/admin/data
-Ringkasan data untuk admin dashboard.
+### GET `/api/admin/users`
 
-### GET /api/admin/users
-Daftar semua user terdaftar.
+Daftar user.
 
-### PATCH /api/admin/users/{id}
-Update role atau status user.
+### PATCH `/api/admin/users/{user_id}/role`
 
-### ~~POST /api/admin/run-analysis~~ (410 Gone)
-### ~~POST /api/admin/finish-analysis~~ (410 Gone)
+Mengubah role user.
 
-Kedua endpoint ini sudah dihapus. Gunakan `start-pipeline` dan baca status via `run-status`.
+### PATCH `/api/admin/users/{user_id}/status`
+
+Mengubah status user.
+
+## Endpoint Lama yang Sudah Tidak Dipakai
+
+Endpoint berikut masih ada tetapi mengembalikan `410 Gone`:
+
+- `POST /api/admin/run-analysis`
+- `POST /api/admin/finish-analysis`
+
+Gunakan `POST /api/admin/start-pipeline`, `GET /api/admin/run-status`, dan `POST /api/admin/load-database`.

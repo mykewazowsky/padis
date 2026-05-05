@@ -535,7 +535,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6 xl:px-8">
+          <main className="flex-1 px-4 py-5 sm:px-6 xl:px-7">
             {children}
           </main>
         </div>

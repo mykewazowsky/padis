@@ -5,18 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart3,
-  CloudRain,
-  Layers3,
   LogOut,
   Menu,
   ShieldCheck,
   User2,
   X,
-  Home,
-  Workflow,
-  Info,
-  LayoutDashboard,
 } from "lucide-react";
 
 import { buildApiUrl } from "@/lib/api";
@@ -559,7 +552,7 @@ export default function SiteShell({
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-16 bg-[var(--color-dark-bg)] text-white">
+      <footer className="bg-[var(--color-dark-bg)] text-white">
         <div className="section-container py-12">
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
             

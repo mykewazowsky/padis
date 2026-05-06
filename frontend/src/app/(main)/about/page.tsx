@@ -128,6 +128,19 @@ const partnerCards = [
   },
 ];
 
+function getInitials(name: string): string {
+  const clean = name
+    .replace(/^(Prof\.\s*)?(Dr\.\s*)?(Ir\.\s*)*/i, "")
+    .split(",")[0]
+    .trim();
+  return clean
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+}
+
 function SectionHeader({
   title,
   desc,
@@ -355,70 +368,84 @@ export default function AboutPage() {
       <section className="section-shell content-section">
         <div className="section-container">
           <div className="mx-auto max-w-5xl">
-            <div className="text-center">
-              <h2 className="text-heading text-2xl font-bold tracking-tight md:text-3xl">
-                Tim Capstone Project:{" "}
-                <span className="text-[var(--color-primary)]">PADIS</span>
-              </h2>
-            </div>
+            {/* Header */}
+            <SectionHeader
+              label="Capstone Project"
+              title="Tim PADIS"
+              centered
+            />
 
-            <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center md:flex-row md:text-left">
-              <img src="/itb/itb.png" alt="Logo ITB" className="h-9 w-auto" />
-              <div>
-                <p className="text-sm font-medium text-heading">
-                  Program Studi Teknik Geodesi dan Geomatika
-                </p>
-                <p className="text-sm text-muted">
-                  Fakultas Ilmu dan Teknologi Kebumian · Institut Teknologi Bandung
-                </p>
-              </div>
-            </div>
-
-            <div className="decor-line mt-6" />
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="card card-accent-primary p-5">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-[var(--color-primary)]" />
-                  <h3 className="text-base font-semibold text-heading">
-                    Pengembang
-                  </h3>
+            {/* ITB identity pill */}
+            <div className="mt-6 flex justify-center">
+              <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-5 py-3 shadow-[var(--shadow-soft)]">
+                <img src="/itb/itb.png" alt="Logo ITB" className="h-8 w-auto flex-shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-heading">Teknik Geodesi dan Geomatika</p>
+                  <p className="text-xs text-muted">Fakultas Ilmu dan Teknologi Kebumian · Institut Teknologi Bandung</p>
                 </div>
-                <ul className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-4">
-                  {developers.map((item) => (
-                    <li key={item} className="text-sm leading-relaxed text-muted">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="card card-accent-secondary p-5">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-[var(--color-secondary-dark)]" />
-                  <h3 className="text-base font-semibold text-heading">
-                    Pembimbing
-                  </h3>
-                </div>
-                <ul className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-4">
-                  {supervisors.map((item) => (
-                    <li key={item} className="text-sm leading-relaxed text-muted">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
 
-            <div className="mt-5 flex justify-center">
+            {/* Developers */}
+            <div className="mt-10">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-[var(--color-border)]" />
+                <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-3 py-1">
+                  <Users className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary)]">Pengembang</span>
+                </div>
+                <div className="h-px flex-1 bg-[var(--color-border)]" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {developers.map((name) => (
+                  <div
+                    key={name}
+                    className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-5 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-sm font-bold text-[var(--color-primary)]">
+                      {getInitials(name)}
+                    </div>
+                    <p className="text-sm font-medium leading-snug text-heading">{name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Supervisors */}
+            <div className="mt-8">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-[var(--color-border)]" />
+                <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-3 py-1">
+                  <GraduationCap className="h-3.5 w-3.5 text-[var(--color-secondary-dark)]" />
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-secondary-dark)]">Pembimbing</span>
+                </div>
+                <div className="h-px flex-1 bg-[var(--color-border)]" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {supervisors.map((name) => (
+                  <div
+                    key={name}
+                    className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-5 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-secondary-soft)] text-sm font-bold text-[var(--color-secondary-dark)]">
+                      {getInitials(name)}
+                    </div>
+                    <p className="text-sm font-medium leading-snug text-heading">{name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="mt-8 flex justify-center">
               <a
                 href="mailto:padiswebgis@gmail.com"
                 className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-4 py-2 text-sm text-muted transition hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]"
               >
                 <Mail className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-                <span className="truncate">
-                  Kontak proyek: padiswebgis@gmail.com
-                </span>
+                <span className="truncate">Kontak proyek: padiswebgis@gmail.com</span>
               </a>
             </div>
           </div>

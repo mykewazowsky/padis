@@ -185,7 +185,7 @@ function FilterFields({
         />
       </div>
 
-      {/* Climate scenario */}
+      {/* Skenario iklim */}
       <div className={getFieldClassName("climate")}>
         <FilterLabel icon={Cloud} inline={isInline}>
           Skenario Analisis
@@ -203,7 +203,7 @@ function FilterFields({
         />
       </div>
 
-      {/* Return period */}
+      {/* Periode ulang */}
       <div className={getFieldClassName("scenario")}>
         <FilterLabel icon={RefreshCw} inline={isInline}>
           Periode Ulang

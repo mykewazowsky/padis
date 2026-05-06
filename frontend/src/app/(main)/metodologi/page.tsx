@@ -494,18 +494,18 @@ export default function MetodologiPage() {
         </div>
       </section>
 
-      {/* 3. SKENARIO CLIMATE DAN NON-CLIMATE */}
+      {/* 3. SKENARIO IKLIM DAN NON-IKLIM */}
       <section className="section-shell content-section">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
-                Skenario Climate dan Non-Climate
+                Skenario Iklim dan Non-Iklim
               </h2>
               <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
                 Dalam PADIS, istilah{" "}
-                <strong className="text-heading">Climate</strong> dan{" "}
-                <strong className="text-heading">Non-Climate</strong> menunjukkan perbedaan
+                <strong className="text-heading">Iklim</strong> dan{" "}
+                <strong className="text-heading">Non-Iklim</strong> menunjukkan perbedaan
                 <em>skenario raster hazard</em> pada analisis
                 risiko banjir dan kekeringan, bukan perbedaan metode atau
                 format data.
@@ -514,13 +514,13 @@ export default function MetodologiPage() {
 
             {/* Kartu perbandingan dua skenario */}
             <div className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
-              {/* Non-Climate */}
+              {/* Non-Iklim */}
               <div className="card p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <p className="section-eyebrow text-xs mb-1">Skenario</p>
                     <h5 className="text-xl font-bold text-heading">
-                      Non-Climate
+                      Non-Iklim
                     </h5>
                     <p className="text-sm italic text-muted mt-0.5">
                       Baseline Scenario
@@ -546,16 +546,16 @@ export default function MetodologiPage() {
                 </span>
               </div>
 
-              {/* Climate */}
+              {/* Iklim */}
               <div className="card card-accent-secondary p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)] mb-1">
                       Skenario
                     </p>
-                    <h5 className="text-xl font-bold text-heading">Climate</h5>
+                    <h5 className="text-xl font-bold text-heading">Iklim</h5>
                     <p className="text-sm italic text-[var(--color-secondary-dark)] mt-0.5">
-                      Climate Projection Scenario
+                      Skenario Proyeksi Iklim
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">

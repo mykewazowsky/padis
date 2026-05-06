@@ -88,7 +88,7 @@ function hazardLabel(h: string): string {
 }
 
 function climateLabel(c: string): string {
-  return c === "climate" ? "Climate Change (Proyeksi)" : "Non-Climate (Baseline)";
+  return c === "climate" ? "Perubahan Iklim (Proyeksi)" : "Non-Iklim (Baseline)";
 }
 
 function scenarioLabel(s: string): string {
@@ -243,8 +243,8 @@ export default function ReportDocument({
   const regionDisplay = selectedRegion?.trim() || "Seluruh Indonesia";
 
   const aalCompareData = [
-    { name: "Non-Climate", value: aalNc },
-    { name: "Climate",     value: aalC  },
+    { name: "Non-Iklim", value: aalNc },
+    { name: "Iklim",     value: aalC  },
   ];
 
   const MEDAL_COLORS = ["#c9a227", "#9ca3af", "#b45309"] as const;
@@ -386,13 +386,13 @@ export default function ReportDocument({
                 accent={NAVY}
               />
               <KpiCard
-                label="AAL Non-Climate"
+                label="AAL Non-Iklim"
                 value={fmtCompact(aalNc)}
                 sub="Kerugian tahunan baseline"
                 accent={BLUE}
               />
               <KpiCard
-                label="AAL Climate"
+                label="AAL Iklim"
                 value={fmtCompact(aalC)}
                 sub="Proyeksi perubahan iklim"
                 accent={AMBER}
@@ -524,7 +524,7 @@ export default function ReportDocument({
               {/* Chart B — AAL comparison */}
               <div>
                 <p className="mb-1.5 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
-                  B. Perbandingan AAL: Non-Climate vs Climate
+                  B. Perbandingan AAL: Non-Iklim vs Iklim
                 </p>
                 <div className="chart-wrapper" style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height={160}>
@@ -689,7 +689,7 @@ export default function ReportDocument({
                     ["Kerugian (Loss)", "Estimasi kerugian produksi padi akibat bencana pada periode ulang tertentu, dinyatakan dalam Rupiah."],
                     ["AAL (Average Annual Loss)", "Rata-rata kerugian tahunan yang diharapkan, dihitung dari integral kurva probabilitas bahaya × kurva kerentanan."],
                     ["Indeks Bahaya", "Nilai normalisasi (0–1) intensitas bahaya spasial per wilayah berdasarkan data raster."],
-                    ["Return Period (RP)", "Periode ulang rata-rata — kemungkinan bencana dengan intensitas tersebut atau lebih besar terjadi sekali dalam RP tahun."],
+                    ["Periode Ulang (RP)", "Periode ulang rata-rata — kemungkinan bencana dengan intensitas tersebut atau lebih besar terjadi sekali dalam RP tahun."],
                   ].map(([t, d]) => (
                     <div key={t}>
                       <dt className="font-semibold text-gray-800">{t}</dt>

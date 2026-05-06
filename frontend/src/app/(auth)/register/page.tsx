@@ -135,7 +135,7 @@ export default function RegisterPage() {
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
                 Daftarkan akun Anda untuk mengakses dashboard risiko,
-                visualisasi spasial, perbandingan climate dan non-climate, serta
+                visualisasi spasial, perbandingan iklim dan non-iklim, serta
                 fitur unduh output dan report PADIS.
               </p>
             </div>

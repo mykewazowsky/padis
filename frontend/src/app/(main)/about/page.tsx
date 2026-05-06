@@ -139,7 +139,7 @@ export default function AboutPage() {
             <div className="mx-auto mt-10 flex max-w-sm flex-wrap items-center justify-center gap-8">
               {[
                 { num: 514, label: "Kab / Kota" },
-                { num: 4, label: "Return Period" },
+                { num: 4, label: "Periode Ulang" },
                 { num: 2, label: "Hazard Utama" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">

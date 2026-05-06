@@ -62,8 +62,8 @@ const hazardOptions: OptionType[] = [
 ];
 
 const climateOptions: OptionType[] = [
-  { value: "nonclimate", label: "Non-Climate" },
-  { value: "climate", label: "Climate" },
+  { value: "nonclimate", label: "Non-Iklim" },
+  { value: "climate", label: "Iklim" },
 ];
 
 const scenarioOptions: OptionType[] = [
@@ -90,14 +90,14 @@ const quickPresets: PresetItem[] = [
   },
   {
     id: "flood-climate-rp100",
-    label: "Banjir Climate RP100",
+    label: "Banjir Iklim RP100",
     hazard: "flood",
     climate: "climate",
     scenario: "rp100",
   },
   {
     id: "drought-climate-rp250",
-    label: "Kekeringan Climate RP250",
+    label: "Kekeringan Iklim RP250",
     hazard: "drought",
     climate: "climate",
     scenario: "rp250",
@@ -111,7 +111,7 @@ function getHazardLabel(hazard: string) {
 }
 
 function getClimateLabel(climate: string) {
-  return climate === "climate" ? "Climate" : "Non-Climate";
+  return climate === "climate" ? "Iklim" : "Non-Iklim";
 }
 
 function formatCompact(value: number) {
@@ -141,7 +141,7 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
     isUp,
     colorClass: isUp ? "text-red-600" : "text-green-600",
     description: isUp
-      ? "Risiko tahunan rata-rata meningkat pada kondisi climate."
+      ? "Risiko tahunan rata-rata meningkat pada kondisi iklim."
       : "Risiko tahunan rata-rata menurun dibanding baseline.",
     deltaValue,
   };

@@ -24,7 +24,7 @@ const analyticalPipeline = [
   {
     step: "01",
     title: "Raster Hazard",
-    desc: "Data raster banjir dan kekeringan digunakan sebagai basis bahaya untuk berbagai return period dan kondisi iklim.",
+    desc: "Data raster banjir dan kekeringan digunakan sebagai basis bahaya untuk berbagai periode ulang dan kondisi iklim.",
   },
   {
     step: "02",
@@ -52,7 +52,7 @@ const previewFeatures = [
   {
     title: "Ganti Layer",
     icon: Layers3,
-    desc: "Pilih hazard, skenario, dan return period untuk memperbarui tampilan peta.",
+    desc: "Pilih hazard, skenario, dan periode ulang untuk memperbarui tampilan peta.",
   },
   {
     title: "Cari Wilayah",
@@ -85,7 +85,7 @@ const useCases = [
   {
     title: "Perbandingan",
     icon: ShieldAlert,
-    desc: "Membandingkan kondisi climate dan non-climate untuk melihat perubahan risiko secara lebih sistematis.",
+    desc: "Membandingkan kondisi iklim dan non-iklim untuk melihat perubahan risiko secara lebih sistematis.",
   },
   {
     title: "Prioritas",

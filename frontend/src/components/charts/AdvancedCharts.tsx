@@ -75,7 +75,7 @@ function getHazardLabel(hazard: string) {
 }
 
 function getClimateLabel(climate: string) {
-  return climate === "climate" ? "Climate" : "Non-Climate";
+  return climate === "climate" ? "Iklim" : "Non-Iklim";
 }
 
 function shortenRegionName(name: string) {
@@ -419,7 +419,7 @@ export default function AdvancedCharts({
             ) : !hasTopRegionData ? (
               <DashboardEmptyState
                 message="Belum ada data top wilayah untuk kombinasi filter ini."
-                actionHint="Coba ubah hazard, scenario, atau climate condition."
+                actionHint="Coba ubah hazard, scenario, atau kondisi iklim."
                 compact
               />
             ) : (
@@ -589,7 +589,7 @@ export default function AdvancedCharts({
               <div className={HISTOGRAM_CANVAS_CLASS}>
                 <DashboardEmptyState
                   message="Belum ada data distribusi untuk kombinasi filter ini."
-                  actionHint="Coba ubah hazard, scenario, atau climate condition."
+                  actionHint="Coba ubah hazard, scenario, atau kondisi iklim."
                   compact
                 />
               </div>

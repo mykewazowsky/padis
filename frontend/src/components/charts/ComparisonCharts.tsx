@@ -85,8 +85,8 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
       ? "text-[var(--dashboard-status-danger-text)]"
       : "text-[var(--dashboard-status-success-text)]",
     description: isUp
-      ? "Nilai climate lebih tinggi dibanding non-climate."
-      : "Nilai climate lebih rendah dibanding non-climate.",
+      ? "Nilai iklim lebih tinggi dibanding non-iklim."
+      : "Nilai iklim lebih rendah dibanding non-iklim.",
     isUp,
     delta: climateValue - nonclimateValue,
   };
@@ -177,7 +177,7 @@ function ScatterTooltip({
             style={{ backgroundColor: NONCLIMATE_COLOR }}
           />
           <span className="text-[var(--chart-tooltip-muted)]">
-            Non-Climate:{" "}
+            Non-Iklim:{" "}
             <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.x)}
             </span>
@@ -189,7 +189,7 @@ function ScatterTooltip({
             style={{ backgroundColor: CLIMATE_COLOR }}
           />
           <span className="text-[var(--chart-tooltip-muted)]">
-            Climate:{" "}
+            Iklim:{" "}
             <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.y)}
             </span>
@@ -223,7 +223,7 @@ function LineTooltip({
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-[var(--chart-tooltip-muted)]">
-              {entry.name === "nonclimate" ? "Non-Climate" : "Climate"}:{" "}
+              {entry.name === "nonclimate" ? "Non-Iklim" : "Iklim"}:{" "}
               <span className="font-semibold text-[var(--chart-tooltip-text)]">
                 {formatRupiah(Number(entry.value))}
               </span>
@@ -277,7 +277,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       .catch((err) => {
         console.error("Loss compare climate fetch error:", err);
         setErrorLoss(
-          "Gagal memuat perbandingan total loss climate vs non-climate."
+          "Gagal memuat perbandingan total loss iklim vs non-iklim."
         );
         setLossCompareClimate([]);
       })
@@ -447,7 +447,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan AAL Non-Climate dan Climate untuk Banjir, Kekeringan,
+                Perbandingan AAL Non-Iklim dan Iklim untuk Banjir, Kekeringan,
                 dan Multi-hazard.
               </p>
             </div>
@@ -544,12 +544,12 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <XAxis
                     type="number"
                     dataKey="x"
-                    name="Non-Climate"
+                    name="Non-Iklim"
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
-                      value: "Non-Climate (Rp)",
+                      value: "Non-Iklim (Rp)",
                       position: "insideBottom",
                       offset: -25,
                       fontSize: 11,
@@ -559,13 +559,13 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="Climate"
+                    name="Iklim"
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     width={72}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
-                      value: "Climate (Rp)",
+                      value: "Iklim (Rp)",
                       angle: -90,
                       position: "insideLeft",
                       offset: 20,
@@ -619,7 +619,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan Non-Climate dan Climate untuk hazard{" "}
+                Perbandingan Non-Iklim dan Iklim untuk hazard{" "}
                 {getHazardLabel(hazard)} pada semua scenario.
               </p>
             </div>
@@ -672,7 +672,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <p
                     className={`text-sm font-semibold ${lossInsight.compareInfo.colorClass}`}
                   >
-                    Total climate vs non-climate:{" "}
+                    Total iklim vs non-iklim:{" "}
                     {lossInsight.compareInfo.label}
                   </p>
                   <p className="mt-1 text-sm text-muted">
@@ -688,7 +688,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               <DashboardLoadingBlock
                 heightClass="h-full"
                 title="Memuat perbandingan total kerugian..."
-                description="Ringkasan kerugian climate vs non-climate sedang disiapkan."
+                description="Ringkasan kerugian iklim vs non-iklim sedang disiapkan."
               />
             ) : errorLoss ? (
               <div className={ERROR_CANVAS_CLASS}>
@@ -722,7 +722,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <Legend
                     wrapperStyle={{ color: chartTheme.axis, fontSize: 12 }}
                     formatter={(value: string) =>
-                      value === "nonclimate" ? "Non-Climate" : "Climate"
+                      value === "nonclimate" ? "Non-Iklim" : "Iklim"
                     }
                   />
                   <Line

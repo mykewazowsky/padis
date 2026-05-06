@@ -9,6 +9,7 @@ import {
   Clock3,
   GitBranch,
   Layers3,
+  Pencil,
   PlayCircle,
   Power,
   RefreshCw,
@@ -36,6 +37,7 @@ type RunStatus = {
   message: string | null;
   operator_name: string | null;
   source: string | null;
+  data_year: number | null;
 };
 
 type ValidationTableRow = { hazard: string; regions: number; rows: number };
@@ -236,6 +238,12 @@ export default function AdminPipelineMonitorPage() {
   const [activating, setActivating]               = useState(false);
   const [activationError, setActivationError]     = useState("");
 
+  // Inline data_year editor state
+  const [editingYearRunId, setEditingYearRunId] = useState<number | null>(null);
+  const [yearDraft, setYearDraft]               = useState("");
+  const [savingYear, setSavingYear]             = useState(false);
+  const [yearError, setYearError]               = useState<string | null>(null);
+
   // Deletion modal state
   const [deletionTarget, setDeletionTarget] = useState<RunStatus | null>(null);
   const [deletionValidation, setDeletionValidation] = useState<ValidationResult | null>(null);
@@ -303,6 +311,57 @@ export default function AdminPipelineMonitorPage() {
     const id = window.setInterval(() => loadData(false), POLL_MS);
     return () => window.clearInterval(id);
   }, [loadData]);
+
+  const startEditYear = (run: RunStatus) => {
+    setEditingYearRunId(run.id);
+    setYearDraft(run.data_year != null ? String(run.data_year) : "");
+    setYearError(null);
+  };
+
+  const cancelEditYear = () => {
+    setEditingYearRunId(null);
+    setYearDraft("");
+    setYearError(null);
+  };
+
+  const saveDataYear = async (runId: number) => {
+    const trimmed = yearDraft.trim();
+    const year    = trimmed === "" ? null : parseInt(trimmed, 10);
+
+    if (trimmed !== "" && (isNaN(year!) || year! < 1990 || year! > 2100)) {
+      setYearError("Tahun harus antara 1990–2100, atau kosongkan untuk hapus.");
+      return;
+    }
+
+    setSavingYear(true);
+    setYearError(null);
+
+    try {
+      const res = await fetchWithAuth(`/api/admin/runs/${runId}/data-year`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data_year: year }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error ?? "Gagal menyimpan tahun model data.");
+      }
+      // Patch local state without waiting for next poll
+      setRecentRuns((prev) =>
+        prev.map((r) => (r.id === runId ? { ...r, data_year: year } : r))
+      );
+      if (currentRun?.id === runId) {
+        setCurrentRun((prev) => prev ? { ...prev, data_year: year } : prev);
+      }
+      setEditingYearRunId(null);
+      setYearDraft("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan.";
+      setYearError(msg);
+    } finally {
+      setSavingYear(false);
+    }
+  };
 
   // Open activation modal: pre-fetch validation snapshot for the chosen run.
   const openActivationModal = useCallback(async (run: RunStatus) => {
@@ -675,7 +734,7 @@ export default function AdminPipelineMonitorPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left">
-                  {["Run Name", "Status", "Aktif", "Progress", "Operator", "Dibuat", "Selesai", "Aksi"].map((h) => (
+                  {["Run Name", "Status", "Aktif", "Progress", "Th. Model", "Operator", "Dibuat", "Selesai", "Aksi"].map((h) => (
                     <th
                       key={h}
                       className="pb-3 pr-4 last:pr-0 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -726,6 +785,60 @@ export default function AdminPipelineMonitorPage() {
                           </div>
                           <span className="text-xs text-slate-500">{run.progress}%</span>
                         </div>
+                      </td>
+                      <td className="py-3 pr-4">
+                        {editingYearRunId === run.id ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                value={yearDraft}
+                                onChange={(e) => setYearDraft(e.target.value)}
+                                placeholder="Tahun"
+                                min={1990}
+                                max={2100}
+                                className="w-20 rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-900 focus:border-[var(--color-primary)] focus:outline-none"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") void saveDataYear(run.id);
+                                  if (e.key === "Escape") cancelEditYear();
+                                }}
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void saveDataYear(run.id)}
+                                disabled={savingYear}
+                                className="rounded bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                              >
+                                {savingYear ? "…" : "Simpan"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditYear}
+                                className="rounded border border-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                            {yearError && (
+                              <p className="text-[10px] text-red-500">{yearError}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-semibold text-slate-700">
+                              {run.data_year ?? <span className="font-normal text-slate-400">—</span>}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => startEditYear(run)}
+                              className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                              title="Edit tahun model data"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 pr-4 text-slate-600">{run.operator_name || "-"}</td>
                       <td className="py-3 pr-4 text-slate-500">{formatDateTime(run.created_at)}</td>

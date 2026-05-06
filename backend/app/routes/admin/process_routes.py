@@ -13,10 +13,13 @@ Endpoint:
     POST /api/admin/finish-analysis — 410 Gone
 """
 
+import logging
 import os
 import re
 import subprocess
 import sys
+
+logger = logging.getLogger(__name__)
 
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
@@ -72,19 +75,19 @@ def _fetch_latest_run(session):
     Ambil monitoring run terbaru (source='local') dari tabel runs.
     Filter source='local' mencegah ETL run (source=NULL) menyembunyikan
     monitoring run operator.
-    Fallback ke query tanpa kolom baru jika migration 002/004 belum dijalankan.
+    Fallback ke query tanpa kolom baru jika migration 002/004/005 belum dijalankan.
     """
     try:
         row = session.execute(text("""
             SELECT id, run_name, created_at, finished_at, status, is_active,
-                   step, progress, message, operator_name, source
+                   step, progress, message, operator_name, source, data_year
             FROM runs
             WHERE source = 'local'
             ORDER BY created_at DESC, id DESC
             LIMIT 1
         """)).fetchone()
     except Exception:
-        # Kolom baru (migration 002/004) belum ada — rollback dulu agar session valid
+        # Kolom baru belum ada — rollback dulu agar session valid
         try:
             session.rollback()
             row = session.execute(text("""
@@ -92,7 +95,7 @@ def _fetch_latest_run(session):
                        NULL AS finished_at,
                        status, is_active,
                        NULL AS step, 0 AS progress, NULL AS message,
-                       NULL AS operator_name, NULL AS source
+                       NULL AS operator_name, NULL AS source, NULL AS data_year
                 FROM runs
                 WHERE source = 'local'
                 ORDER BY created_at DESC, id DESC
@@ -177,6 +180,7 @@ def admin_run_status():
         "message": row.message,
         "operator_name": row.operator_name,
         "source": row.source,
+        "data_year": getattr(row, "data_year", None),
     }
     return jsonify({"run": run}), 200
 
@@ -301,20 +305,21 @@ def admin_list_runs():
             try:
                 rows = session.execute(text(f"""
                     SELECT id, run_name, created_at, finished_at, status, is_active,
-                           step, progress, message, operator_name, source
+                           step, progress, message, operator_name, source, data_year
                     FROM runs
                     WHERE {where_clause}
                     ORDER BY created_at DESC, id DESC
                     LIMIT :limit
                 """), params).fetchall()
             except Exception:
-                # Fallback jika migration 004 belum dijalankan (finished_at belum ada).
+                # Fallback jika migration 004/005 belum dijalankan.
                 session.rollback()
                 rows = session.execute(text(f"""
                     SELECT id, run_name, created_at,
                            NULL AS finished_at,
                            status, is_active,
-                           step, progress, message, operator_name, source
+                           step, progress, message, operator_name, source,
+                           NULL AS data_year
                     FROM runs
                     WHERE {where_clause}
                     ORDER BY created_at DESC, id DESC
@@ -337,6 +342,7 @@ def admin_list_runs():
             "message":       row.message,
             "operator_name": row.operator_name,
             "source":        row.source,
+            "data_year":     getattr(row, "data_year", None),
         }
         for row in rows
     ]
@@ -368,7 +374,7 @@ def admin_active_run():
         try:
             row = db.execute(text("""
                 SELECT id, run_name, created_at, finished_at, status, is_active,
-                       step, progress, message, operator_name, source
+                       step, progress, message, operator_name, source, data_year
                 FROM   runs
                 WHERE  is_active = TRUE
                 LIMIT  1
@@ -379,7 +385,8 @@ def admin_active_run():
                 SELECT id, run_name, created_at,
                        NULL AS finished_at,
                        status, is_active,
-                       step, progress, message, operator_name, source
+                       step, progress, message, operator_name, source,
+                       NULL AS data_year
                 FROM   runs
                 WHERE  is_active = TRUE
                 LIMIT  1
@@ -401,6 +408,7 @@ def admin_active_run():
                 "message":       row.message,
                 "operator_name": row.operator_name,
                 "source":        row.source,
+                "data_year":     getattr(row, "data_year", None),
             }
         }), 200
 
@@ -574,7 +582,7 @@ def admin_activate_run(run_id: int):
         try:
             row = db.execute(text("""
                 SELECT id, run_name, created_at, finished_at, status, is_active,
-                       step, progress, message, operator_name, source
+                       step, progress, message, operator_name, source, data_year
                 FROM   runs
                 WHERE  id = :id
             """), {"id": run_id}).fetchone()
@@ -584,7 +592,8 @@ def admin_activate_run(run_id: int):
                 SELECT id, run_name, created_at,
                        NULL AS finished_at,
                        status, is_active,
-                       step, progress, message, operator_name, source
+                       step, progress, message, operator_name, source,
+                       NULL AS data_year
                 FROM   runs
                 WHERE  id = :id
             """), {"id": run_id}).fetchone()
@@ -601,6 +610,7 @@ def admin_activate_run(run_id: int):
             "message":       row.message,
             "operator_name": row.operator_name,
             "source":        row.source,
+            "data_year":     getattr(row, "data_year", None),
         }
         return jsonify({
             "message": f"Run #{run_id} berhasil diaktifkan.",
@@ -1044,3 +1054,59 @@ def admin_finish_analysis():
             "Gunakan GET /api/admin/run-status untuk melihat status terbaru."
         ),
     }), 410
+
+
+# =============================================================================
+# PATCH /api/admin/runs/<id>/data-year  — set tahun model data pada sebuah run
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/data-year", methods=["PATCH"])
+@admin_required
+def admin_set_run_data_year(run_id: int):
+    """
+    Simpan tahun model data (mis. 2022) untuk sebuah run.
+
+    Body JSON:
+        { "data_year": 2022 }   — isi tahun (integer, 1990–2100)
+        { "data_year": null }   — hapus keterangan tahun
+
+    Response:
+        200  { "run_id": int, "data_year": int | null }
+        400  body tidak valid
+        404  run tidak ditemukan
+    """
+    body = request.get_json(silent=True) or {}
+
+    if "data_year" not in body:
+        return jsonify({"error": "Field 'data_year' wajib ada di request body."}), 400
+
+    year = body["data_year"]
+
+    if year is not None:
+        if not isinstance(year, int) or not (1990 <= year <= 2100):
+            return jsonify({
+                "error": "data_year harus berupa integer antara 1990 dan 2100, atau null."
+            }), 400
+
+    db = SessionLocal()
+    try:
+        row = db.execute(
+            text("SELECT id FROM runs WHERE id = :id"),
+            {"id": run_id},
+        ).fetchone()
+        if row is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan."}), 404
+
+        db.execute(
+            text("UPDATE runs SET data_year = :year WHERE id = :id"),
+            {"year": year, "id": run_id},
+        )
+        db.commit()
+
+        return jsonify({"run_id": run_id, "data_year": year}), 200
+
+    except Exception as e:
+        logger.exception("Set data_year failed for run %s", run_id)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()

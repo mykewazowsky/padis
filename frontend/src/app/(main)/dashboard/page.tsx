@@ -244,6 +244,7 @@ export default function DashboardPage() {
   const chartsRef = useRef<HTMLDivElement | null>(null);
   const [chartsReady, setChartsReady] = useState(false);
   const [runId, setRunId] = useState<number | null>(null);
+  const [dataYear, setDataYear] = useState<number | null>(null);
   const [scenario, setScenario] = useState("rp25");
   const [hazard, setHazard] = useState("multi");
   const [climate, setClimate] = useState("nonclimate");
@@ -341,7 +342,10 @@ export default function DashboardPage() {
   useEffect(() => {
     setRunId(null);
     fetchLatestRunId(hazard)
-      .then(setRunId)
+      .then(({ runId, dataYear }) => {
+        setRunId(runId);
+        setDataYear(dataYear);
+      })
       .catch((err) => {
         console.error("Failed to fetch latest run_id:", err);
       });
@@ -836,6 +840,19 @@ export default function DashboardPage() {
                   Eksplorasi distribusi kerugian dan AAL per wilayah berdasarkan
                   parameter analisis aktif.
                 </p>
+                {runId !== null && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      Run #{runId}
+                    </span>
+                    {dataYear !== null && (
+                      <span className="inline-flex items-center rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
+                        Model Data {dataYear}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="xl:shrink-0 xl:max-w-[42%] xl:pt-1">

@@ -32,39 +32,75 @@ def get_latest_run():
     db = SessionLocal()
     try:
         # 1. Admin-selected active run (priority).
-        row = db.execute(
-            text("SELECT id AS run_id FROM runs WHERE is_active = TRUE LIMIT 1")
-        ).fetchone()
+        try:
+            row = db.execute(
+                text("SELECT id AS run_id, data_year FROM runs WHERE is_active = TRUE LIMIT 1")
+            ).fetchone()
+        except Exception:
+            db.rollback()
+            row = db.execute(
+                text("SELECT id AS run_id, NULL AS data_year FROM runs WHERE is_active = TRUE LIMIT 1")
+            ).fetchone()
 
         # 2. Hazard-scoped fallback for backward compatibility.
         if not row and db_hazard in ("flood", "drought", "multihazard"):
-            row = db.execute(
-                text("""
-                    SELECT a.run_id
-                    FROM   aal a
-                    JOIN   hazards h ON a.hazard_id = h.id
-                    WHERE  h.name = :hazard
-                    ORDER  BY a.run_id DESC
-                    LIMIT  1
-                """),
-                {"hazard": db_hazard},
-            ).fetchone()
+            try:
+                row = db.execute(
+                    text("""
+                        SELECT a.run_id, r.data_year
+                        FROM   aal a
+                        JOIN   hazards h ON a.hazard_id = h.id
+                        JOIN   runs r    ON r.id = a.run_id
+                        WHERE  h.name = :hazard
+                        ORDER  BY a.run_id DESC
+                        LIMIT  1
+                    """),
+                    {"hazard": db_hazard},
+                ).fetchone()
+            except Exception:
+                db.rollback()
+                row = db.execute(
+                    text("""
+                        SELECT a.run_id, NULL AS data_year
+                        FROM   aal a
+                        JOIN   hazards h ON a.hazard_id = h.id
+                        WHERE  h.name = :hazard
+                        ORDER  BY a.run_id DESC
+                        LIMIT  1
+                    """),
+                    {"hazard": db_hazard},
+                ).fetchone()
 
         # 3. Last-resort: latest successful run, no hazard filter.
         if not row:
-            row = db.execute(
-                text("""
-                    SELECT id AS run_id
-                    FROM   runs
-                    WHERE  status = 'success'
-                    ORDER  BY id DESC
-                    LIMIT  1
-                """),
-            ).fetchone()
+            try:
+                row = db.execute(
+                    text("""
+                        SELECT id AS run_id, data_year
+                        FROM   runs
+                        WHERE  status = 'success'
+                        ORDER  BY id DESC
+                        LIMIT  1
+                    """),
+                ).fetchone()
+            except Exception:
+                db.rollback()
+                row = db.execute(
+                    text("""
+                        SELECT id AS run_id, NULL AS data_year
+                        FROM   runs
+                        WHERE  status = 'success'
+                        ORDER  BY id DESC
+                        LIMIT  1
+                    """),
+                ).fetchone()
 
         if not row:
             return jsonify({"error": "No runs found"}), 404
-        return jsonify({"run_id": int(row.run_id)})
+        return jsonify({
+            "run_id":    int(row.run_id),
+            "data_year": getattr(row, "data_year", None),
+        })
     except Exception as e:
         logger.exception("Latest run request failed")
         return jsonify({"error": str(e)}), 500

@@ -48,10 +48,15 @@ export type LayerItem = {
   centroid_lat?: number | null;
 };
 
-export async function fetchLatestRunId(hazard?: string): Promise<number> {
+export type LatestRun = { runId: number; dataYear: number | null };
+
+export async function fetchLatestRunId(hazard?: string): Promise<LatestRun> {
   const qs = hazard ? `?hazard=${encodeURIComponent(hazard)}` : "";
   const json = await fetchJson(`/api/runs/latest${qs}`);
-  return json.run_id as number;
+  return {
+    runId:    json.run_id    as number,
+    dataYear: (json.data_year ?? null) as number | null,
+  };
 }
 
 // runId wajib; template {z}/{x}/{y} diisi Leaflet saat render.

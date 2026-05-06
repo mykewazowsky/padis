@@ -91,7 +91,7 @@ function getColor(
   breaks: number[],
   _hazard: string
 ): string {
-  if (value == null || Number.isNaN(value)) return "#e5e7eb";
+  if (value == null || Number.isNaN(value) || !breaks.length) return "#e5e7eb";
   for (let i = 0; i < breaks.length; i++) {
     if (value <= breaks[i]) return RISK_PALETTE[i] ?? RISK_PALETTE[RISK_PALETTE.length - 1];
   }

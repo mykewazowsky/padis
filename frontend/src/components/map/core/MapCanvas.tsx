@@ -284,19 +284,22 @@ function getVtStyle(
   hazard: string,
   normalizedTopRegionKeys: Set<string>,
   selectedRegion: string,
-  layerOpacity: number
+  layerOpacity: number,
+  basemapKey: BasemapKey
 ): Record<string, unknown> {
   const regionKey = normalizeRegionKey(props.kab_kota as string | undefined);
   const hasSelection = Boolean(selectedRegion);
   const isSelected = hasSelection && regionKey === normalizeRegionKey(selectedRegion);
   const isDimmed = hasSelection && !isSelected;
 
+  const isDark = basemapKey === "dark" || basemapKey === "imagery";
+
   if (!props.has_data) {
     return {
       fill: true,
-      fillColor: "#d1d5db",
-      fillOpacity: isDimmed ? 0.06 : 0.22,
-      color: "#9ca3af",
+      fillColor: isDark ? "#4b5563" : "#d1d5db",
+      fillOpacity: isDimmed ? 0.06 : isDark ? 0.55 : 0.22,
+      color: isDark ? "#6b7280" : "#9ca3af",
       weight: isDimmed ? 0.3 : 0.5,
       opacity: isDimmed ? 0.3 : 1,
     };
@@ -313,6 +316,8 @@ function getVtStyle(
 
   const fillOpacity = isDimmed ? Math.max(0.05, layerOpacity * 0.12) : layerOpacity;
 
+  const defaultBorder = isDark ? "#94a3b8" : "#6b7280";
+
   return {
     fill: true,
     fillColor: getColorFromBreaks(value, jenksBreaks, hazard),
@@ -320,11 +325,11 @@ function getVtStyle(
     color: isSelected
       ? getSelectedBorderColor(hazard)
       : isDimmed
-        ? "#d1d5db"
+        ? (isDark ? "#374151" : "#d1d5db")
         : isTopRegion
           ? "#f59e0b"
-          : "#6b7280",
-    weight: isSelected ? 2.5 : isDimmed ? 0.3 : isTopRegion ? 1.3 : 0.8,
+          : defaultBorder,
+    weight: isSelected ? 2.5 : isDimmed ? 0.3 : isTopRegion ? 1.3 : isDark ? 1.0 : 0.8,
     opacity: isDimmed ? 0.3 : 1,
     dashArray: isSelected ? undefined : isTopRegion ? "4 2" : undefined,
   };
@@ -712,7 +717,8 @@ export default function MapCanvas({
               hazard,
               normalizedTopRegionKeys,
               selectedRegion,
-              activeLayerOpacity
+              activeLayerOpacity,
+              basemapKey
             ),
         },
         interactive: true,
@@ -744,6 +750,7 @@ export default function MapCanvas({
       const prodOpacity = layerOpacityMap.production;
       const prodUrl = buildTileUrl("production", hazard, scenario, climate, runId ?? 0);
 
+      const isDark = basemapKey === "dark" || basemapKey === "imagery";
       const prodLayer = LVG.vectorGrid.protobuf(prodUrl, {
         vectorTileLayerStyles: {
           production: (props: Record<string, unknown>) => {
@@ -755,8 +762,8 @@ export default function MapCanvas({
               fill: true,
               fillColor: "#ffa200",
               fillOpacity: isDim ? Math.max(0.05, prodOpacity * 0.12) : prodOpacity,
-              color: isSel ? getSelectedBorderColor(hazard) : isDim ? "#d1d5db" : "#ffb700",
-              weight: isSel ? 2.5 : isDim ? 0.3 : 1.2,
+              color: isSel ? getSelectedBorderColor(hazard) : isDim ? (isDark ? "#374151" : "#d1d5db") : "#ffb700",
+              weight: isSel ? 2.5 : isDim ? 0.3 : isDark ? 1.4 : 1.2,
               opacity: isDim ? 0.3 : 1,
             };
           },
@@ -830,6 +837,7 @@ export default function MapCanvas({
     selectedRegion,
     activeLayerOpacity,
     layerOpacityMap.production,
+    basemapKey,
   ]);
 
   const legendItems = useMemo(() => {

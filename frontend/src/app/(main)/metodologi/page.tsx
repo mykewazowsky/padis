@@ -15,8 +15,8 @@ import {
   Loader2,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -24,6 +24,7 @@ import {
   Legend,
   ResponsiveContainer,
   Label,
+  ReferenceLine,
 } from "recharts";
 import { useChartTheme } from "@/components/charts/chartTheme";
 
@@ -344,10 +345,20 @@ export default function MetodologiPage() {
                     </h4>
                     <div className="chart-shell h-[350px] w-full p-4 pt-6">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
+                        <AreaChart
                           data={histData}
                           margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                         >
+                          <defs>
+                            <linearGradient id="gradFloodHist" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.18} />
+                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="gradDroughtHist" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#F97316" stopOpacity={0.18} />
+                              <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
                           <CartesianGrid
                             strokeDasharray="3 3"
                             vertical={false}
@@ -379,7 +390,7 @@ export default function MetodologiPage() {
                             itemStyle={{ color: chartTheme.tooltipText }}
                             labelStyle={{ color: chartTheme.tooltipMuted }}
                             formatter={(value: any, name: any) => [
-                              Math.round(Number(value)), // 🔥 hilangkan desimal
+                              Math.round(Number(value)),
                               name === "Kejadian Banjir" ? "Banjir" : "Kekeringan",
                             ]}
                             labelFormatter={(label) => `Tahun: ${label}`}
@@ -388,25 +399,27 @@ export default function MetodologiPage() {
                             iconType="circle"
                             wrapperStyle={{ color: chartTheme.axis, paddingTop: "20px" }}
                           />
-                          <Line
+                          <Area
                             name="Kejadian Banjir"
                             type="monotone"
                             dataKey="flood"
                             stroke="#3B82F6"
-                            strokeWidth={3}
+                            strokeWidth={2.5}
+                            fill="url(#gradFloodHist)"
                             dot={false}
-                            activeDot={{ r: 6 }}
+                            activeDot={{ r: 6, strokeWidth: 0 }}
                           />
-                          <Line
+                          <Area
                             name="Kejadian Kekeringan"
                             type="monotone"
                             dataKey="drought"
                             stroke="#F97316"
-                            strokeWidth={3}
+                            strokeWidth={2.5}
+                            fill="url(#gradDroughtHist)"
                             dot={false}
-                            activeDot={{ r: 6 }}
+                            activeDot={{ r: 6, strokeWidth: 0 }}
                           />
-                        </LineChart>
+                        </AreaChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
@@ -643,10 +656,16 @@ export default function MetodologiPage() {
 
               <div className="mb-3 h-[360px] w-full overflow-hidden chart-shell p-3 sm:mb-6 sm:h-[320px] sm:p-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
+                  <AreaChart
                     data={floodCurveData}
                     margin={vulnerabilityChartMargin}
                   >
+                    <defs>
+                      <linearGradient id="gradFloodCurve" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.22} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
@@ -700,22 +719,36 @@ export default function MetodologiPage() {
                       ]}
                       labelFormatter={(label) => `Ketinggian: ${label} m`}
                     />
+                    <ReferenceLine
+                      y={0.5}
+                      stroke={chartTheme.grid}
+                      strokeDasharray="5 3"
+                      label={{
+                        value: "50% LOP",
+                        position: "insideTopRight",
+                        fill: chartTheme.axis,
+                        fontSize: 10,
+                        fontWeight: 600,
+                      }}
+                    />
                     {!isMobile ? (
                       <Legend
                         verticalAlign="bottom"
+                        iconType="plainline"
                         wrapperStyle={{ color: chartTheme.axis, paddingTop: "16px" }}
                       />
                     ) : null}
-                    <Line
+                    <Area
                       name="Kurva Kerentanan Banjir"
                       type="monotone"
                       dataKey="lop"
                       stroke="#3B82F6"
-                      strokeWidth={3}
+                      strokeWidth={2.5}
+                      fill="url(#gradFloodCurve)"
                       dot={false}
-                      activeDot={{ r: 5 }}
+                      activeDot={{ r: 5, strokeWidth: 0 }}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
 
@@ -781,10 +814,16 @@ export default function MetodologiPage() {
 
               <div className="mb-3 h-[360px] w-full overflow-hidden chart-shell p-3 sm:mb-6 sm:h-[320px] sm:p-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
+                  <AreaChart
                     data={droughtCurveData}
                     margin={vulnerabilityChartMargin}
                   >
+                    <defs>
+                      <linearGradient id="gradDroughtCurve" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F97316" stopOpacity={0.22} />
+                        <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
@@ -838,22 +877,36 @@ export default function MetodologiPage() {
                       ]}
                       labelFormatter={(label) => `Indeks: ${label}`}
                     />
+                    <ReferenceLine
+                      y={0.5}
+                      stroke={chartTheme.grid}
+                      strokeDasharray="5 3"
+                      label={{
+                        value: "50% LOP",
+                        position: "insideTopRight",
+                        fill: chartTheme.axis,
+                        fontSize: 10,
+                        fontWeight: 600,
+                      }}
+                    />
                     {!isMobile ? (
                       <Legend
                         verticalAlign="bottom"
+                        iconType="plainline"
                         wrapperStyle={{ color: chartTheme.axis, paddingTop: "16px" }}
                       />
                     ) : null}
-                    <Line
+                    <Area
                       name="Kurva Kerentanan Kekeringan"
                       type="monotone"
                       dataKey="lop"
                       stroke="#F97316"
-                      strokeWidth={3}
+                      strokeWidth={2.5}
+                      fill="url(#gradDroughtCurve)"
                       dot={false}
-                      activeDot={{ r: 5 }}
+                      activeDot={{ r: 5, strokeWidth: 0 }}
                     />
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
 

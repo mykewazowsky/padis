@@ -100,31 +100,37 @@ const partnerCards = [
     name: "Kementerian Keuangan Republik Indonesia",
     short: "Kemenkeu",
     logo: "/partners/kemenkeu.png",
+    role: "Kebijakan Keuangan & Data Fiskal",
   },
   {
     name: "Badan Pusat Statistik Indonesia",
     short: "BPS",
     logo: "/partners/bps.png",
+    role: "Data Statistik & Produksi Padi",
   },
   {
     name: "Kementerian Pertanian Republik Indonesia",
     short: "Kementan",
     logo: "/partners/kementan.svg",
+    role: "Data Pertanian & Lahan Sawah",
   },
   {
     name: "Badan Nasional Penanggulangan Bencana",
     short: "BNPB",
     logo: "/partners/bnpb.png",
+    role: "Data & Manajemen Bencana Nasional",
   },
   {
     name: "Badan Penanggulangan Bencana Daerah",
     short: "BPBD",
     logo: "/partners/bpbd.png",
+    role: "Penanggulangan Bencana Daerah",
   },
   {
     name: "PT Reasuransi Indonesia Utama",
     short: "RIU",
     logo: "/partners/riu.png",
+    role: "Kolaborasi Asuransi Risiko Bencana",
   },
 ];
 
@@ -459,44 +465,39 @@ export default function AboutPage() {
             desc="PADIS dikembangkan dalam kolaborasi lintas institusi yang mendukung analisis risiko, data, dan pengambilan keputusan."
           />
 
-          <div className="relative mt-8 overflow-hidden">
-            <div className="partner-fade-left pointer-events-none absolute left-0 top-0 z-10 h-full w-16" />
-            <div className="partner-fade-right pointer-events-none absolute right-0 top-0 z-10 h-full w-16" />
-
-            <div className="partner-marquee">
-              <div className="partner-track">
-                {[...partnerCards, ...partnerCards].map((item, index) => (
-                  <div
-                    key={`${item.short}-${index}`}
-                    className="group mx-3 flex min-w-[220px] max-w-[220px] flex-col items-center rounded-3xl border border-[var(--color-border)] bg-[var(--content-surface)] px-5 py-5 text-center shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-                  >
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-logo-tile-bg)] p-3 shadow-sm">
-                      {item.logo ? (
-                        <Image
-                          src={item.logo}
-                          alt={item.short}
-                          width={64}
-                          height={64}
-                          className="h-full w-full object-contain opacity-90 transition duration-300 group-hover:scale-105 group-hover:opacity-100"
-                        />
-                      ) : (
-                        <span className="text-sm font-bold text-[var(--color-primary)]">
-                          {item.short}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="mt-4 text-sm font-semibold text-heading">
+          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3">
+            {partnerCards.map((item) => (
+              <div
+                key={item.short}
+                className="group flex flex-col items-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-6 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-md)]"
+              >
+                {/* Logo tile */}
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-logo-tile-bg)] p-2.5">
+                  {item.logo ? (
+                    <Image
+                      src={item.logo}
+                      alt={item.short}
+                      width={56}
+                      height={56}
+                      className="h-full w-full object-contain opacity-85 transition duration-300 group-hover:scale-105 group-hover:opacity-100"
+                    />
+                  ) : (
+                    <span className="text-sm font-bold text-[var(--color-primary)]">
                       {item.short}
-                    </p>
+                    </span>
+                  )}
+                </div>
 
-                    <p className="mt-1 text-xs leading-relaxed text-muted">
-                      {item.name}
-                    </p>
-                  </div>
-                ))}
+                {/* Name */}
+                <p className="mt-3 text-sm font-bold text-heading">{item.short}</p>
+                <p className="mt-1 text-xs leading-snug text-muted">{item.name}</p>
+
+                {/* Role pill */}
+                <span className="mt-3 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-2.5 py-1 text-[10px] font-medium text-muted">
+                  {item.role}
+                </span>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

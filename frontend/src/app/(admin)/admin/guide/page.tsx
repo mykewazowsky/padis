@@ -87,24 +87,24 @@ const uploadRules: UploadRule[] = [
     ],
   },
   {
-    name: "Flood Raster Set",
+    name: "Set Raster Banjir",
     format: ".tif",
     filename: "flood_r25.tif, flood_r50.tif, flood_r100.tif, flood_r250.tif, flood_rc25.tif, flood_rc50.tif, flood_rc100.tif, flood_rc250.tif",
     destination: "raw/hazard/",
     notes: [
       "Nama file harus persis sesuai standar agar pipeline dapat membacanya.",
-      "Set flood mencakup skenario current (r*) dan climate (rc*).",
+      "Set banjir mencakup skenario current (r*) dan climate (rc*).",
       "Pastikan raster memiliki extent dan CRS yang valid.",
     ],
   },
   {
-    name: "Drought Raster Set",
+    name: "Set Raster Kekeringan",
     format: ".tif",
     filename: "drought_r25.tif, drought_r50.tif, drought_r100.tif, drought_r250.tif, drought_rc25.tif, drought_rc50.tif, drought_rc100.tif, drought_rc250.tif",
     destination: "raw/hazard/",
     notes: [
       "Nama file harus persis sesuai standar agar pipeline dapat membacanya.",
-      "Set drought mencakup skenario current (r*) dan climate (rc*).",
+      "Set kekeringan mencakup skenario current (r*) dan climate (rc*).",
       "Pastikan raster dapat dibaca dengan baik oleh sistem.",
     ],
   },

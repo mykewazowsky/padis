@@ -82,8 +82,8 @@ function fmtChartTick(v: number): string {
 // ── Label helpers ──────────────────────────────────────────────────────────────
 
 function hazardLabel(h: string): string {
-  if (h === "flood")   return "Banjir (Flood)";
-  if (h === "drought") return "Kekeringan (Drought)";
+  if (h === "flood")   return "Banjir";
+  if (h === "drought") return "Kekeringan";
   return "Multi-Hazard";
 }
 

@@ -89,6 +89,14 @@ function capitalize(text?: string | null) {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
+function formatHazardLabel(hazard?: string | null) {
+  if (!hazard) return "-";
+  if (hazard === "flood") return "Banjir";
+  if (hazard === "drought") return "Kekeringan";
+  if (hazard === "multi" || hazard === "multihazard") return "Multi-hazard";
+  return capitalize(hazard);
+}
+
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
@@ -166,9 +174,9 @@ function buildHazardNode(hazard: HazardKey, run: RunStatus | null): PipelineNode
   }
 
   const meta: Record<HazardKey, { label: string; desc: string }> = {
-    flood:   { label: "Flood Analysis",   desc: "LOP → Loss → AAL untuk hazard banjir." },
-    drought: { label: "Drought Analysis", desc: "DI → LOP → Loss → AAL untuk hazard kekeringan." },
-    multi:   { label: "Multi-hazard",     desc: "Menggabungkan flood + drought → AAL gabungan." },
+    flood:   { label: "Analisis Banjir",      desc: "LOP → Loss → AAL untuk hazard banjir." },
+    drought: { label: "Analisis Kekeringan",  desc: "DI → LOP → Loss → AAL untuk hazard kekeringan." },
+    multi:   { label: "Multi-hazard",         desc: "Menggabungkan banjir + kekeringan → AAL gabungan." },
   };
 
   return { id: hazard, ...meta[hazard], state };
@@ -417,7 +425,7 @@ export default function AdminPipelineMonitorPage() {
   }, [deletionTarget, loadData]);
 
   const statusTone   = useMemo(() => getStatusTone(currentRun?.status), [currentRun?.status]);
-  const activeHazard = useMemo(() => capitalize(extractHazard(currentRun?.run_name ?? null)), [currentRun?.run_name]);
+  const activeHazard = useMemo(() => formatHazardLabel(extractHazard(currentRun?.run_name ?? null)), [currentRun?.run_name]);
   const activeStep   = useMemo(() => capitalize(currentRun?.step), [currentRun?.step]);
 
   const mainNodes   = useMemo(() => buildMainStageNodes(currentRun), [currentRun]);
@@ -937,7 +945,7 @@ function ActivationModal({
                           key={h}
                           className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
                         >
-                          {capitalize(h)}
+                          {formatHazardLabel(h)}
                         </th>
                       ))}
                     </tr>
@@ -1125,7 +1133,7 @@ function DeletionModal({
                           key={h}
                           className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
                         >
-                          {capitalize(h)}
+                          {formatHazardLabel(h)}
                         </th>
                       ))}
                       <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">

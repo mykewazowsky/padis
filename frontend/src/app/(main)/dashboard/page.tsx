@@ -57,8 +57,8 @@ type PresetItem = {
 
 const hazardOptions: OptionType[] = [
   { value: "multi", label: "Multi-hazard" },
-  { value: "flood", label: "Flood" },
-  { value: "drought", label: "Drought" },
+  { value: "flood", label: "Banjir" },
+  { value: "drought", label: "Kekeringan" },
 ];
 
 const climateOptions: OptionType[] = [
@@ -83,21 +83,21 @@ const quickPresets: PresetItem[] = [
   },
   {
     id: "flood-baseline-rp25",
-    label: "Flood Baseline RP25",
+    label: "Banjir Baseline RP25",
     hazard: "flood",
     climate: "nonclimate",
     scenario: "rp25",
   },
   {
     id: "flood-climate-rp100",
-    label: "Flood Climate RP100",
+    label: "Banjir Climate RP100",
     hazard: "flood",
     climate: "climate",
     scenario: "rp100",
   },
   {
     id: "drought-climate-rp250",
-    label: "Drought Climate RP250",
+    label: "Kekeringan Climate RP250",
     hazard: "drought",
     climate: "climate",
     scenario: "rp250",
@@ -105,8 +105,8 @@ const quickPresets: PresetItem[] = [
 ];
 
 function getHazardLabel(hazard: string) {
-  if (hazard === "flood") return "Flood";
-  if (hazard === "drought") return "Drought";
+  if (hazard === "flood") return "Banjir";
+  if (hazard === "drought") return "Kekeringan";
   return "Multi-hazard";
 }
 

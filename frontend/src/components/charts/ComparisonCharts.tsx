@@ -60,8 +60,8 @@ function safeNumber(value: unknown) {
 
 function getHazardLabel(hazard: string) {
   const h = hazard.toLowerCase().replace(/[-\s]/g, "");
-  if (h === "flood") return "Flood";
-  if (h === "drought") return "Drought";
+  if (h === "flood") return "Banjir";
+  if (h === "drought") return "Kekeringan";
   return "Multi-hazard";
 }
 
@@ -96,8 +96,8 @@ const NONCLIMATE_COLOR = "var(--color-primary)";
 const CLIMATE_COLOR = "var(--color-secondary)";
 
 const HAZARD_COLORS: Record<string, string> = {
-  Flood: "#3b82f6",
-  Drought: "#f97316",
+  Banjir: "#3b82f6",
+  Kekeringan: "#f97316",
   "Multi-hazard": "#a855f7",
 };
 
@@ -447,7 +447,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan AAL Non-Climate dan Climate untuk Flood, Drought,
+                Perbandingan AAL Non-Climate dan Climate untuk Banjir, Kekeringan,
                 dan Multi-hazard.
               </p>
             </div>
@@ -532,7 +532,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
             ) : !hasAALData ? (
               <DashboardEmptyState
                 message="Belum ada nilai AAL antar hazard yang cukup untuk ditampilkan pada chart ini."
-                actionHint="Pastikan file AAL flood, drought, dan multi tersedia."
+                actionHint="Pastikan file AAL banjir, kekeringan, dan multi tersedia."
                 compact
               />
             ) : (

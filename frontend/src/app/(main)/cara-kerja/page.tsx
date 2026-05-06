@@ -24,7 +24,7 @@ const analyticalPipeline = [
   {
     step: "01",
     title: "Raster Hazard",
-    desc: "Data raster banjir (flood) dan kekeringan (drought) digunakan sebagai basis bahaya untuk berbagai return period dan kondisi iklim.",
+    desc: "Data raster banjir dan kekeringan digunakan sebagai basis bahaya untuk berbagai return period dan kondisi iklim.",
   },
   {
     step: "02",

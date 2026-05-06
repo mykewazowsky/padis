@@ -49,18 +49,18 @@ type FinalAnalysisStatus = {
 const HAZARD_OPTIONS: { key: HazardKey; label: string; desc: string }[] = [
   {
     key: "flood",
-    label: "Flood",
+    label: "Banjir",
     desc: "Analisis hazard banjir → menghasilkan kabkota_flood_final.geojson.",
   },
   {
     key: "drought",
-    label: "Drought",
+    label: "Kekeringan",
     desc: "Analisis hazard kekeringan → menghasilkan kabkota_drought_final.geojson.",
   },
   {
     key: "multi",
     label: "Multi-hazard",
-    desc: "Gabungkan flood + drought → menghasilkan kabkota_multihazard_final.geojson. Butuh dua file final lain sudah ada.",
+    desc: "Gabungkan banjir + kekeringan → menghasilkan kabkota_multihazard_final.geojson. Butuh dua file final lain sudah ada.",
   },
 ];
 
@@ -113,6 +113,14 @@ function formatBytes(n: number) {
 function capitalize(text?: string | null) {
   if (!text) return "-";
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+function formatHazardLabel(hazard?: string | null) {
+  if (!hazard || hazard === "-") return "-";
+  if (hazard === "flood") return "Banjir";
+  if (hazard === "drought") return "Kekeringan";
+  if (hazard === "multi" || hazard === "multihazard") return "Multi-hazard";
+  return capitalize(hazard);
 }
 
 function calculateETA(startedAt?: string | null, progress?: number) {
@@ -419,7 +427,7 @@ export default function AdminProcessPage() {
         <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-700">
           <p className="font-semibold text-slate-900">Alur kerja singkat</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-slate-600">
-            <li>Jalankan <span className="font-semibold">Pipeline Penuh</span> untuk hazard <em>flood</em>, lalu <em>drought</em>, lalu <em>multi-hazard</em>.</li>
+            <li>Jalankan <span className="font-semibold">Pipeline Penuh</span> untuk hazard <em>banjir</em>, lalu <em>kekeringan</em>, lalu <em>multi-hazard</em>.</li>
             <li>Setelah ketiga file final tersedia, klik <span className="font-semibold">Muat ke Database</span> untuk push hasil ke Postgres.</li>
             <li>Setelah ETL sukses, aktifkan run baru di halaman <Link href="/admin/pipeline-monitor" className="font-semibold text-[var(--color-primary)] underline-offset-2 hover:underline">Pipeline Monitor</Link>.</li>
           </ol>
@@ -504,7 +512,7 @@ export default function AdminProcessPage() {
                   <CircleDashed className="h-4 w-4 text-slate-400" />
                 )}
                 <p className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                  {file.hazard}
+                  {formatHazardLabel(file.hazard)}
                 </p>
               </div>
               <p className="mt-2 break-all font-mono text-xs text-slate-600">
@@ -593,7 +601,7 @@ export default function AdminProcessPage() {
               <span>
                 <span className="font-semibold">Perhatian:</span>{" "}
                 Multi-hazard membutuhkan kabkota_flood_final.geojson dan kabkota_drought_final.geojson sudah ada.
-                Pipeline ini hanya menjalankan langkah multi-hazard — flood dan drought tidak akan dijalankan ulang.
+                Pipeline ini hanya menjalankan langkah multi-hazard — banjir dan kekeringan tidak akan dijalankan ulang.
               </span>
             </div>
           )}
@@ -630,7 +638,7 @@ export default function AdminProcessPage() {
                 <span>Muat ke Database</span>
               </button>
               <p className="text-xs leading-relaxed text-slate-500">
-                Memuat ketiga file final ke Postgres (flood + drought + multihazard sekaligus).
+                Memuat ketiga file final ke Postgres (banjir + kekeringan + multihazard sekaligus).
                 Aktif setelah ketiga file final tersedia.
               </p>
             </div>
@@ -717,7 +725,7 @@ export default function AdminProcessPage() {
                 Hazard
               </p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {capitalize(status?.hazard || "-")}
+                {formatHazardLabel(status?.hazard || "-")}
               </p>
             </div>
           </div>
@@ -746,7 +754,7 @@ export default function AdminProcessPage() {
             <div>
               <p className="text-sm text-slate-500">Hazard Aktif</p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                {capitalize(status?.hazard || selectedHazard)}
+                {formatHazardLabel(status?.hazard || selectedHazard)}
               </h2>
             </div>
             <div className="rounded-2xl bg-blue-50 p-3">

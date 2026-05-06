@@ -74,8 +74,8 @@ const GEOJSON_PREVIEW_LIMIT = 10 * 1024 * 1024; // 10 MB — skip preview fetch 
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; desc: string }[] = [
   { key: "all", label: "Semua", desc: "Tampilkan semua hasil." },
-  { key: "flood", label: "Flood", desc: "Hasil untuk analisis flood." },
-  { key: "drought", label: "Drought", desc: "Hasil untuk analisis drought." },
+  { key: "flood", label: "Banjir", desc: "Hasil untuk analisis banjir." },
+  { key: "drought", label: "Kekeringan", desc: "Hasil untuk analisis kekeringan." },
   { key: "multi", label: "Multi-hazard", desc: "Hasil untuk analisis multi-hazard." },
   { key: "aal", label: "AAL", desc: "Ringkasan nilai AAL." },
   { key: "report", label: "Report", desc: "Dokumen dan aset laporan." },
@@ -211,8 +211,8 @@ export default function AdminOutputPage() {
 
   const groupedOutputs = useMemo<OutputGroup[]>(() => {
     const groups: Record<Exclude<FilterKey, "all">, OutputGroup> = {
-      flood: { key: "flood", title: "Hasil Flood", files: [] },
-      drought: { key: "drought", title: "Hasil Drought", files: [] },
+      flood: { key: "flood", title: "Hasil Banjir", files: [] },
+      drought: { key: "drought", title: "Hasil Kekeringan", files: [] },
       multi: { key: "multi", title: "Hasil Multi-hazard", files: [] },
       aal: { key: "aal", title: "Hasil AAL", files: [] },
       report: { key: "report", title: "Laporan", files: [] },
@@ -385,15 +385,15 @@ export default function AdminOutputPage() {
       valueClass: "text-[var(--color-primary)]",
     },
     {
-      title: "Flood Outputs",
+      title: "Output Banjir",
       value: loading ? "Loading..." : countsByCategory.flood,
-      desc: "Jumlah hasil untuk analisis flood.",
+      desc: "Jumlah hasil untuk analisis banjir.",
       valueClass: "text-blue-600",
     },
     {
-      title: "Drought Outputs",
+      title: "Output Kekeringan",
       value: loading ? "Loading..." : countsByCategory.drought,
-      desc: "Jumlah hasil untuk analisis drought.",
+      desc: "Jumlah hasil untuk analisis kekeringan.",
       valueClass: "text-orange-600",
     },
     {

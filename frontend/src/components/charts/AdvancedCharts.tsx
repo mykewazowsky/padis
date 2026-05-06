@@ -69,8 +69,8 @@ function safeNumber(value: unknown) {
 }
 
 function getHazardLabel(hazard: string) {
-  if (hazard === "flood") return "Flood";
-  if (hazard === "drought") return "Drought";
+  if (hazard === "flood") return "Banjir";
+  if (hazard === "drought") return "Kekeringan";
   return "Multi-hazard";
 }
 

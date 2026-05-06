@@ -187,64 +187,85 @@ export default function CaraKerjaPage() {
       {/* Video Panduan */}
       <section className="section-shell-tight section-soft -mt-8 rounded-t-[2rem]">
         <div className="section-container">
-          <section className="overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-[var(--content-surface)] shadow-[var(--shadow-soft)]">
-            <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3">
-              <div className="flex shrink-0 items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-red-400" />
-                <span className="h-3 w-3 rounded-full bg-yellow-400" />
-                <span className="h-3 w-3 rounded-full bg-green-400" />
+          <div className="mx-auto max-w-4xl">
+
+            {/* Header */}
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] shadow-[var(--shadow-soft)]">
+                <PlayCircle className="h-3.5 w-3.5" />
+                Video Panduan
               </div>
-              <div className="flex flex-1 items-center justify-center">
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <PlayCircle className="h-3 w-3 shrink-0" />
-                  Video Panduan
-                </div>
-              </div>
+              <h2 className="text-heading mt-4 text-balance text-3xl font-bold tracking-tight md:text-4xl">
+                Panduan Penggunaan PADIS
+              </h2>
+              <p className="text-muted mx-auto mt-3 max-w-xl text-sm leading-relaxed md:text-base">
+                Tonton panduan singkat untuk memahami alur analisis, jenis output,
+                dan cara membaca hasil di dashboard.
+              </p>
             </div>
 
-            <div className="grid gap-8 p-6 lg:grid-cols-[0.85fr_1.15fr] lg:p-8">
-              <div className="flex flex-col justify-center">
-                <SectionHeader
-                  title="Video Panduan Penggunaan PADIS"
-                  desc="Tonton panduan singkat untuk memahami alur analisis, jenis output, dan cara membaca hasil di dashboard PADIS."
-                  centered={false}
-                />
-
-                <div className="alert-info mt-6">
-                  Mulai dari video ini untuk memahami konteks sebelum melakukan
-                  eksplorasi di dashboard.
+            {/* Video card */}
+            <div className="mt-8 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-[var(--shadow-lg)]">
+              {/* Browser chrome bar */}
+              <div className="flex items-center gap-3 border-b border-[var(--color-border)] bg-[var(--content-surface-muted)] px-4 py-3">
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-red-400/80" />
+                  <span className="h-3 w-3 rounded-full bg-yellow-400/80" />
+                  <span className="h-3 w-3 rounded-full bg-green-400/80" />
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <div className="overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20">
-                  <div className="aspect-video w-full">
-                    <iframe
-                      className="h-full w-full"
-                      src="https://www.youtube.com/embed/sXUgzCNxeGc"
-                      title="Video Petunjuk Penggunaan PADIS"
-                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      loading="lazy"
-                    />
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="flex max-w-xs items-center gap-1.5 truncate rounded-md border border-[var(--color-border)] bg-[var(--content-surface)] px-3 py-1 text-xs text-muted">
+                    <PlayCircle className="h-3 w-3 shrink-0 text-[var(--color-primary)]" />
+                    <span className="truncate">youtube.com · Video Petunjuk Penggunaan PADIS</span>
                   </div>
                 </div>
+              </div>
 
-                <p className="text-center text-xs text-muted">
-                  Video tidak tampil?{" "}
-                  <a
-                    href="https://www.youtube.com/watch?v=sXUgzCNxeGc"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Buka video panduan PADIS di YouTube"
-                    className="text-[var(--color-primary)] hover:underline"
-                  >
-                    Buka di YouTube
-                  </a>
-                </p>
+              {/* Iframe — full width, aspect-video */}
+              <div className="aspect-video w-full bg-black">
+                <iframe
+                  className="h-full w-full"
+                  src="https://www.youtube.com/embed/sXUgzCNxeGc"
+                  title="Video Petunjuk Penggunaan PADIS"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  loading="lazy"
+                />
               </div>
             </div>
-          </section>
+
+            {/* What you'll learn chips */}
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {[
+                "Alur analisis PADIS",
+                "Membaca peta risiko",
+                "Filter skenario & iklim",
+                "Ekspor data CSV",
+                "Interpretasi AAL",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-[var(--color-border)] bg-[var(--content-surface)] px-3 py-1.5 text-xs font-medium text-muted"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            {/* Fallback link */}
+            <p className="mt-4 text-center text-xs text-muted">
+              Video tidak tampil?{" "}
+              <a
+                href="https://www.youtube.com/watch?v=sXUgzCNxeGc"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Buka video panduan PADIS di YouTube"
+                className="text-[var(--color-primary)] hover:underline"
+              >
+                Buka di YouTube →
+              </a>
+            </p>
+          </div>
         </div>
       </section>
 

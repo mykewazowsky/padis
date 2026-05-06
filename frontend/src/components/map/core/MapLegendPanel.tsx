@@ -16,6 +16,7 @@ export type LayerKey =
 
 type Props = {
   title: string;
+  subtitle?: string;
   items: LegendItem[];
   collapsed: boolean;
   onToggle: () => void;
@@ -26,6 +27,7 @@ type Props = {
 
 export default function MapLegendPanel({
   title,
+  subtitle = "Distribusi kelas data",
   items,
   collapsed,
   onToggle,
@@ -37,7 +39,7 @@ export default function MapLegendPanel({
       className={
         inline
           ? "w-full rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] p-3 shadow-sm"
-          : "absolute bottom-4 right-4 z-[1060] w-56 rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] p-3 shadow-md backdrop-blur"
+          : "absolute bottom-4 right-4 z-[1060] w-64 rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] p-3 shadow-md backdrop-blur"
       }
     >
       {/* HEADER */}
@@ -52,7 +54,7 @@ export default function MapLegendPanel({
               {title}
             </h3>
             <p className="text-[10px] text-[var(--dashboard-text-muted)]">
-              Distribusi kelas data
+              {subtitle}
             </p>
           </div>
         </div>

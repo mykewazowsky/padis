@@ -54,6 +54,8 @@ function formatCompactRupiah(value: number | null | undefined) {
 
 // green=low risk, red=high risk
 const RISK_PALETTE = ["#1a9850", "#91cf60", "#fee08b", "#fc8d59", "#d73027"];
+const FLOOD_HAZARD_BREAKS = [0.5, 1, 2, 3.5, Number.POSITIVE_INFINITY];
+const DROUGHT_HAZARD_BREAKS = [0.3, 0.45, 0.6, 0.75, 1];
 
 // Quantile — untuk data yang distribusinya merata (production)
 function quantileBreaks(values: number[], k = 5): number[] {
@@ -67,14 +69,11 @@ function quantileBreaks(values: number[], k = 5): number[] {
   return breaks;
 }
 
-// Equal Interval — untuk indeks ternormalisasi (hazard index 0–1)
-function equalIntervalBreaks(values: number[], k = 5): number[] {
-  if (!values.length) return [];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  if (min === max) return Array(k).fill(max);
-  const step = (max - min) / k;
-  return Array.from({ length: k }, (_, i) => +(min + step * (i + 1)).toFixed(6));
+// Kelas tetap untuk indeks banjir/kekeringan agar perbandingan RP/skenario stabil.
+function getFixedHazardBreaks(hazard: string): number[] {
+  if (hazard === "flood") return FLOOD_HAZARD_BREAKS;
+  if (hazard === "drought") return DROUGHT_HAZARD_BREAKS;
+  return [];
 }
 
 // Log-Quantile — untuk data miring kanan (loss, AAL) agar kelas tidak didominasi outlier
@@ -144,10 +143,10 @@ export default function MapViewClient({
 
   const breaks = useMemo(() => {
     if (!activeValues.length) return [];
-    if (activeLayers.hazard) return equalIntervalBreaks(activeValues);
+    if (activeLayers.hazard) return getFixedHazardBreaks(hazard);
     if (activeLayers.aal || activeLayers.loss) return logQuantileBreaks(activeValues);
     return quantileBreaks(activeValues);
-  }, [activeValues, activeLayers.hazard, activeLayers.aal, activeLayers.loss]);
+  }, [activeValues, activeLayers.hazard, activeLayers.aal, activeLayers.loss, hazard]);
 
   const topRegionKeys = useMemo(() => {
     if (!layers?.loss?.features?.length) return new Set<string>();

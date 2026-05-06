@@ -82,6 +82,11 @@ type RegionLabel = {
   position: L.LatLngExpression;
 };
 
+type FixedLegendItem = {
+  color: string;
+  label: string;
+};
+
 type FeatureWithOptionalCentroidProps = FeatureProps & {
   centroid?: [number, number] | { lat: number; lng: number };
 };
@@ -148,6 +153,55 @@ function getAccentColors(hazard: string) {
   if (hazard === "drought") return { soft: "#fff3bf", dark: "#8a6300" };
   if (hazard === "flood") return { soft: "#eaf2ff", dark: "#174f92" };
   return { soft: "#f3e8ff", dark: "#5b21b6" };
+}
+
+function getHazardLegendTitle(hazard: string) {
+  if (hazard === "flood") return "Indeks Banjir";
+  if (hazard === "drought") return "Indeks Kekeringan";
+  return "Indeks Bahaya";
+}
+
+function getHazardLegendSubtitle(hazard: string) {
+  if (hazard === "flood") return "Kelas tetap - kedalaman genangan (m)";
+  if (hazard === "drought") return "Kelas tetap - indeks kekeringan";
+  return "Kelas tetap per hazard";
+}
+
+function formatHazardValue(value: number, hazard: string) {
+  if (hazard === "flood") {
+    return `${value.toLocaleString("id-ID", {
+      maximumFractionDigits: 3,
+    })} m`;
+  }
+  return value.toFixed(3);
+}
+
+function getFixedHazardLegendItems(
+  hazard: string,
+  breaks: number[],
+  getColorFromBreaks: MapCanvasProps["getColorFromBreaks"]
+): FixedLegendItem[] {
+  if (hazard === "flood") {
+    return [
+      { color: getColorFromBreaks(0.25, breaks, hazard), label: "0 - <0,5 m" },
+      { color: getColorFromBreaks(0.75, breaks, hazard), label: "0,5 - <1,0 m" },
+      { color: getColorFromBreaks(1.5, breaks, hazard), label: "1,0 - <2,0 m" },
+      { color: getColorFromBreaks(2.75, breaks, hazard), label: "2,0 - <3,5 m" },
+      { color: getColorFromBreaks(3.6, breaks, hazard), label: ">=3,5 m" },
+    ];
+  }
+
+  if (hazard === "drought") {
+    return [
+      { color: getColorFromBreaks(0.15, breaks, hazard), label: "0,00 - <0,30" },
+      { color: getColorFromBreaks(0.375, breaks, hazard), label: "0,30 - <0,45" },
+      { color: getColorFromBreaks(0.525, breaks, hazard), label: "0,45 - <0,60" },
+      { color: getColorFromBreaks(0.675, breaks, hazard), label: "0,60 - <0,75" },
+      { color: getColorFromBreaks(0.875, breaks, hazard), label: "0,75 - 1,00" },
+    ];
+  }
+
+  return [];
 }
 
 function isPolygonGeometry(
@@ -280,10 +334,11 @@ function getVtStyle(
 function formatLayerValue(
   value: number | null | undefined,
   activeLayers: Record<LayerKey, boolean>,
-  formatCompactRupiah: MapCanvasProps["formatCompactRupiah"]
+  formatCompactRupiah: MapCanvasProps["formatCompactRupiah"],
+  hazard: string
 ): string {
   if (value == null || Number.isNaN(value)) return "-";
-  if (activeLayers.hazard) return value.toFixed(3);
+  if (activeLayers.hazard) return formatHazardValue(value, hazard);
   if (activeLayers.loss || activeLayers.aal) return formatCompactRupiah(value);
   if (activeLayers.production) return `${value.toLocaleString("id-ID")} ton`;
   return formatCompactRupiah(value);
@@ -303,8 +358,9 @@ function createTooltipHtml(params: {
   formatCompactRupiah: MapCanvasProps["formatCompactRupiah"];
   activeLayers: Record<LayerKey, boolean>;
   normalizedTopRegionKeys: Set<string>;
+  hazard: string;
 }) {
-  const { props, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys } = params;
+  const { props, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys, hazard } = params;
   const safeKabKota = escapeHtml(props?.kab_kota ?? "-");
   const safeProv = escapeHtml(props?.prov ?? "-");
   const regionKey = normalizeRegionKey(props?.kab_kota);
@@ -319,7 +375,7 @@ function createTooltipHtml(params: {
   else value = props?.mean_value;
 
   const safeValue = escapeHtml(
-    formatLayerValue(value, activeLayers, formatCompactRupiah)
+    formatLayerValue(value, activeLayers, formatCompactRupiah, hazard)
   );
 
   const top5Badge = isTop5
@@ -667,7 +723,7 @@ export default function MapCanvas({
       vtLayer.on("mouseover", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
         popupRef.current
-          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys }))
+          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys, hazard }))
           .setLatLng(ev.latlng)
           .openOn(map);
       });
@@ -715,7 +771,7 @@ export default function MapCanvas({
       prodLayer.on("mouseover", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
         popupRef.current
-          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers: productionOnlyLayers, normalizedTopRegionKeys }))
+          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers: productionOnlyLayers, normalizedTopRegionKeys, hazard }))
           .setLatLng(ev.latlng)
           .openOn(map);
       });
@@ -778,23 +834,32 @@ export default function MapCanvas({
 
   const legendItems = useMemo(() => {
     if (!jenksBreaks.length) return [];
+    if (activeLayers.hazard) {
+      return getFixedHazardLegendItems(hazard, jenksBreaks, getColorFromBreaks);
+    }
     return jenksBreaks.map((upper, index) => {
       const lower = index === 0 ? 0 : (jenksBreaks[index - 1] ?? 0);
       const sampleValue = upper ?? lower;
       return {
         color: getColorFromBreaks(sampleValue, jenksBreaks, hazard),
-        label: `${formatLayerValue(lower, activeLayers, formatCompactRupiah)} – ${formatLayerValue(upper, activeLayers, formatCompactRupiah)}`,
+        label: `${formatLayerValue(lower, activeLayers, formatCompactRupiah, hazard)} - ${formatLayerValue(upper, activeLayers, formatCompactRupiah, hazard)}`,
       };
     });
   }, [jenksBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah]);
 
   const legendTitle = activeLayers.hazard
-    ? "Indeks Bahaya"
+    ? getHazardLegendTitle(hazard)
     : activeLayers.loss
       ? "Kerugian (Loss)"
       : activeLayers.aal
         ? "Risiko Tahunan (AAL)"
         : "Legenda";
+
+  const legendSubtitle = activeLayers.hazard
+    ? getHazardLegendSubtitle(hazard)
+    : activeLayers.loss || activeLayers.aal
+      ? "Log-quantile - mengikuti filter aktif"
+      : "Distribusi kelas data";
 
   const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;
   const hasLegend = hasAnalysisLayer && legendItems.length > 0;
@@ -998,6 +1063,7 @@ export default function MapCanvas({
         <div className="hidden md:block">
           <MapLegendPanel
             title={legendTitle}
+            subtitle={legendSubtitle}
             items={legendItems}
             collapsed={legendCollapsed}
             onToggle={() => setLegendCollapsed((prev) => !prev)}
@@ -1043,7 +1109,7 @@ export default function MapCanvas({
                     {mobileSheetTab === "filter" ? (
                       <p className="truncate text-[11px] text-[var(--dashboard-text-muted)]">Atur parameter analisis peta</p>
                     ) : mobileSheetTab === "legend" ? (
-                      <p className="truncate text-[11px] text-[var(--dashboard-text-muted)]">Legenda layer aktif</p>
+                      <p className="truncate text-[11px] text-[var(--dashboard-text-muted)]">{legendSubtitle}</p>
                     ) : null}
                   </div>
                   <button
@@ -1136,6 +1202,7 @@ export default function MapCanvas({
                 ) : (
                   <MapLegendPanel
                     title={legendTitle}
+                    subtitle={legendSubtitle}
                     items={legendItems}
                     collapsed={legendCollapsed}
                     onToggle={() => setLegendCollapsed((prev) => !prev)}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Select from "react-select";
+import { ShieldAlert, Cloud, RefreshCw, MapPin } from "lucide-react";
 
 type OptionType = {
   value: string;
@@ -31,6 +32,46 @@ type Props = {
   variant?: "card" | "inline";
 };
 
+const HAZARD_ACCENT: Record<string, string> = {
+  flood:   "#1e63b5",
+  drought: "#b45309",
+  multi:   "#6d28d9",
+};
+
+function FilterLabel({
+  icon: Icon,
+  children,
+  accentColor,
+  inline,
+}: {
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  children: React.ReactNode;
+  accentColor?: string;
+  inline: boolean;
+}) {
+  const textCls = inline
+    ? "flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-muted)]"
+    : "flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-soft)]";
+
+  return (
+    <label className={textCls}>
+      {accentColor ? (
+        <span
+          className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded"
+          style={{ backgroundColor: `${accentColor}1f`, color: accentColor }}
+        >
+          <Icon size={10} strokeWidth={2.5} />
+        </span>
+      ) : (
+        <span className="shrink-0 opacity-40">
+          <Icon size={11} strokeWidth={2} />
+        </span>
+      )}
+      {children}
+    </label>
+  );
+}
+
 function FilterFields({
   hazardOptions,
   climateOptions,
@@ -54,6 +95,9 @@ function FilterFields({
   const isInline = variant === "inline";
   const [activeField, setActiveField] = useState<string | null>(null);
 
+  const hazardAccentColor =
+    HAZARD_ACCENT[selectedHazardOption?.value ?? "multi"] ?? HAZARD_ACCENT.multi;
+
   const buildSelectStyles = useMemo(
     () => (fieldId: string) => ({
       ...selectStyles,
@@ -72,7 +116,9 @@ function FilterFields({
           minHeight: isInline ? 44 : originalControl.minHeight,
           borderRadius: isInline ? 10 : originalControl.borderRadius,
           borderColor: isInline
-            ? (isActive ? "var(--color-primary)" : "var(--dashboard-input-border)")
+            ? isActive
+              ? "var(--color-primary)"
+              : "var(--dashboard-input-border)"
             : originalControl.borderColor,
           backgroundColor: isInline
             ? "var(--dashboard-input-bg)"
@@ -101,10 +147,17 @@ function FilterFields({
             activeField === fieldId ? "bg-[var(--dashboard-control-bg)]" : ""
           }`;
 
-  const getLabelClassName = () =>
-    isInline
-      ? "block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-muted)]"
-      : "block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--dashboard-text-soft)]";
+  const handlers = (fieldId: string) => ({
+    onFocus: () => setActiveField(fieldId),
+    onBlur: () => setActiveField((prev) => (prev === fieldId ? null : prev)),
+    onMenuOpen: () => setActiveField(fieldId),
+    onMenuClose: () => setActiveField((prev) => (prev === fieldId ? null : prev)),
+  });
+
+  const portalProps = {
+    menuPortalTarget: typeof window !== "undefined" ? document.body : null,
+    menuPosition: "fixed" as const,
+  };
 
   return (
     <div
@@ -114,10 +167,11 @@ function FilterFields({
           : "grid grid-cols-1 gap-2 overflow-hidden rounded-xl border border-[var(--dashboard-border-solid)] bg-[linear-gradient(180deg,var(--dashboard-control-bg),var(--dashboard-surface-muted))] p-2 shadow-[0_8px_20px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.68)] md:grid-cols-2 xl:grid-cols-5"
       }
     >
+      {/* Hazard */}
       <div className={getFieldClassName("hazard")}>
-        <label className={getLabelClassName()}>
+        <FilterLabel icon={ShieldAlert} accentColor={hazardAccentColor} inline={isInline}>
           Jenis Bencana
-        </label>
+        </FilterLabel>
         <Select
           instanceId="hazard-select"
           options={hazardOptions}
@@ -126,19 +180,16 @@ function FilterFields({
           isSearchable={false}
           isDisabled={loadingLayer}
           styles={buildSelectStyles("hazard")}
-          menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-          menuPosition="fixed"
-          onFocus={() => setActiveField("hazard")}
-          onBlur={() => setActiveField((prev) => (prev === "hazard" ? null : prev))}
-          onMenuOpen={() => setActiveField("hazard")}
-          onMenuClose={() => setActiveField((prev) => (prev === "hazard" ? null : prev))}
+          {...portalProps}
+          {...handlers("hazard")}
         />
       </div>
 
+      {/* Climate scenario */}
       <div className={getFieldClassName("climate")}>
-        <label className={getLabelClassName()}>
+        <FilterLabel icon={Cloud} inline={isInline}>
           Skenario Analisis
-        </label>
+        </FilterLabel>
         <Select
           instanceId="climate-select"
           options={climateOptions}
@@ -147,19 +198,16 @@ function FilterFields({
           isSearchable={false}
           isDisabled={loadingLayer}
           styles={buildSelectStyles("climate")}
-          menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-          menuPosition="fixed"
-          onFocus={() => setActiveField("climate")}
-          onBlur={() => setActiveField((prev) => (prev === "climate" ? null : prev))}
-          onMenuOpen={() => setActiveField("climate")}
-          onMenuClose={() => setActiveField((prev) => (prev === "climate" ? null : prev))}
+          {...portalProps}
+          {...handlers("climate")}
         />
       </div>
 
+      {/* Return period */}
       <div className={getFieldClassName("scenario")}>
-        <label className={getLabelClassName()}>
+        <FilterLabel icon={RefreshCw} inline={isInline}>
           Periode Ulang
-        </label>
+        </FilterLabel>
         <Select
           instanceId="scenario-select"
           options={scenarioOptions}
@@ -168,19 +216,16 @@ function FilterFields({
           isSearchable={false}
           isDisabled={loadingLayer}
           styles={buildSelectStyles("scenario")}
-          menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-          menuPosition="fixed"
-          onFocus={() => setActiveField("scenario")}
-          onBlur={() => setActiveField((prev) => (prev === "scenario" ? null : prev))}
-          onMenuOpen={() => setActiveField("scenario")}
-          onMenuClose={() => setActiveField((prev) => (prev === "scenario" ? null : prev))}
+          {...portalProps}
+          {...handlers("scenario")}
         />
       </div>
 
+      {/* Region */}
       <div className={getFieldClassName("region")}>
-        <label className={getLabelClassName()}>
+        <FilterLabel icon={MapPin} inline={isInline}>
           Kabupaten/Kota
-        </label>
+        </FilterLabel>
         <Select
           instanceId="region-select"
           options={regionOptions}
@@ -188,7 +233,8 @@ function FilterFields({
           onChange={(option) => onRegionChange(option?.value ?? "")}
           isClearable
           isLoading={loadingRegions}
-          placeholder={loadingRegions ? "Memuat wilayah..." : "Pilih Kabupaten/Kota ..."}
+          isDisabled={loadingLayer}
+          placeholder={loadingRegions ? "Memuat wilayah..." : "Pilih Kabupaten/Kota..."}
           noOptionsMessage={() =>
             errorRegions
               ? errorRegions
@@ -197,12 +243,8 @@ function FilterFields({
                 : "Tidak ada data wilayah"
           }
           styles={buildSelectStyles("region")}
-          menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-          menuPosition="fixed"
-          onFocus={() => setActiveField("region")}
-          onBlur={() => setActiveField((prev) => (prev === "region" ? null : prev))}
-          onMenuOpen={() => setActiveField("region")}
-          onMenuClose={() => setActiveField((prev) => (prev === "region" ? null : prev))}
+          {...portalProps}
+          {...handlers("region")}
         />
       </div>
     </div>

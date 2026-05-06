@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDebounce } from "../../../lib/useDebounce";
 import dynamic from "next/dynamic";
 import { ShieldAlert, X } from "lucide-react";
 
@@ -12,6 +13,7 @@ import DashboardLoadingBlock from "../../../components/dashboard/DashboardLoadin
 import DashboardEmptyState from "../../../components/dashboard/DashboardEmptyState";
 import DashboardMapFilters from "../../../components/dashboard/DashboardMapFilters";
 import type { AalSummary } from "../../../types/map";
+import type { DistItem } from "../../../components/charts/AdvancedCharts";
 import type { LayerKey } from "../../../components/map/core/MapLegendPanel";
 
 const MapView = dynamic(() => import("../../../components/map/MapView"), {
@@ -239,6 +241,8 @@ function DashboardSectionHeader({
 
 export default function DashboardPage() {
   const filterPanelRef = useRef<HTMLDivElement | null>(null);
+  const chartsRef = useRef<HTMLDivElement | null>(null);
+  const [chartsReady, setChartsReady] = useState(false);
   const [runId, setRunId] = useState<number | null>(null);
   const [scenario, setScenario] = useState("rp25");
   const [hazard, setHazard] = useState("multi");
@@ -286,6 +290,25 @@ export default function DashboardPage() {
     aal: false,
     hazard: false,
   });
+
+  // Debounce filter values so rapid sequential changes don't each trigger a full
+  // fetchAllLayers (4 parallel requests). UI state updates immediately; fetches wait.
+  const dHazard   = useDebounce(hazard,   200);
+  const dScenario = useDebounce(scenario, 200);
+  const dClimate  = useDebounce(climate,  200);
+
+  // Mount chart section lazily — defer ComparisonCharts + AdvancedCharts fetches
+  // until the user scrolls near the section (saves ~4 requests on initial page load).
+  useEffect(() => {
+    const el = chartsRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setChartsReady(true); obs.disconnect(); } },
+      { rootMargin: "600px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -412,6 +435,9 @@ export default function DashboardPage() {
   }, [loadingRegionAAL]);
 
   // Endpoint ringan (~30 KB); rendering peta via MVT tiles dari Leaflet.
+  // Uses debounced filter values to avoid cascading requests on rapid changes.
+  // Only fetches aal/hazard layer data when those layers are actually active.
+  const { aal: aalLayerActive, hazard: hazardLayerActive } = activeLayers;
   useEffect(() => {
     if (runId === null) return;
     let aborted = false;
@@ -420,7 +446,14 @@ export default function DashboardPage() {
         setLoadingLayer(true);
         setErrorLayer(null);
         if (!regionsInitialized.current) setLoadingRegions(true);
-        const data = await fetchAllLayers({ hazard, scenario, climate, runId: runId! });
+        const data = await fetchAllLayers({
+          hazard: dHazard,
+          scenario: dScenario,
+          climate: dClimate,
+          runId: runId!,
+          activeAal: aalLayerActive,
+          activeHazard: hazardLayerActive,
+        });
         if (aborted) return;
         setLayers(data);
       } catch (err) {
@@ -437,7 +470,7 @@ export default function DashboardPage() {
     }
     fetchLayerData();
     return () => { aborted = true; };
-  }, [hazard, scenario, climate, runId]);
+  }, [dHazard, dScenario, dClimate, runId, aalLayerActive, hazardLayerActive]);
 
   const regionOptions = useMemo<OptionType[]>(() => {
     return regions.map((region) => ({
@@ -684,6 +717,18 @@ export default function DashboardPage() {
       dataCount: validFeatures.length,
     };
   }, [layers?.loss]);
+
+  // Normalize loss layer features into DistItem[] for AdvancedCharts — avoids a
+  // duplicate /api/layers/values/loss request (already fetched in fetchAllLayers).
+  const preloadedLossItems = useMemo(() => {
+    if (!layers.loss?.features?.length) return undefined;
+    return (layers.loss.features as { properties: { kab_kota?: string; prov?: string; loss?: number | null } }[])
+      .map((f) => ({
+        kab_kota: f.properties.kab_kota ?? "",
+        prov:     f.properties.prov ?? "",
+        value:    f.properties.loss != null ? Number(f.properties.loss) : null,
+      }));
+  }, [layers.loss]);
 
   const climateChangeInfo = useMemo(() => {
     return formatPercentChange(
@@ -1023,7 +1068,10 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="relative w-full border-t border-[var(--dashboard-border-solid)] bg-[linear-gradient(180deg,var(--dashboard-surface-solid)_0%,var(--dashboard-surface-muted)_100%)] pt-10 pb-14">
+      <section
+        ref={chartsRef}
+        className="relative w-full border-t border-[var(--dashboard-border-solid)] bg-[linear-gradient(180deg,var(--dashboard-surface-solid)_0%,var(--dashboard-surface-muted)_100%)] pt-10 pb-14"
+      >
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
           <div className="space-y-5">
             <DashboardSectionHeader
@@ -1032,16 +1080,22 @@ export default function DashboardPage() {
               desc="Perbandingan AAL antar jenis bencana, total kerugian skenario iklim vs non-iklim, wilayah terdampak utama, dan breakdown hazard."
             />
 
-            <ComparisonCharts hazard={hazard} runId={runId ?? undefined} />
+            {chartsReady && (
+              <>
+                <ComparisonCharts hazard={hazard} runId={runId ?? undefined} />
 
-            <AdvancedCharts
-              hazard={hazard}
-              scenario={scenario}
-              climate={climate}
-              runId={runId ?? undefined}
-              selectedRegion={selectedRegion}
-              onRegionSelect={handleRegionChange}
-            />
+                <AdvancedCharts
+                  hazard={hazard}
+                  scenario={scenario}
+                  climate={climate}
+                  runId={runId ?? undefined}
+                  selectedRegion={selectedRegion}
+                  onRegionSelect={handleRegionChange}
+                  preloadedLossItems={preloadedLossItems}
+                  loadingLayer={loadingLayer}
+                />
+              </>
+            )}
           </div>
         </div>
       </section>

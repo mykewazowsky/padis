@@ -25,25 +25,38 @@ type Props = {
   runId?: number;
   selectedRegion?: string;
   onRegionSelect?: (region: string) => void;
+  /** Pre-fetched loss data from the page-level fetchAllLayers call — avoids a duplicate request. */
+  preloadedLossItems?: DistItem[];
+  /** True while the page-level layer fetch is in-flight — used as loading state when preloaded loss data is active. */
+  loadingLayer?: boolean;
 };
 
 type TopRegionItem = {
   name: string;
-  loss: number;
+  value: number;
 };
 
-type DistItem = {
+type TopMetric = "loss" | "aal";
+
+const TOP_METRIC_LABELS: Record<TopMetric, string> = {
+  loss: "Loss",
+  aal:  "AAL",
+};
+
+export type DistItem = {
   kab_kota: string;
   prov: string;
   value: number | null;
 };
 
 type HistogramBucket = {
-  label: string;
+  label: string;       // full range string — for tooltip
+  shortLabel: string;  // lower-bound only  — for XAxis tick
   count: number;
   lo: number;
   hi: number;
   isPeak: boolean;
+  relCount: number;    // count / peakCount, 0–1 for opacity gradient
 };
 
 type HistogramStats = {
@@ -99,6 +112,18 @@ function getClimateLabel(climate: string) {
   return climate === "climate" ? "Iklim" : "Non-Iklim";
 }
 
+function formatScenarioLabel(scenario: string) {
+  return scenario.replace(/^rp/i, "RP ");
+}
+
+function FilterChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded bg-[var(--dashboard-surface-muted)] px-1.5 py-px text-[10px] font-semibold tracking-wide text-[var(--dashboard-text-muted)]">
+      {children}
+    </span>
+  );
+}
+
 function shortenRegionName(name: string) {
   if (!name) return "-";
   const cleaned = name
@@ -121,8 +146,10 @@ type MetricConfig = {
   endpoint: DistMetric;
   valueKey: string;
   filterZero: boolean;
+  useLogScale: boolean;
   formatStat: (v: number) => string;
   formatRange: (lo: number, hi: number) => string;
+  formatTick: (lo: number) => string;
   insightTitle: string;
   insightBody: string;
   emptyMsg: string;
@@ -138,8 +165,10 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
       endpoint: "loss",
       valueKey: "loss",
       filterZero: true,
+      useLogScale: true,
       formatStat: (v) => `Rp ${formatCompact(v)}`,
       formatRange: (lo, hi) => `Rp ${formatCompact(lo)} – Rp ${formatCompact(hi)}`,
+      formatTick: (lo) => formatCompact(lo),
       insightTitle: "Pola distribusi kerugian",
       insightBody:
         "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang kerugian tertentu. Distribusi condong ke kanan mengindikasikan konsentrasi risiko di sedikit wilayah.",
@@ -156,9 +185,11 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
       endpoint: "aal",
       valueKey: "aal",
       filterZero: true,
+      useLogScale: true,
       formatStat: (v) => `Rp ${formatCompact(v)}/th`,
       formatRange: (lo, hi) =>
         `Rp ${formatCompact(lo)} – Rp ${formatCompact(hi)}/th`,
+      formatTick: (lo) => formatCompact(lo),
       insightTitle: "Pola distribusi AAL",
       insightBody:
         "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang kerugian tahunan rata-rata (AAL) tertentu.",
@@ -173,6 +204,9 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
   const isFlood = hazard === "flood";
   const unit = isFlood ? " m" : "";
   const fmtVal = (v: number) => `${formatIdNum(v)}${unit}`;
+  const fmtTick = isFlood
+    ? (lo: number) => `${formatIdNum(lo, 1)} m`
+    : (lo: number) => formatIdNum(lo, 2);
 
   return {
     title: `Distribusi Indeks ${hazardLabel}`,
@@ -180,9 +214,11 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
     endpoint: "hazard",
     valueKey: "mean_value",
     filterZero: false,
+    useLogScale: false,
     formatStat: fmtVal,
     formatRange: (lo, hi) =>
       `${formatIdNum(lo, 2)} – ${formatIdNum(hi, 2)}${unit}`,
+    formatTick: fmtTick,
     insightTitle: `Pola distribusi indeks ${hazardLabel.toLowerCase()}`,
     insightBody:
       "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang nilai indeks bahaya tertentu.",
@@ -205,23 +241,22 @@ function buildDistributionUrl({
   climate: string;
   runId: number;
 }) {
-  const params = new URLSearchParams({ hazard });
+  const params = new URLSearchParams({ hazard, run_id: String(runId) });
 
   if (metric === "loss") {
+    // loss: ?hazard=&scenario=<rp>&climate=<climate>&run_id=
     params.set("scenario", scenario);
     params.set("climate", climate);
-  }
-
-  if (metric === "aal") {
+  } else if (metric === "aal") {
+    // aal: ?hazard=&climate=<climate>&run_id= (no scenario/rp needed)
     params.set("climate", climate);
-  }
-
-  if (metric === "hazard") {
+  } else {
+    // hazard: ?hazard=&scenario=<climate_value>&rp=<rp>&run_id=
+    // NOTE: backend uses "scenario" for the climate field and "rp" for return period
     params.set("scenario", climate);
     params.set("rp", scenario);
   }
 
-  params.set("run_id", String(runId));
   return `/api/layers/values/${metric}?${params.toString()}`;
 }
 
@@ -230,11 +265,13 @@ function CustomTooltip({
   payload,
   label,
   labelPrefix,
+  formatValue = (v: number) => formatRupiah(v),
 }: {
   active?: boolean;
   payload?: readonly TooltipPayloadItem[];
   label?: string;
   labelPrefix: string;
+  formatValue?: (v: number) => string;
 }) {
   if (!active || !payload || !payload.length) return null;
   const fullName = (payload[0]?.payload?.name as string | undefined) ?? label;
@@ -253,7 +290,7 @@ function CustomTooltip({
             <span className="text-[var(--chart-tooltip-muted)]">
               {entry.name}:{" "}
               <span className="font-semibold text-[var(--chart-tooltip-text)]">
-                {formatRupiah(safeNumber(entry.value))}
+                {formatValue(safeNumber(entry.value))}
               </span>
             </span>
           </div>
@@ -294,7 +331,12 @@ const STAT_ITEMS: { key: keyof HistogramStats; label: string }[] = [
   { key: "max",    label: "Maksimum"  },
 ];
 
-const BUCKET_COUNT = 10;
+function adaptiveBucketCount(n: number): number {
+  if (n <= 6)  return 3;
+  if (n <= 15) return 5;
+  if (n <= 40) return 7;
+  return 10;
+}
 
 const CHART_CARD_CLASS =
   "rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] p-4 md:p-5";
@@ -302,16 +344,10 @@ const METRIC_RAIL_CLASS =
   "flex flex-wrap items-baseline gap-x-5 gap-y-2 border-y border-[var(--dashboard-border-soft)] py-2.5";
 const METRIC_CELL_CLASS =
   "flex min-w-0 items-baseline gap-2";
-const STAT_RAIL_CLASS =
-  "flex flex-wrap items-baseline gap-x-4 gap-y-2 border-y border-[var(--dashboard-border-soft)] py-2.5";
-const STAT_CELL_CLASS =
-  "flex min-w-0 items-baseline gap-2";
 const INSIGHT_ROW_CLASS =
   "border-l border-[var(--dashboard-border-solid)] py-1 pl-3";
 const CHART_CANVAS_CLASS =
   "h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1";
-const HISTOGRAM_CANVAS_CLASS =
-  "h-72 w-full rounded-md bg-[var(--dashboard-surface)] p-1";
 const ERROR_CANVAS_CLASS =
   "flex h-full w-full items-center justify-center rounded-lg border border-[var(--dashboard-status-danger-border)] bg-[var(--dashboard-status-danger-bg)] px-4 text-center text-sm text-[var(--dashboard-status-danger-text)]";
 const PRIMARY_ICON_CLASS =
@@ -326,10 +362,13 @@ export default function AdvancedCharts({
   runId,
   selectedRegion,
   onRegionSelect,
+  preloadedLossItems,
+  loadingLayer,
 }: Props) {
   const [topRegions, setTopRegions] = useState<TopRegionItem[]>([]);
   const [distData, setDistData] = useState<DistItem[]>([]);
   const [distMetric, setDistMetric] = useState<DistMetric>("loss");
+  const [topMetric, setTopMetric] = useState<TopMetric>("loss");
 
   const [loadingTopRegions, setLoadingTopRegions] = useState(false);
   const [loadingDist, setLoadingDist] = useState(false);
@@ -354,10 +393,27 @@ export default function AdvancedCharts({
       setErrorTopRegions(null);
 
       try {
-        const data = await fetchJson<TopRegionItem[]>(
-          `/api/top-regions?hazard=${hazard}&scenario=${scenario}&climate=${climate}${runId != null ? `&run_id=${runId}` : ""}`
-        );
-        if (!ignore) setTopRegions(data);
+        if (topMetric === "loss") {
+          const data = await fetchJson<{ name: string; loss: number }[]>(
+            `/api/top-regions?hazard=${hazard}&scenario=${scenario}&climate=${climate}${runId != null ? `&run_id=${runId}` : ""}`
+          );
+          if (!ignore) setTopRegions(data.map((d) => ({ name: d.name, value: d.loss })));
+        } else {
+          // AAL: fetch all regions, sort descending, take top 10
+          if (runId == null) {
+            if (!ignore) setTopRegions([]);
+            return;
+          }
+          const res = await fetchJson<{ data: { kab_kota: string; aal: number; has_data: boolean }[] }>(
+            `/api/layers/values/aal?hazard=${hazard}&climate=${climate}&run_id=${runId}`
+          );
+          const sorted = (res.data ?? [])
+            .filter((d) => d.has_data && d.aal > 0)
+            .sort((a, b) => b.aal - a.aal)
+            .slice(0, 10)
+            .map((d) => ({ name: d.kab_kota, value: d.aal }));
+          if (!ignore) setTopRegions(sorted);
+        }
       } catch (err) {
         console.error("Top regions fetch error:", err);
         if (!ignore) {
@@ -374,10 +430,19 @@ export default function AdvancedCharts({
     return () => {
       ignore = true;
     };
-  }, [hazard, scenario, climate, runId]);
+  }, [hazard, scenario, climate, runId, topMetric]);
 
   useEffect(() => {
     if (runId === undefined) return;
+
+    // Fast path: re-use the loss data already fetched by the page-level fetchAllLayers.
+    // This avoids firing a duplicate request for the default (loss) metric.
+    if (metricConfig.endpoint === "loss" && preloadedLossItems !== undefined) {
+      setDistData(preloadedLossItems);
+      setLoadingDist(false);
+      setErrorDist(null);
+      return;
+    }
 
     let ignore = false;
     const activeRunId = runId;
@@ -397,14 +462,23 @@ export default function AdvancedCharts({
           })
         );
         const raw = res.data ?? [];
-        const normalized: DistItem[] = raw.map((d) => ({
-          kab_kota: String(d.kab_kota ?? ""),
-          prov: String(d.prov ?? ""),
-          value:
-            d[metricConfig.valueKey] != null
-              ? Number(d[metricConfig.valueKey])
-              : null,
-        }));
+        const isHazardMetric = metricConfig.endpoint === "hazard";
+        const normalized: DistItem[] = raw.map((d) => {
+          // For hazard endpoint, exclude regions with no real data.
+          // Backend uses COALESCE(mean_value, 0), so has_data=false means the
+          // 0 is a placeholder, not a real measurement.
+          if (isHazardMetric && d.has_data === false) {
+            return { kab_kota: String(d.kab_kota ?? ""), prov: String(d.prov ?? ""), value: null };
+          }
+          return {
+            kab_kota: String(d.kab_kota ?? ""),
+            prov: String(d.prov ?? ""),
+            value:
+              d[metricConfig.valueKey] != null
+                ? Number(d[metricConfig.valueKey])
+                : null,
+          };
+        });
         if (!ignore) setDistData(normalized);
       } catch (err) {
         console.error("Distribution fetch error:", err);
@@ -422,7 +496,7 @@ export default function AdvancedCharts({
     return () => {
       ignore = true;
     };
-  }, [hazard, scenario, climate, runId, activeDistMetric, metricConfig.endpoint, metricConfig.valueKey]);
+  }, [hazard, scenario, climate, runId, activeDistMetric, metricConfig.endpoint, metricConfig.valueKey, preloadedLossItems]);
 
   const chartTopRegions = useMemo(() => {
     return topRegions.map((item, index) => {
@@ -444,7 +518,7 @@ export default function AdvancedCharts({
 
   const topRegionSummary = useMemo(() => {
     if (!topRegions.length) return { name: "-", value: 0 };
-    return { name: topRegions[0].name, value: topRegions[0].loss };
+    return { name: topRegions[0].name, value: topRegions[0].value };
   }, [topRegions]);
 
   const histogramData = useMemo((): {
@@ -452,8 +526,11 @@ export default function AdvancedCharts({
     stats: HistogramStats | null;
     meanLabel: string | null;
     medianLabel: string | null;
+    validCount: number;
+    bucketCount: number;
+    usedLogScale: boolean;
   } => {
-    const { filterZero, formatRange } = metricConfig;
+    const { filterZero, formatRange, formatTick, useLogScale } = metricConfig;
     const values = distData
       .map((d) => d.value)
       .filter(
@@ -461,7 +538,9 @@ export default function AdvancedCharts({
           v !== null && Number.isFinite(v) && (filterZero ? v > 0 : true)
       );
 
-    if (!values.length) return { buckets: [], stats: null, meanLabel: null, medianLabel: null };
+    const validCount = values.length;
+    const empty = { buckets: [], stats: null, meanLabel: null, medianLabel: null, validCount: 0, bucketCount: 0, usedLogScale: false };
+    if (!validCount) return empty;
 
     const sorted = [...values].sort((a, b) => a - b);
     const n = sorted.length;
@@ -470,53 +549,91 @@ export default function AdvancedCharts({
     const sum = values.reduce((s, v) => s + v, 0);
     const mean = sum / n;
     const mid = Math.floor(n / 2);
-    const median =
-      n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-
+    const median = n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
     const range = max - min;
+    const k = adaptiveBucketCount(n);
+
     const makeLabel = (lo: number, hi: number) => formatRange(lo, hi);
+    const makeShortLabel = (lo: number) => formatTick(lo);
 
     if (range === 0) {
       const label = makeLabel(min, max);
+      const shortLabel = makeShortLabel(min);
       return {
-        buckets: [{ label, count: n, lo: min, hi: max, isPeak: true }],
+        buckets: [{ label, shortLabel, count: n, lo: min, hi: max, isPeak: true, relCount: 1 }],
         stats: { mean, median, min, max },
-        meanLabel: label,
-        medianLabel: label,
+        meanLabel: shortLabel,
+        medianLabel: shortLabel,
+        validCount,
+        bucketCount: 1,
+        usedLogScale: false,
       };
     }
 
-    const bucketSize = range / BUCKET_COUNT;
-    const rawBuckets = Array.from({ length: BUCKET_COUNT }, (_, i) => {
-      const lo = min + i * bucketSize;
-      const hi = i === BUCKET_COUNT - 1 ? max : lo + bucketSize;
-      const count = values.filter((v) =>
-        i === BUCKET_COUNT - 1 ? v >= lo && v <= hi : v >= lo && v < hi
-      ).length;
-      return { label: makeLabel(lo, hi), count, lo, hi, isPeak: false };
-    });
+    // Log-scale bucketing for monetary metrics (loss/AAL) — prevents all data
+    // clustering in bucket 1 when distribution is heavily right-skewed.
+    const applyLog = useLogScale && min > 0;
+    type RawBucket = { label: string; shortLabel: string; count: number; lo: number; hi: number };
+
+    let rawBuckets: RawBucket[];
+    if (applyLog) {
+      const logMin = Math.log10(min);
+      const logMax = Math.log10(max);
+      const step = (logMax - logMin) / k;
+      rawBuckets = Array.from({ length: k }, (_, i) => {
+        const logLo = logMin + i * step;
+        const logHi = i === k - 1 ? logMax : logLo + step;
+        const lo = Math.pow(10, logLo);
+        const hi = Math.pow(10, logHi);
+        const count = values.filter((v) =>
+          i === k - 1 ? v >= lo && v <= hi : v >= lo && v < hi
+        ).length;
+        return { label: makeLabel(lo, hi), shortLabel: makeShortLabel(lo), count, lo, hi };
+      });
+    } else {
+      const step = range / k;
+      rawBuckets = Array.from({ length: k }, (_, i) => {
+        const lo = min + i * step;
+        const hi = i === k - 1 ? max : lo + step;
+        const count = values.filter((v) =>
+          i === k - 1 ? v >= lo && v <= hi : v >= lo && v < hi
+        ).length;
+        return { label: makeLabel(lo, hi), shortLabel: makeShortLabel(lo), count, lo, hi };
+      });
+    }
 
     const peakCount = Math.max(...rawBuckets.map((b) => b.count));
     const buckets: HistogramBucket[] = rawBuckets.map((b) => ({
       ...b,
       isPeak: b.count === peakCount,
+      relCount: peakCount > 0 ? b.count / peakCount : 0,
     }));
 
-    const findLabel = (val: number) =>
+    const findShortLabel = (val: number) =>
       buckets.find((b, i) =>
         i === buckets.length - 1 ? val >= b.lo && val <= b.hi : val >= b.lo && val < b.hi
-      )?.label ?? null;
+      )?.shortLabel ?? null;
 
     return {
       buckets,
       stats: { mean, median, min, max },
-      meanLabel: findLabel(mean),
-      medianLabel: findLabel(median),
+      meanLabel: findShortLabel(mean),
+      medianLabel: findShortLabel(median),
+      validCount,
+      bucketCount: k,
+      usedLogScale: applyLog,
     };
   }, [distData, metricConfig]);
 
+  // When preloaded loss data is active, delegate loading state to the page-level flag
+  // so the distribution chart shows loading while fetchAllLayers is in-flight.
+  const effectiveLoadingDist =
+    metricConfig.endpoint === "loss" && preloadedLossItems !== undefined
+      ? (loadingLayer ?? false)
+      : loadingDist;
+
   const hasTopRegionData = useMemo(
-    () => topRegions.some((item) => safeNumber(item.loss) > 0),
+    () => topRegions.some((item) => safeNumber(item.value) > 0),
     [topRegions]
   );
 
@@ -540,13 +657,37 @@ export default function AdvancedCharts({
                   Top 10 Kabupaten/Kota
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-muted">
-                Ranking wilayah dengan kerugian tertinggi untuk {getHazardLabel(hazard)} ·{" "}
-                {scenario.toUpperCase()} · {getClimateLabel(climate)}
+              <p className="mt-1.5 text-sm text-muted">
+                Ranking wilayah berdasarkan {topMetric === "aal" ? "kerugian tahunan rata-rata (AAL)" : "kerugian (Loss)"}.
               </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                <FilterChip>{getHazardLabel(hazard)}</FilterChip>
+                <FilterChip>{getClimateLabel(climate)}</FilterChip>
+                {topMetric === "loss" && (
+                  <FilterChip>{formatScenarioLabel(scenario)}</FilterChip>
+                )}
+              </div>
             </div>
-            <div className="shrink-0 border-l border-[var(--dashboard-border-solid)] pl-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
-              Klik untuk fokus ke peta
+
+            {/* Segmented metric control — Loss | AAL */}
+            <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] p-0.5">
+              {(["loss", "aal"] as TopMetric[]).map((m) => {
+                const isActive = topMetric === m;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => setTopMetric(m)}
+                    className={[
+                      "rounded px-2.5 py-[4px] text-[11px] font-semibold uppercase tracking-wide transition-all",
+                      isActive
+                        ? "bg-[var(--color-primary)] text-white shadow-sm"
+                        : "cursor-pointer text-[var(--dashboard-text-soft)] hover:bg-[var(--dashboard-control-bg)] hover:text-[var(--dashboard-text)]",
+                    ].join(" ")}
+                  >
+                    {TOP_METRIC_LABELS[m]}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -561,12 +702,12 @@ export default function AdvancedCharts({
             </div>
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Loss Tertinggi
+                {topMetric === "aal" ? "AAL Tertinggi" : "Loss Tertinggi"}
               </p>
               <p className="text-sm font-semibold text-heading">
                 {loadingTopRegions
                   ? "Loading..."
-                  : formatRupiah(topRegionSummary.value)}
+                  : `${formatRupiah(topRegionSummary.value)}${topMetric === "aal" ? "/th" : ""}`}
               </p>
             </div>
           </div>
@@ -642,11 +783,22 @@ export default function AdvancedCharts({
                     tickMargin={4}
                     tick={{ fill: chartTheme.axis, fontSize: 11 }}
                   />
-                  <Tooltip content={<CustomTooltip labelPrefix="Wilayah" />} />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        labelPrefix="Wilayah"
+                        formatValue={(v) =>
+                          topMetric === "aal"
+                            ? `${formatRupiah(v)}/th`
+                            : formatRupiah(v)
+                        }
+                      />
+                    }
+                  />
                   <Bar
-                    dataKey="loss"
+                    dataKey="value"
                     radius={[0, 10, 10, 0]}
-                    name="Loss"
+                    name={TOP_METRIC_LABELS[topMetric]}
                     onClick={(data: unknown) => {
                       const regionName =
                         typeof data === "object" &&
@@ -707,9 +859,16 @@ export default function AdvancedCharts({
                   {metricConfig.title}
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-muted">
+              <p className="mt-1.5 text-sm text-muted">
                 {metricConfig.subtitle}
               </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                <FilterChip>{getHazardLabel(hazard)}</FilterChip>
+                <FilterChip>{getClimateLabel(climate)}</FilterChip>
+                {activeDistMetric !== "aal" && (
+                  <FilterChip>{formatScenarioLabel(scenario)}</FilterChip>
+                )}
+              </div>
             </div>
 
             {/* Segmented metric control */}
@@ -743,15 +902,15 @@ export default function AdvancedCharts({
             </div>
           </div>
 
-          {/* Stats: mean · median · min · max */}
-          <div className={STAT_RAIL_CLASS}>
+          {/* Stats: mean · median · min · max — 4-column grid */}
+          <div className="grid grid-cols-4 gap-x-3 gap-y-1 border-y border-[var(--dashboard-border-soft)] py-2.5">
             {STAT_ITEMS.map(({ key, label }) => (
-              <div key={key} className={STAT_CELL_CLASS}>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+              <div key={key} className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
                   {label}
                 </p>
-                <p className="truncate text-sm font-semibold text-heading">
-                  {loadingDist ? (
+                <p className="mt-0.5 truncate text-[13px] font-bold text-heading">
+                  {effectiveLoadingDist ? (
                     <span className="animate-pulse text-muted">—</span>
                   ) : histogramData.stats != null ? (
                     metricConfig.formatStat(histogramData.stats[key])
@@ -764,7 +923,7 @@ export default function AdvancedCharts({
           </div>
 
           <div className={INSIGHT_ROW_CLASS}>
-            {loadingDist ? (
+            {effectiveLoadingDist ? (
               <div className="animate-pulse space-y-2">
                 <div className="h-4 w-32 rounded bg-[var(--color-border)]" />
                 <div className="h-4 w-44 rounded bg-[var(--color-border)]" />
@@ -793,8 +952,8 @@ export default function AdvancedCharts({
           </div>
 
           <div className="w-full">
-            {loadingDist ? (
-              <div className={HISTOGRAM_CANVAS_CLASS}>
+            {effectiveLoadingDist ? (
+              <div className="h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1">
                 <DashboardLoadingBlock
                   heightClass="h-full"
                   title={metricConfig.loadingTitle}
@@ -802,11 +961,11 @@ export default function AdvancedCharts({
                 />
               </div>
             ) : errorDist ? (
-              <div className={HISTOGRAM_CANVAS_CLASS}>
+              <div className="h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1">
                 <div className={ERROR_CANVAS_CLASS}>{errorDist}</div>
               </div>
             ) : !hasDistData ? (
-              <div className={HISTOGRAM_CANVAS_CLASS}>
+              <div className="h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1">
                 <DashboardEmptyState
                   message={metricConfig.emptyMsg}
                   actionHint="Coba ubah hazard, scenario, atau kondisi iklim."
@@ -815,12 +974,12 @@ export default function AdvancedCharts({
               </div>
             ) : (
               <>
-                <div className={HISTOGRAM_CANVAS_CLASS}>
+                <div className="h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={histogramData.buckets}
-                      margin={{ top: 20, right: 8, left: 0, bottom: 52 }}
-                      barCategoryGap="8%"
+                      margin={{ top: 22, right: 8, left: 0, bottom: 48 }}
+                      barCategoryGap="10%"
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -828,10 +987,10 @@ export default function AdvancedCharts({
                         vertical={false}
                       />
                       <XAxis
-                        dataKey="label"
+                        dataKey="shortLabel"
                         tick={{ fill: chartTheme.axis, fontSize: 10 }}
                         tickLine={false}
-                        angle={-40}
+                        angle={-30}
                         textAnchor="end"
                         interval={0}
                       />
@@ -874,33 +1033,43 @@ export default function AdvancedCharts({
                         radius={[4, 4, 0, 0]}
                         name="Jumlah Wilayah"
                       >
-                        {histogramData.buckets.map((bucket) => (
+                        {histogramData.buckets.map((bucket, i) => (
                           <Cell
-                            key={bucket.label}
+                            key={i}
                             fill="var(--color-primary)"
-                            fillOpacity={bucket.isPeak ? 1 : 0.45}
+                            fillOpacity={0.18 + 0.82 * bucket.relCount}
                           />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)]" />
-                    Frekuensi tertinggi
+
+                {/* Legend + metadata */}
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-y-1.5">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)]" />
+                      Frekuensi tertinggi
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)] opacity-25" />
+                      Frekuensi rendah
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-orange-400" />
+                      Rata-rata (μ)
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-violet-500" />
+                      Median
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)] opacity-45" />
-                    Bucket lainnya
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-orange-400" />
-                    Rata-rata (μ)
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-violet-500" />
-                    Median
+                  <div className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted">
+                    <span className="rounded bg-[var(--dashboard-surface-muted)] px-1.5 py-0.5 font-semibold uppercase tracking-wide">
+                      {histogramData.usedLogScale ? "Skala Log" : "Skala Linear"}
+                    </span>
+                    <span>{histogramData.validCount} wilayah · {histogramData.bucketCount} interval</span>
                   </div>
                 </div>
               </>

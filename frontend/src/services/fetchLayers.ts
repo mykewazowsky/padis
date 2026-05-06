@@ -20,6 +20,19 @@ async function fetchJson(path: string) {
   return res.json();
 }
 
+// Production data is filter-independent and never changes during a session.
+// Cache it in module scope so filter changes don't re-fetch it.
+let _productionCache: FeatureCollection | null = null;
+
+async function fetchProduction(): Promise<FeatureCollection> {
+  if (_productionCache) return _productionCache;
+  const res = await fetch(`${BASE_URL}/api/layers/values/production`);
+  if (!res.ok) throw new Error(`Fetch failed: /api/layers/values/production (${res.status})`);
+  const json = await res.json();
+  _productionCache = toFC((json.data as LayerItem[]) ?? []);
+  return _productionCache;
+}
+
 export type LayerItem = {
   id_kabkota: string;
   kab_kota: string;
@@ -77,16 +90,22 @@ function toFC(items: LayerItem[], bounds: DataBounds | null = null): FeatureColl
 }
 
 // Endpoint ringan; rendering peta via MVT tiles (/api/tiles/…) oleh Leaflet.
+// activeAal / activeHazard: skip fetching layer data when the layer is toggled off.
+// Loss is always fetched (default active layer).
 export async function fetchAllLayers({
   hazard,
   scenario,
   climate,
   runId,
+  activeAal = true,
+  activeHazard = true,
 }: {
   hazard: string;
   scenario: string;
   climate: string;
   runId: number;
+  activeAal?: boolean;
+  activeHazard?: boolean;
 }): Promise<{
   regions: null;
   production: FeatureCollection;
@@ -97,18 +116,19 @@ export async function fetchAllLayers({
   const h = hazard.toLowerCase();
   const s = scenario.toLowerCase();
   const c = climate.toLowerCase();
+  const empty = { data: [] as LayerItem[], data_bounds: null };
 
-  const [prodJson, lossJson, aalJson, hazardJson] = await Promise.all([
-    fetchJson(`/api/layers/values/production`),
+  const [production, lossJson, aalJson, hazardJson] = await Promise.all([
+    fetchProduction(),
     fetchJson(`/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`),
-    fetchJson(`/api/layers/values/aal?hazard=${h}&climate=${c}&run_id=${runId}`),
     // hazard endpoint: scenario param = climate value, rp param = scenario value
-    fetchJson(`/api/layers/values/hazard?hazard=${h}&scenario=${c}&rp=${s}&run_id=${runId}`),
+    activeAal     ? fetchJson(`/api/layers/values/aal?hazard=${h}&climate=${c}&run_id=${runId}`)              : Promise.resolve(empty),
+    activeHazard  ? fetchJson(`/api/layers/values/hazard?hazard=${h}&scenario=${c}&rp=${s}&run_id=${runId}`)  : Promise.resolve(empty),
   ]);
 
   return {
     regions:    null,
-    production: toFC((prodJson.data   as LayerItem[]) ?? []),
+    production,
     loss:       toFC((lossJson.data   as LayerItem[]) ?? [], lossJson.data_bounds   ?? null),
     aal:        toFC((aalJson.data    as LayerItem[]) ?? [], aalJson.data_bounds    ?? null),
     hazard:     toFC((hazardJson.data as LayerItem[]) ?? [], hazardJson.data_bounds ?? null),

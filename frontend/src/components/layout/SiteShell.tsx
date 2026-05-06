@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   LogOut,
+  Mail,
   Menu,
   ShieldCheck,
   User2,
@@ -553,87 +554,105 @@ export default function SiteShell({
       <main className="flex-1">{children}</main>
 
       <footer className="bg-[var(--color-dark-bg)] text-white">
-        <div className="section-container py-12">
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
-            
-            {/* 1. Logo & Deskripsi */}
+        {/* Accent gradient strip */}
+        <div className="h-[2px] bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-transparent" />
+
+        <div className="section-container py-14">
+          <div className="grid gap-12 md:grid-cols-[1.8fr_1fr_1fr]">
+
+            {/* 1. Brand */}
             <div>
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-[var(--theme-brand-chip-bg)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white/10">
                   <Image
                     src="/logo/padis.svg"
                     alt="PADIS"
-                    width={40}
-                    height={40}
-                    className="h-8 w-8 object-contain"
+                    width={44}
+                    height={44}
+                    className="h-9 w-9 object-contain"
                   />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold tracking-tight">PADIS</h3>
-                  <p className="text-sm text-blue-100">
-                    Paddy Disaster Information System
-                  </p>
+                  <p className="text-xl font-bold tracking-tight">PADIS</p>
+                  <p className="text-xs text-white/45">Paddy Disaster Information System</p>
                 </div>
               </div>
 
-              <p className="text-sm leading-relaxed text-blue-100">
+              <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/55">
                 Platform WebGIS untuk analisis kerugian padi berbasis bencana banjir,
-                kekeringan, multi-hazard, kondisi iklim dan non-iklim, serta analisis
-                spasial risiko wilayah.
+                kekeringan, dan multi-hazard — data spasial hingga kabupaten/kota
+                seluruh Indonesia.
               </p>
+
+              <a
+                href="mailto:padiswebgis@gmail.com"
+                className="mt-5 inline-flex items-center gap-2 text-sm text-white/45 transition hover:text-white"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                padiswebgis@gmail.com
+              </a>
             </div>
 
             {/* 2. Navigasi */}
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
                 Navigasi
               </p>
-              <div className="mt-4">
-                <FooterNav
-                  pathname={pathname}
-                  isAuthenticated={isAuthenticated}
-                  user={user}
-                />
-              </div>
+              <nav className="mt-5 space-y-3">
+                {getVisibleNavItems(user, isAuthenticated).map((item) => {
+                  const active = isActivePath(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`block text-sm transition ${
+                        active
+                          ? "font-semibold text-white"
+                          : "text-white/55 hover:text-white"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
 
-            {/* 3. Placeholder (menggantikan Cakupan Sistem) */}
-            <div className="hidden xl:block"></div>
-
-            {/* 4. Konteks Proyek (tetap di kanan) */}
+            {/* 3. Konteks Proyek */}
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
                 Konteks Proyek
               </p>
-              <div className="mt-4 space-y-3 text-sm leading-relaxed text-blue-100">
-                <p>
-                  Capstone Project
-                  <br />
-                  Program Studi Teknik Geodesi dan Geomatika
-                  <br />
-                  Fakultas Ilmu dan Teknologi Kebumian
-                  <br />
-                  Institut Teknologi Bandung
-                </p>
+              <div className="mt-5">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/itb/itb.png"
+                    alt="ITB"
+                    className="h-8 w-auto opacity-75"
+                  />
+                  <p className="text-sm font-medium text-white/75">
+                    Institut Teknologi Bandung
+                  </p>
+                </div>
+                <div className="mt-4 space-y-1 text-sm text-white/55">
+                  <p>Capstone Project · 2026</p>
+                  <p>Teknik Geodesi dan Geomatika</p>
+                  <p>Fakultas Ilmu dan Teknologi Kebumian</p>
+                </div>
               </div>
             </div>
 
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-12 border-t border-white/10 pt-5">
-            <div className="flex flex-col gap-3 text-xs text-blue-100/80 md:flex-row md:items-center md:justify-between">
-              <p>© 2026 PADIS. Hak cipta dilindungi.</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <p>WebGIS untuk eksplorasi risiko kerugian padi berbasis analisis spasial.</p>
-                <Link
-                  href="/kebijakan-privasi"
-                  className="shrink-0 transition hover:text-white hover:underline"
-                >
-                  Kebijakan Privasi
-                </Link>
-              </div>
-            </div>
+          <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 md:flex-row md:items-center md:justify-between">
+            <p className="text-xs text-white/35">© 2026 PADIS. Hak cipta dilindungi.</p>
+            <Link
+              href="/kebijakan-privasi"
+              className="text-xs text-white/35 transition hover:text-white/70"
+            >
+              Kebijakan Privasi
+            </Link>
           </div>
         </div>
       </footer>

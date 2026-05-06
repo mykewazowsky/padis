@@ -97,9 +97,13 @@
   --content-hero-glass-border: rgba(255, 255, 255, 0.16);
 
   /* DASHBOARD THEME */
-  --dashboard-page-bg-top: #f8fafc;
-  --dashboard-page-bg-mid: #eef4f8;
-  --dashboard-page-bg-bottom: #e7eff6;
+  --dashboard-page-bg-top: #ebf3ff;
+  --dashboard-page-bg-mid: #ddeaf8;
+  --dashboard-page-bg-bottom: #d4e3f5;
+  --dashboard-bg-glow-main: rgba(30, 99, 181, 0.09);
+  --dashboard-bg-glow-flood: rgba(56, 189, 248, 0.11);
+  --dashboard-bg-glow-drought: rgba(251, 191, 36, 0.09);
+  --dashboard-bg-dot: rgba(30, 99, 181, 0.18);
   --dashboard-surface: rgba(255, 255, 255, 0.9);
   --dashboard-surface-solid: #ffffff;
   --dashboard-surface-muted: rgba(249, 250, 251, 0.86);
@@ -278,6 +282,10 @@ html[data-theme="dark"] {
   --dashboard-page-bg-top: #08111f;
   --dashboard-page-bg-mid: #0b1628;
   --dashboard-page-bg-bottom: #0f1b31;
+  --dashboard-bg-glow-main: rgba(30, 99, 181, 0.28);
+  --dashboard-bg-glow-flood: rgba(56, 189, 248, 0.18);
+  --dashboard-bg-glow-drought: rgba(251, 191, 36, 0.14);
+  --dashboard-bg-dot: rgba(148, 163, 184, 0.12);
   --dashboard-surface: rgba(17, 28, 49, 0.9);
   --dashboard-surface-solid: #111c31;
   --dashboard-surface-muted: rgba(22, 35, 61, 0.82);

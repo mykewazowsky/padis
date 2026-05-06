@@ -819,11 +819,20 @@ export default function DashboardPage() {
     <div className="dashboard-theme">
       <section className="relative w-full overflow-hidden pt-10 pb-14">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--dashboard-page-bg-top)_0%,var(--dashboard-page-bg-mid)_55%,var(--dashboard-page-bg-bottom)_100%)]" />
-          <div className="absolute inset-x-[6%] top-[13rem] h-[34rem] rounded-[999px] bg-white/45 blur-3xl" />
-          <div className="absolute -top-20 left-[-8rem] h-[22rem] w-[34rem] rounded-full bg-sky-200/18 blur-3xl" />
-          <div className="absolute bottom-[-8rem] right-[-8rem] h-[24rem] w-[32rem] rounded-full bg-slate-300/16 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(15,23,42,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.16)_1px,transparent_1px)] [background-size:36px_36px]" />
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-[linear-gradient(150deg,var(--dashboard-page-bg-top)_0%,var(--dashboard-page-bg-mid)_52%,var(--dashboard-page-bg-bottom)_100%)]" />
+          {/* Focal glow — anchored behind the map card */}
+          <div className="absolute left-1/2 top-[3rem] h-[48rem] w-[72%] max-w-[1000px] -translate-x-1/2 rounded-full bg-[var(--dashboard-bg-glow-main)] blur-[100px]" />
+          {/* Flood / water accent — upper left */}
+          <div className="absolute -left-[6%] -top-[2rem] h-[38rem] w-[44rem] rounded-full bg-[var(--dashboard-bg-glow-flood)] blur-3xl" />
+          {/* Drought / risk accent — upper right */}
+          <div className="absolute -right-[4%] top-[4rem] h-[30rem] w-[36rem] rounded-full bg-[var(--dashboard-bg-glow-drought)] blur-3xl" />
+          {/* Lower secondary glow */}
+          <div className="absolute bottom-[-5rem] right-[12%] h-[26rem] w-[34rem] rounded-full bg-[var(--dashboard-bg-glow-main)] blur-3xl opacity-50" />
+          {/* Dot grid texture */}
+          <div className="absolute inset-0 [background-image:radial-gradient(circle,var(--dashboard-bg-dot)_1px,transparent_1px)] [background-size:22px_22px]" />
+          {/* Top vignette — smooth navbar transition */}
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--dashboard-page-bg-top)] to-transparent" />
         </div>
 
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">

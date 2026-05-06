@@ -964,7 +964,7 @@ export default function DashboardPage() {
                   : ""
               }`}
             >
-              <div className="relative z-10 border-b border-[var(--dashboard-border-soft)] md:flex-shrink-0">
+              <div className="relative z-10 border-b border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] md:flex-shrink-0">
                 <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--dashboard-text)]">

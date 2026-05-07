@@ -737,6 +737,14 @@ def admin_start_pipeline():
         409  ada pipeline yang sedang berjalan
         500  gagal spawn subprocess atau cek DB
     """
+    if os.getenv("PIPELINE_SPAWN_DISABLED", "").lower() == "true":
+        return jsonify({
+            "error": (
+                "Spawning pipeline dari web dinonaktifkan di environment ini. "
+                "Jalankan pipeline secara manual oleh operator di server."
+            )
+        }), 503
+
     body     = request.get_json(silent=True) or {}
     mode     = body.get("mode", "full")
     hazard   = body.get("hazard", "multi")
@@ -904,6 +912,14 @@ def admin_load_database():
         409  ada file final yang belum tersedia, atau pipeline lain sedang berjalan
         500  gagal spawn subprocess
     """
+    if os.getenv("PIPELINE_SPAWN_DISABLED", "").lower() == "true":
+        return jsonify({
+            "error": (
+                "Spawning pipeline dari web dinonaktifkan di environment ini. "
+                "Jalankan pipeline secara manual oleh operator di server."
+            )
+        }), 503
+
     body     = request.get_json(silent=True) or {}
     operator = body.get("operator", "operator")
     operator = re.sub(r"[^\w\-]", "_", operator.strip())[:50] or "operator"

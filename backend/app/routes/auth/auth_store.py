@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+import hashlib
 import logging
+import os
 import uuid
 
 from sqlalchemy import text
@@ -8,6 +10,15 @@ from sqlalchemy import text
 from ...db.session import engine
 
 logger = logging.getLogger(__name__)
+
+
+def _hash_token(token: str) -> str:
+    """Return SHA-256 hex digest of a token string.
+
+    The raw token is sent to the user; only the hash is stored in the DB.
+    This way a DB leak cannot be used to reset arbitrary accounts.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def _row_to_user_dict(row) -> Dict[str, Any]:
@@ -288,7 +299,7 @@ def create_reset_token(user_id: str, token: str, expires_minutes: int = 30) -> D
         ) values (
             :id,
             :user_id,
-            :token,
+            :token_hash,
             :created_at,
             :expires_at,
             :used_at
@@ -301,7 +312,7 @@ def create_reset_token(user_id: str, token: str, expires_minutes: int = 30) -> D
             {
                 "id": token_id,
                 "user_id": user_id,
-                "token": token,
+                "token_hash": _hash_token(token),
                 "created_at": now,
                 "expires_at": expires_at,
                 "used_at": None,
@@ -343,7 +354,7 @@ def find_valid_reset_token(token: str) -> Optional[Dict[str, Any]]:
             expires_at,
             used_at
         from password_reset_tokens
-        where token_hash = :token
+        where token_hash = :token_hash
           and used_at is null
           and expires_at >= :now
         order by created_at desc
@@ -354,7 +365,7 @@ def find_valid_reset_token(token: str) -> Optional[Dict[str, Any]]:
         row = conn.execute(
             sql,
             {
-                "token": token,
+                "token_hash": _hash_token(token),
                 "now": now,
             },
         ).mappings().first()
@@ -368,7 +379,7 @@ def mark_reset_token_used(token: str) -> None:
     sql = text("""
         update password_reset_tokens
         set used_at = :used_at
-        where token_hash = :token
+        where token_hash = :token_hash
           and used_at is null
     """)
 
@@ -376,7 +387,7 @@ def mark_reset_token_used(token: str) -> None:
         conn.execute(
             sql,
             {
-                "token": token,
+                "token_hash": _hash_token(token),
                 "used_at": now,
             },
         )
@@ -386,82 +397,53 @@ def mark_reset_token_used(token: str) -> None:
 # SEED DEFAULT USERS
 # =========================
 
-# Passwords: adminPADIS123 / userPADIS123
-# Generated via: werkzeug.security.generate_password_hash(...)
-_DEFAULT_USERS = [
-    {
-        "name": "Admin",
-        "email": "admin@padis.local",
-        "password_hash": "scrypt:32768:8:1$GRJsksfU07bExXGi$8381324f51474276878610678030791438d960a587280f94ace33425d598fb7bf54f6f150534f3a6f451e4406fa98104597552470559f63bafbae89a8f3eb752",
-        "role": "admin",
-        "status": "active",
-        "is_active": True,
-    },
-    {
-        "name": "User",
-        "email": "user@padis.local",
-        "password_hash": "scrypt:32768:8:1$XGaoaGhqBoTALo60$e8796b30b4820690cfcf68e16a380f82b4c8c39bb765e88efbc134adb37d2a8cd852fa7671db353e2c7e68a7fdbde4427a83eb846dd4dba51c51af50c45efe03",
-        "role": "user",
-        "status": "active",
-        "is_active": True,
-    },
-]
-
-
 def seed_default_users() -> None:
     """
-    Enforce default admin + user accounts.
-    - Inserts if email does not exist.
-    - Updates password_hash, role, status if email already exists.
-    - Idempotent: safe to run multiple times.
+    Bootstrap the default admin account from environment variables.
+
+    Only runs when BOOTSTRAP_DEFAULT_ADMIN=true.
+    Reads credentials from DEFAULT_ADMIN_EMAIL / DEFAULT_ADMIN_PASSWORD.
+    On conflict (email already exists) it does NOT overwrite the password —
+    so manual password changes survive restarts.
     """
-    sql = text("""
-        INSERT INTO app_users (
-            id,
-            name,
-            email,
-            password_hash,
-            role,
-            status,
-            is_active,
-            created_at,
-            updated_at
-        ) VALUES (
-            :id,
-            :name,
-            :email,
-            :password_hash,
-            :role,
-            :status,
-            :is_active,
-            :now,
-            :now
+    if os.getenv("BOOTSTRAP_DEFAULT_ADMIN", "").lower() != "true":
+        logger.debug("BOOTSTRAP_DEFAULT_ADMIN not set — skipping user seed")
+        return
+
+    admin_email = os.getenv("DEFAULT_ADMIN_EMAIL", "").strip().lower()
+    admin_password = os.getenv("DEFAULT_ADMIN_PASSWORD", "").strip()
+
+    if not admin_email or not admin_password:
+        logger.warning(
+            "BOOTSTRAP_DEFAULT_ADMIN=true but DEFAULT_ADMIN_EMAIL or "
+            "DEFAULT_ADMIN_PASSWORD is not set — skipping seed"
         )
-        ON CONFLICT (email) DO UPDATE SET
-            password_hash = EXCLUDED.password_hash,
-            role          = EXCLUDED.role,
-            status        = EXCLUDED.status,
-            is_active     = EXCLUDED.is_active,
-            updated_at    = EXCLUDED.updated_at
+        return
+
+    from werkzeug.security import generate_password_hash
+
+    sql_insert = text("""
+        INSERT INTO app_users (
+            id, name, email, password_hash,
+            role, status, is_active, created_at, updated_at
+        ) VALUES (
+            :id, :name, :email, :password_hash,
+            'admin', 'active', TRUE, :now, :now
+        )
+        ON CONFLICT (email) DO NOTHING
     """)
 
     now = datetime.now(timezone.utc)
 
     try:
         with engine.begin() as conn:
-            for user in _DEFAULT_USERS:
-                conn.execute(sql, {
-                    "id": str(uuid.uuid4()),
-                    "name": user["name"],
-                    "email": user["email"],
-                    "password_hash": user["password_hash"],
-                    "role": user["role"],
-                    "status": user["status"],
-                    "is_active": user["is_active"],
-                    "now": now,
-                })
-
-        logger.info("Default users enforced during seed")
-
+            conn.execute(sql_insert, {
+                "id": str(uuid.uuid4()),
+                "name": "Admin",
+                "email": admin_email,
+                "password_hash": generate_password_hash(admin_password),
+                "now": now,
+            })
+        logger.info("Default admin seed completed (INSERT only, no overwrite)")
     except Exception as e:
-        logger.warning("Could not seed default users: %s", e)
+        logger.warning("Could not seed default admin: %s", e)

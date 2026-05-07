@@ -6,6 +6,7 @@ from ..auth.auth_store import (
     find_user_by_id,
     update_user,
 )
+from ...services.audit_service import log_admin_action
 
 admin_user_bp = Blueprint("admin_user_bp", __name__)
 
@@ -82,6 +83,15 @@ def admin_update_user_role(user_id: str):
     target_user["role"] = new_role
     updated = update_user(target_user)
 
+    log_admin_action(
+        admin_id=current_user.get("id"),
+        admin_email=current_user.get("email"),
+        action="role_changed",
+        target_type="user",
+        target_id=target_user.get("id"),
+        detail={"from": current_role, "to": new_role, "target_email": target_user.get("email")},
+    )
+
     return jsonify({
         "message": "Role user berhasil diperbarui",
         "user": _sanitize_user(updated),
@@ -131,6 +141,15 @@ def admin_update_user_status(user_id: str):
     target_user["is_active"] = (new_status == "active")
 
     updated = update_user(target_user)
+
+    log_admin_action(
+        admin_id=current_user.get("id"),
+        admin_email=current_user.get("email"),
+        action="status_changed",
+        target_type="user",
+        target_id=target_user.get("id"),
+        detail={"from": current_status, "to": new_status, "target_email": target_user.get("email")},
+    )
 
     return jsonify({
         "message": "Status user berhasil diperbarui",

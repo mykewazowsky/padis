@@ -22,6 +22,8 @@ from .auth_utils import (
     verify_password,
 )
 from backend.app.services.email_service import send_password_reset_email
+from backend.app.extensions import limiter
+from backend.app.services.audit_service import log_admin_action
 
 # ❗ TANPA url_prefix di sini
 auth_bp = Blueprint("auth_bp", __name__)
@@ -48,6 +50,7 @@ def _serialize_user(user):
 # REGISTER
 # =========================
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("10 per hour")
 def register():
     data = _get_json()
 
@@ -92,6 +95,7 @@ def register():
 # LOGIN
 # =========================
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("20 per minute; 100 per hour")
 def login():
     data = _get_json()
 
@@ -234,6 +238,7 @@ def oauth_callback():
 # FORGOT PASSWORD
 # =========================
 @auth_bp.route("/forgot-password", methods=["POST"])
+@limiter.limit("5 per hour")
 def forgot_password():
     data = _get_json()
     email = str(data.get("email", "")).strip().lower()
@@ -263,6 +268,7 @@ def forgot_password():
 # RESET PASSWORD
 # =========================
 @auth_bp.route("/reset-password", methods=["POST"])
+@limiter.limit("10 per hour")
 def reset_password():
     data = _get_json()
 
@@ -295,6 +301,15 @@ def reset_password():
     update_user(user)
 
     mark_reset_token_used(token)
+
+    log_admin_action(
+        admin_id=user.get("id"),
+        admin_email=user.get("email"),
+        action="password_reset_completed",
+        target_type="user",
+        target_id=user.get("id"),
+        detail={"method": "reset_token"},
+    )
 
     return jsonify({
         "message": "Password berhasil diperbarui"

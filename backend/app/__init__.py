@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import logging
 import os
+import sys
 
 load_dotenv()
 
@@ -12,6 +13,8 @@ from .routes.layers import layers_bp
 from .routes.tiles import tiles_bp
 from .routes.report_routes import report_bp
 from .routes.auth.auth_store import seed_default_users
+from .extensions import limiter
+from .services.audit_service import ensure_audit_log_table
 
 # Admin sub-blueprints (phase 3: fix missing blueprint registration)
 from .routes.admin.output_routes import admin_output_bp
@@ -20,8 +23,36 @@ from .routes.admin.user_routes import admin_user_bp
 
 logger = logging.getLogger(__name__)
 
+_INSECURE_DEFAULTS = {"padis-secret-key", "padis-jwt-secret"}
+
+
+def _validate_secrets() -> None:
+    """Crash at startup if default placeholder secrets are used in production."""
+    env = os.getenv("FLASK_ENV", "").lower()
+    if env != "production":
+        return
+
+    secret_key = os.getenv("SECRET_KEY", "")
+    jwt_secret = os.getenv("JWT_SECRET_KEY", "")
+
+    errors = []
+    if not secret_key or secret_key in _INSECURE_DEFAULTS:
+        errors.append("SECRET_KEY")
+    if not jwt_secret or jwt_secret in _INSECURE_DEFAULTS:
+        errors.append("JWT_SECRET_KEY")
+
+    if errors:
+        print(
+            f"[PADIS] FATAL: Production startup blocked — insecure default values for: "
+            f"{', '.join(errors)}. Set secure values in .env before deploying.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
 
 def create_app():
+    _validate_secrets()
+
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -29,6 +60,8 @@ def create_app():
     )
 
     app = Flask(__name__)
+
+    limiter.init_app(app)
 
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "padis-secret-key")
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "padis-jwt-secret")
@@ -51,6 +84,17 @@ def create_app():
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Credentials"] = "true"
+
+        # Security headers — backend is a JSON API, keep these lean
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "geolocation=(), camera=(), microphone=()",
+        )
+
         return response
 
     # ── Blueprints ─────────────────────────────────────────────────────────────
@@ -75,6 +119,7 @@ def create_app():
 
     logger.debug("Registered routes: %s", app.url_map)
 
+    ensure_audit_log_table()
     seed_default_users()
 
     return app

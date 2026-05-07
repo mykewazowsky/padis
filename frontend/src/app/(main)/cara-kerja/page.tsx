@@ -17,14 +17,14 @@ import AnimatedPipelineSteps from "@/components/cara-kerja/AnimatedPipelineSteps
 export const metadata: Metadata = {
   title: "Cara Kerja PADIS | Analisis Risiko Padi",
   description:
-    "Pelajari cara PADIS mengolah data hazard banjir dan kekeringan menjadi estimasi kerugian ekonomi, Average Annual Loss (AAL), dan output spasial untuk analisis risiko wilayah padi.",
+    "Pelajari cara PADIS mengolah data hazard banjir dan kekeringan menjadi estimasi kerugian ekonomi, Average Annual Loss (AAL), dan luaran spasial untuk analisis risiko wilayah padi.",
 };
 
 const analyticalPipeline = [
   {
     step: "01",
     title: "Raster Hazard",
-    desc: "Data raster banjir dan kekeringan digunakan sebagai basis bahaya untuk berbagai periode ulang dan kondisi iklim.",
+    desc: "Data raster banjir dan kekeringan digunakan sebagai basis bahaya untuk berbagai skenarioa dan periode ulang.",
   },
   {
     step: "02",
@@ -34,17 +34,17 @@ const analyticalPipeline = [
   {
     step: "03",
     title: "Transformasi",
-    desc: "Nilai bahaya ditransformasikan menjadi Damage Index (DI) dan Loss of Productivity (LOP) — indikator potensi dampak terhadap padi.",
+    desc: "Nilai bahaya ditransformasikan menjadi Loss of Productivity (LOP): indikator potensi dampak terhadap padi.",
   },
   {
     step: "04",
     title: "Estimasi Kerugian Langsung",
-    desc: "Loss of Productivity (LOP) dikombinasikan dengan data produksi dan nilai ekonomi padi untuk menghasilkan estimasi kerugian dalam rupiah.",
+    desc: "Loss of Productivity (LOP) dikombinasikan dengan data total produksi dan Harga Gabah Kering Panen (GKP) untuk menghasilkan estimasi kerugian dalam rupiah.",
   },
   {
     step: "05",
-    title: "AAL & Output",
-    desc: "Estimasi kerugian langsung diringkas menjadi Average Annual Loss (AAL) dan disajikan sebagai layer interaktif di dashboard.",
+    title: "AAL & Luaran",
+    desc: "Estimasi kerugian langsung diekstraksi menjadi Average Annual Loss (AAL) dan disajikan sebagai layer interaktif di dashboard.",
   },
 ];
 
@@ -62,17 +62,17 @@ const previewFeatures = [
   {
     title: "Ringkasan",
     icon: PanelTop,
-    desc: "Lihat nilai kerugian dan AAL wilayah terpilih dalam panel ringkasan yang ringkas.",
+    desc: "Lihat nilai kerugian langsung dan AAL wilayah terpilih dalam panel ringkasan yang ringkas.",
   },
   {
     title: "Insight Grafik",
     icon: LineChart,
-    desc: "Eksplorasi distribusi dan perbandingan risiko antarskenario melalui grafik.",
+    desc: "Eksplorasi distribusi dan perbandingan risiko antarskenario dan periode ulang melalui grafik.",
   },
   {
-    title: "Ekspor CSV",
+    title: "Ekspor Data",
     icon: FileDown,
-    desc: "Unduh data kerugian dan AAL dalam format CSV untuk analisis lebih lanjut.",
+    desc: "Unduh data laporan kerugian langsung dan AAL dalam format CSV, XLSX, dan PDF untuk analisis lebih lanjut.",
   },
 ];
 
@@ -138,8 +138,8 @@ export default function CaraKerjaPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-              Lima tahap analisis spasial yang mengubah raster banjir dan kekeringan
-              menjadi Average Annual Loss tingkat kabupaten/kota.
+              Lima tahap analisis spasial yang mengubah data raster banjir dan kekeringan
+              menjadi estimasi kerugian langsung dan Average Annual Loss tingkat kabupaten/kota.
             </p>
 
             {/* Mini step preview — sequential fade-in reinforces pipeline order */}
@@ -199,7 +199,7 @@ export default function CaraKerjaPage() {
                 Panduan Penggunaan PADIS
               </h2>
               <p className="text-muted mx-auto mt-3 max-w-xl text-sm leading-relaxed md:text-base">
-                Tonton panduan singkat untuk memahami alur analisis, jenis output,
+                Tonton panduan singkat untuk memahami alur analisis, jenis luaran,
                 dan cara membaca hasil di dashboard.
               </p>
             </div>
@@ -275,7 +275,7 @@ export default function CaraKerjaPage() {
           <SectionHeader
             title="Alur Analisis PADIS"
             label="Tahapan Sistem"
-            desc="PADIS mengolah data hazard menjadi estimasi kerugian dan output dashboard melalui tahapan analisis yang terstruktur."
+            desc="PADIS mengolah data hazard menjadi estimasi kerugian dan luaran dashboard melalui tahapan analisis yang terstruktur."
           />
 
           <AnimatedPipelineSteps items={analyticalPipeline} />

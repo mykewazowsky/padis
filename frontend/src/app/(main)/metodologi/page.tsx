@@ -58,7 +58,7 @@ const metadataRules = [
     iconColor: "text-emerald-500",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
     description:
-      "Layer spasial yang merepresentasikan footprint area persawahan. Digunakan untuk proses masking dan ekstraksi nilai hazard yang tumpang tindih (overlay).",
+      "Layer spasial yang merepresentasikan penutupan lahan area persawahan. Digunakan untuk proses masking dan ekstraksi nilai hazard yang tumpang tindih (overlay).",
     specs: [
       { label: "Tipe Geometri", value: "Vector Polygon" },
       { label: "Skala Pemetaan", value: "1:250000" },
@@ -77,13 +77,13 @@ const metadataRules = [
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "30 meter" },
-      { label: "Skenario Baseline", value: "R25, R50, R100, R250" },
+      { label: "Skenario Non-Iklim", value: "R25, R50, R100, R250" },
       { label: "Skenario Iklim", value: "RC25, RC50, RC100, RC250" },
     ],
   },
   {
-    name: "Indeks Kekeringan (SPI)",
-    source: "CHIRPS, GPM, MME",
+    name: "Indeks Kekeringan",
+    source: "Standardized Precipitation Index (SPI)",
     icon: Leaf,
     iconColor: "text-orange-500",
     badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
@@ -92,8 +92,8 @@ const metadataRules = [
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "~11 Kilometer" },
-      { label: "Skenario GPM", value: "RP25, RP50, RP100, RP250" },
-      { label: "Skenario MME", value: "RP25, RP50, RP100, RP250" },
+      { label: "Skenario Non-Iklim", value: "GPM25, GPM50, GPM100, GPM250" },
+      { label: "Skenario Iklim", value: "MME25, MME50, MME100, MME250" },
     ],
   },
 ];
@@ -275,17 +275,17 @@ export default function MetodologiPage() {
             </h1>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-              Sistem berbasis raster yang mengintegrasikan hazard, kerentanan, dan
-              exposure untuk menghasilkan estimasi kerugian langsung dan AAL tingkat kabupaten.
+              Sistem berbasis data raster yang mengintegrasikan hazard, kerentanan, dan
+              exposure untuk menghasilkan estimasi kerugian langsung dan AAL tingkat Kabupaten/Kota di Indonesia.
             </p>
 
             {/* Conceptual flow grid — 4 stages of the risk equation */}
             <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-3 text-left sm:grid-cols-4">
               {[
-                { label: "Hazard", sub: "Banjir & Kekeringan" },
-                { label: "Exposure", sub: "Sawah per Kab/Kota" },
+                { label: "Hazard", sub: "Banjir, Kekeringan, & Multi-hazard" },
+                { label: "Exposure", sub: "Sawah per Kabupaten/Kota" },
                 { label: "Vulnerability", sub: "Kurva Kerentanan" },
-                { label: "Loss & AAL", sub: "Output Risiko" },
+                { label: "Loss & AAL", sub: "Luaran Risiko" },
               ].map((item, i) => (
                 <div
                   key={item.label}
@@ -341,7 +341,7 @@ export default function MetodologiPage() {
                   <div className="mb-10">
                     <h4 className="mb-4 text-lg font-bold text-heading flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-muted" />
-                      Tren Historis Tahunan Bencana (DIBI)
+                      Tren Historis Tahunan Bencana (Data Informasi Bencana Indonesia oleh BNPB)
                     </h4>
                     <div className="chart-shell h-[350px] w-full p-4 pt-6">
                       <ResponsiveContainer width="100%" height="100%">
@@ -954,7 +954,7 @@ export default function MetodologiPage() {
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
             title="Spesifikasi & Metadata Geospasial"
-            label="Data Sources"
+            label="Sumber Data"
             desc="Katalog sumber data utama beserta parameter teknis yang digunakan sebagai input pemodelan risiko."
           />
 

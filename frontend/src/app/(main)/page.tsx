@@ -179,7 +179,7 @@ export default function LandingPage() {
               {
                 icon: Globe,
                 title: "Iklim & Non-Iklim",
-                desc: "Analisis berbasis data observasi dan proyeksi MME untuk berbagai periode ulang.",
+                desc: "Analisis berbasis data observasi dan proyeksi untuk berbagai periode ulang.",
                 iconBg: "border border-[rgba(14,165,233,0.22)] bg-[rgba(14,165,233,0.14)]",
                 iconText: "text-[var(--color-primary)]",
               },
@@ -314,7 +314,7 @@ export default function LandingPage() {
                 </div>
 
                 <p className="mt-4 text-sm text-[var(--color-gray)]">
-                  Gambaran ringkas besaran kerugian langsung dan risiko tahunan rata-rata.
+                  Gambaran ringkas besaran kerugian langsung dan Average Annual Loss.
                 </p>
               </div>
 

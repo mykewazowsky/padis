@@ -106,19 +106,19 @@ const partnerCards = [
     name: "Badan Pusat Statistik Indonesia",
     short: "BPS",
     logo: "/partners/bps.png",
-    role: "Data Statistik & Produksi Padi",
+    role: "Data Statistik & Total Produksi Padi",
   },
   {
     name: "Kementerian Pertanian Republik Indonesia",
     short: "Kementan",
     logo: "/partners/kementan.svg",
-    role: "Data Pertanian & Lahan Sawah",
+    role: "Harga Gabah Kering Panen (GKP)",
   },
   {
     name: "Badan Nasional Penanggulangan Bencana",
     short: "BNPB",
     logo: "/partners/bnpb.png",
-    role: "Data & Manajemen Bencana Nasional",
+    role: "Data Historis Bencana Nasional",
   },
   {
     name: "Badan Penanggulangan Bencana Daerah",
@@ -286,7 +286,7 @@ export default function AboutPage() {
               <div>
                 <SectionHeader
                   title="Teknologi PADIS"
-                  desc="Bagian ini diselaraskan dengan stack yang benar-benar digunakan: WebGIS di frontend, REST API dan tile service di backend, serta pipeline geospasial Python untuk analisis risiko."
+                  desc="WebGIS di frontend, REST API dan tile service di backend, serta pipeline geospasial Python untuk analisis risiko."
                   centered={false}
                 />
 

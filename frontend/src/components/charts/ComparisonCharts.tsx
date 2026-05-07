@@ -443,7 +443,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <ArrowRightLeft className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <h4 className="text-base font-bold tracking-tight text-heading">
-                  AAL Antar Hazard
+                  Average Annual Loss (AAL) Antar Hazard
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
@@ -454,7 +454,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
             {!loadingAAL && !errorAAL && hasAALData ? (
               <div className={STATUS_BADGE_CLASS}>
-                All Hazards
+                Semua Hazards
               </div>
             ) : null}
           </div>
@@ -615,12 +615,12 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
                 <h4 className="text-base font-bold tracking-tight text-heading">
-                  Total Loss per Scenario
+                  Total Kerugian Langsung per Skenario Analisis
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
                 Perbandingan Non-Iklim dan Iklim untuk hazard{" "}
-                {getHazardLabel(hazard)} pada semua scenario.
+                {getHazardLabel(hazard)} pada semua skenario analisis.
               </p>
             </div>
 
@@ -641,7 +641,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Total Loss Tertinggi
+                Total Kerugian Tertinggi
               </p>
               <p className="text-sm font-semibold text-heading">
                 {loadingLoss

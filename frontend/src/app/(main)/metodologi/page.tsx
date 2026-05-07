@@ -43,7 +43,7 @@ const metadataRules = [
     iconColor: "text-blue-500",
     badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
     description:
-      "Digunakan sebagai referensi spasial dasar untuk spatial join dan agregasi estimasi kerugian (Loss & AAL) hingga ke tingkat kabupaten/kota.",
+      "Digunakan sebagai referensi spasial dasar untuk spatial join dan agregasi estimasi kerugian langsung & AAL hingga ke tingkat kabupaten/kota.",
     specs: [
       { label: "Tipe Geometri", value: "Vector Polygon" },
       { label: "Format File", value: ".SHP / .GeoJSON" },
@@ -276,7 +276,7 @@ export default function MetodologiPage() {
 
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
               Sistem berbasis raster yang mengintegrasikan hazard, kerentanan, dan
-              exposure untuk menghasilkan estimasi Loss dan AAL tingkat kabupaten.
+              exposure untuk menghasilkan estimasi kerugian langsung dan AAL tingkat kabupaten.
             </p>
 
             {/* Conceptual flow grid — 4 stages of the risk equation */}
@@ -457,7 +457,7 @@ export default function MetodologiPage() {
                           </div>
 
                           <div className="surface-white mt-4 px-4 py-3">
-                            <p className="section-eyebrow text-[11px]">Final Weight</p>
+                            <p className="section-eyebrow text-[11px]">Bobot Akhir</p>
                             <p className="mt-1 text-lg font-bold text-heading">
                               0.6776836021
                             </p>
@@ -486,7 +486,7 @@ export default function MetodologiPage() {
                           </div>
 
                           <div className="surface-white mt-4 px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">Final Weight</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">Bobot Akhir</p>
                             <p className="mt-1 text-lg font-bold text-heading">
                               0.3223163979
                             </p>
@@ -518,10 +518,10 @@ export default function MetodologiPage() {
               <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
                 Dalam PADIS, istilah{" "}
                 <strong className="text-heading">Iklim</strong> dan{" "}
-                <strong className="text-heading">Non-Iklim</strong> menunjukkan perbedaan
-                <em>skenario raster hazard</em> pada analisis
-                risiko banjir dan kekeringan, bukan perbedaan metode atau
-                format data.
+                <strong className="text-heading">Non-Iklim</strong> merujuk pada
+                dua skenario pembentukan <em>raster hazard</em>. Keduanya memiliki format data yang sama,
+                tetapi berbeda pada faktor pembentuk nilai bahayanya.
+                
               </p>
             </div>
 
@@ -536,7 +536,7 @@ export default function MetodologiPage() {
                       Non-Iklim
                     </h5>
                     <p className="text-sm italic text-muted mt-0.5">
-                      Baseline Scenario
+                      
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
@@ -544,11 +544,11 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed text-muted">
-                  Merepresentasikan kondisi acuan berdasarkan kondisi dasar,
-                  historis, atau eksisting, tanpa mempertimbangkan proyeksi
-                  perubahan iklim secara eksplisit. Skenario ini berfungsi
-                  sebagai referensi untuk mengukur tingkat risiko pada kondisi
-                  baseline.
+                  Merepresentasikan kondisi hazard yang dipengaruhi oleh faktor fisik,
+                  spasial, dan sosial-ekonomi wilayah. Faktor ini dapat dikaitkan dengan pendekatan 
+                  sosial-ekonomi seperti SSP, misalnya perubahan penggunaan lahan, aktivitas manusia, 
+                  sistem irigasi, ketersediaan air, dan kondisi infrastruktur wilayah.
+                   
                 </p>
               </div>
 
@@ -568,7 +568,7 @@ export default function MetodologiPage() {
                     </p>
                     <h5 className="text-xl font-bold text-heading">Iklim</h5>
                     <p className="text-sm italic text-[var(--color-secondary-dark)] mt-0.5">
-                      Skenario Proyeksi Iklim
+                      
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
@@ -576,10 +576,10 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed text-muted">
-                  Merepresentasikan kondisi hazard yang mempertimbangkan
-                  pengaruh iklim atau proyeksi perubahan iklim. Nilai raster
-                  pada skenario ini mencerminkan potensi perubahan intensitas
-                  bahaya akibat faktor iklim di masa mendatang.
+                  Merepresentasikan kondisi hazard yang dipengaruhi oleh faktor iklim. 
+                  Faktor ini dapat dikaitkan dengan pendekatan skenario iklim seperti RCP, 
+                  misalnya perubahan pola curah hujan, hujan ekstrem, suhu, evapotranspirasi, 
+                  dan kecenderungan kekeringan.
                 </p>
               </div>
             </div>
@@ -609,7 +609,7 @@ export default function MetodologiPage() {
                   <p className="text-sm leading-relaxed text-muted">
                     Kedua skenario diproses melalui alur perhitungan risiko yang
                     sama: ekstraksi nilai hazard, penerapan kurva kerentanan,
-                    estimasi <em>loss</em>, dan agregasi ke{" "}
+                    estimasi kerugian langsung, dan agregasi ke{" "}
                     <strong className="text-heading">
                       Annual Average Loss (AAL)
                     </strong>{" "}
@@ -773,7 +773,7 @@ export default function MetodologiPage() {
 
                 <div className="surface-white mt-3 rounded-lg px-4 py-3">
                   <p className="section-eyebrow text-[11px]">
-                    Persamaan Loss
+                    Persamaan Loss of Productivity
                   </p>
                   <p className="mt-1 font-mono text-sm font-medium text-heading">
                     y = 0.52 + 0.29 ln(x)
@@ -782,7 +782,7 @@ export default function MetodologiPage() {
 
                 <p className="mt-3 leading-relaxed text-sm">
                   Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
-                  <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
+                  <strong>loss of productivity</strong>, sedangkan{" "}
                   <strong>x</strong> merepresentasikan ketinggian genangan banjir
                   maksimum (meter).
                 </p>
@@ -930,7 +930,7 @@ export default function MetodologiPage() {
 
                 <div className="surface-white mt-3 rounded-lg px-4 py-3">
                   <p className="section-eyebrow text-[11px]">
-                    Persamaan Loss
+                    Persamaan Loss of Productivity
                   </p>
                   <p className="mt-1 font-mono text-sm font-medium text-heading break-words">
                     y = −0.8381x³ + 0.8967x² + 0.9064x − 0.0106
@@ -939,7 +939,7 @@ export default function MetodologiPage() {
 
                 <p className="mt-3 leading-relaxed text-sm">
                   Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
-                  <strong>loss rate / loss of productivity</strong>, sedangkan{" "}
+                  <strong>loss of productivity</strong>, sedangkan{" "}
                   <strong>x</strong> merepresentasikan indeks kekeringan yang
                   telah dinormalisasi.
                 </p>

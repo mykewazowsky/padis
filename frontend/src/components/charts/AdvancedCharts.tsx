@@ -39,7 +39,7 @@ type TopRegionItem = {
 type TopMetric = "loss" | "aal";
 
 const TOP_METRIC_LABELS: Record<TopMetric, string> = {
-  loss: "Loss",
+  loss: "Kerugian Langsung",
   aal:  "AAL",
 };
 
@@ -82,9 +82,9 @@ type HistogramTooltipPayloadItem = {
 };
 
 const METRIC_LABELS: Record<DistMetric, string> = {
-  loss:   "Loss",
+  loss:   "Kerugian Langsung",
   aal:    "AAL",
-  hazard: "Indeks",
+  hazard: "Indeks Bahaya",
 };
 
 function formatCompact(value: number) {
@@ -160,7 +160,7 @@ type MetricConfig = {
 function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
   if (metric === "loss") {
     return {
-      title: "Distribusi Loss",
+      title: "Distribusi Kerugian Langsung",
       subtitle: "Sebaran wilayah berdasarkan nilai kerugian.",
       endpoint: "loss",
       valueKey: "loss",
@@ -171,17 +171,17 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
       formatTick: (lo) => formatCompact(lo),
       insightTitle: "Pola distribusi kerugian",
       insightBody:
-        "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang kerugian tertentu. Distribusi condong ke kanan mengindikasikan konsentrasi risiko di sedikit wilayah.",
+        "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang kerugian langsung tertentu. Distribusi condong ke kanan mengindikasikan konsentrasi risiko di sedikit wilayah.",
       emptyMsg: "Belum ada data distribusi untuk kombinasi filter ini.",
-      loadingTitle: "Memuat distribusi kerugian...",
-      loadingDesc: "Data kerugian per kabupaten sedang diproses.",
+      loadingTitle: "Memuat distribusi kerugian langsung...",
+      loadingDesc: "Data kerugian langsung per kabupaten sedang diproses.",
     };
   }
 
   if (metric === "aal") {
     return {
-      title: "Distribusi AAL",
-      subtitle: "Sebaran wilayah berdasarkan kerugian tahunan rata-rata.",
+      title: "Distribusi Average Annual Loss (AAL)",
+      subtitle: "Sebaran wilayah berdasarkan AAL.",
       endpoint: "aal",
       valueKey: "aal",
       filterZero: true,
@@ -192,7 +192,7 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
       formatTick: (lo) => formatCompact(lo),
       insightTitle: "Pola distribusi AAL",
       insightBody:
-        "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang kerugian tahunan rata-rata (AAL) tertentu.",
+        "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang Average Annual Loss (AAL) tertentu.",
       emptyMsg: "Belum ada data distribusi AAL untuk kombinasi filter ini.",
       loadingTitle: "Memuat distribusi AAL...",
       loadingDesc: "Data AAL per kabupaten sedang diproses.",
@@ -654,11 +654,11 @@ export default function AdvancedCharts({
                   <MapPinned className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <h4 className="text-base font-bold tracking-tight text-heading">
-                  Top 10 Kabupaten/Kota
+                  10 Kabupaten/Kota Prioritas
                 </h4>
               </div>
               <p className="mt-1.5 text-sm text-muted">
-                Ranking wilayah berdasarkan {topMetric === "aal" ? "kerugian tahunan rata-rata (AAL)" : "kerugian (Loss)"}.
+                Ranking wilayah berdasarkan {topMetric === "aal" ? "Average Annual Loss(AAL)" : "kerugian langsung"}.
               </p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1">
                 <FilterChip>{getHazardLabel(hazard)}</FilterChip>
@@ -702,7 +702,7 @@ export default function AdvancedCharts({
             </div>
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                {topMetric === "aal" ? "AAL Tertinggi" : "Loss Tertinggi"}
+                {topMetric === "aal" ? "AAL Tertinggi" : "Kerugian Tertinggi"}
               </p>
               <p className="text-sm font-semibold text-heading">
                 {loadingTopRegions

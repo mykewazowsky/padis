@@ -186,16 +186,16 @@ export default function AboutPage() {
             <span className="badge badge-secondary">Tentang PADIS</span>
 
             <h1 className="animate-fade-up mt-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-              Analisis risiko padi
+              Analisis Risiko Padi
               <span className="mt-1 block text-[var(--color-secondary)]">
-                berbasis data spasial
+                Berbasis Data Spasial
               </span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-              Platform geospasial untuk estimasi kerugian banjir, kekeringan, dan
-              multi-hazard — dari raster hazard hingga Annual Average Loss tingkat
-              kabupaten.
+              Web-GIS untuk estimasi kerugian negara akibat penurunan total produksi padi yang disebabkan oleh bencana banjir, 
+              kekeringan, dan multi-hazard. 
+              Kami mengola data spasial dari raster hazard hingga Annual Average Loss tingkat kabupaten/kota.
             </p>
 
             {/* Stat strip — communicates scope */}

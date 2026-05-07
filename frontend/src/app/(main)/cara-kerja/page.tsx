@@ -34,17 +34,17 @@ const analyticalPipeline = [
   {
     step: "03",
     title: "Transformasi",
-    desc: "Nilai bahaya ditransformasikan menjadi Damage Index (DI) dan Loss of Production (LOP) — indikator potensi dampak terhadap padi.",
+    desc: "Nilai bahaya ditransformasikan menjadi Damage Index (DI) dan Loss of Productivity (LOP) — indikator potensi dampak terhadap padi.",
   },
   {
     step: "04",
-    title: "Estimasi Loss",
-    desc: "Loss of Production (LOP) dikombinasikan dengan data produksi dan nilai ekonomi padi untuk menghasilkan estimasi kerugian dalam rupiah.",
+    title: "Estimasi Kerugian Langsung",
+    desc: "Loss of Productivity (LOP) dikombinasikan dengan data produksi dan nilai ekonomi padi untuk menghasilkan estimasi kerugian dalam rupiah.",
   },
   {
     step: "05",
     title: "AAL & Output",
-    desc: "Estimasi kerugian diringkas menjadi Average Annual Loss (AAL) — rata-rata kerugian tahunan — dan disajikan sebagai layer interaktif di dashboard.",
+    desc: "Estimasi kerugian langsung diringkas menjadi Average Annual Loss (AAL) dan disajikan sebagai layer interaktif di dashboard.",
   },
 ];
 
@@ -90,7 +90,7 @@ const useCases = [
   {
     title: "Prioritas",
     icon: Target,
-    desc: "Menentukan wilayah prioritas berbasis loss dan Average Annual Loss (AAL).",
+    desc: "Menentukan wilayah prioritas berbasis kerugian langsung dan Average Annual Loss (AAL).",
   },
 ];
 
@@ -134,7 +134,7 @@ export default function CaraKerjaPage() {
             <span className="badge badge-secondary">Cara Kerja PADIS</span>
 
             <h1 className="mt-4 text-balance text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-              Dari data hazard ke estimasi kerugian
+              Dari Data Spasial ke Estimasi Kerugian
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
@@ -285,7 +285,7 @@ export default function CaraKerjaPage() {
               Secara ringkas, PADIS mengubah{" "}
               <span className="font-semibold">data hazard</span> menjadi{" "}
               <span className="font-semibold">indikator risiko</span>,{" "}
-              <span className="font-semibold">estimasi kerugian ekonomi</span>, dan{" "}
+              <span className="font-semibold">estimasi kerugian langsung</span>, dan{" "}
               <span className="font-semibold">Average Annual Loss (AAL)</span>, lalu
               menyajikannya melalui{" "}
               <span className="font-semibold">dashboard interaktif</span>.

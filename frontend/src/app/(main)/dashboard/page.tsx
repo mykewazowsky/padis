@@ -846,7 +846,7 @@ export default function DashboardPage() {
                   Peta Risiko
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--dashboard-text-muted)]">
-                  Eksplorasi distribusi kerugian dan AAL per wilayah berdasarkan
+                  Eksplorasi distribusi kerugian langsung dan AAL per wilayah berdasarkan
                   parameter analisis aktif.
                 </p>
                 {runId !== null && (
@@ -881,7 +881,7 @@ export default function DashboardPage() {
                 <div className="flex items-start divide-x divide-[var(--dashboard-border-solid)]">
                   <div className="flex-[1.3] pr-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
-                      Total Loss
+                      Total Kerugian Langsung
                     </p>
                     <p className="mt-1 whitespace-nowrap text-base font-semibold text-[var(--dashboard-text)]">
                       {loadingLayer ? (
@@ -1103,7 +1103,7 @@ export default function DashboardPage() {
             <DashboardSectionHeader
               eyebrow="ANALISIS LANJUTAN"
               title="Ringkasan Statistik dan Grafik"
-              desc="Perbandingan AAL antar jenis bencana, total kerugian skenario iklim vs non-iklim, wilayah terdampak utama, dan breakdown hazard."
+              desc="Perbandingan AAL antar jenis bencana, total kerugian langsung skenario analisis iklim dan non-iklim, wilayah terdampak utama, dan distribusi sebaran kerugian serta indeks bahaya."
             />
 
             {chartsReady && (

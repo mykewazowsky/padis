@@ -57,7 +57,7 @@ const INITIAL_GROUPS: LayerGroup[] = [
     groupName: "Overlay",
     layers: [
       { id: "regions", label: "Batas Administrasi" },
-      { id: "production", label: "Produksi Sawah" },
+      { id: "production", label: "Total Produksi Sawah" },
     ],
   },
   {
@@ -65,8 +65,8 @@ const INITIAL_GROUPS: LayerGroup[] = [
     groupName: "Analisis",
     layers: [
       { id: "hazard", label: "Indeks Bahaya" },
-      { id: "loss", label: "Kerugian (Loss)" },
-      { id: "aal", label: "Risiko Tahunan (AAL)" },
+      { id: "loss", label: "Kerugian Langsung" },
+      { id: "aal", label: "Average Annual Loss (AAL)" },
     ],
   },
 ];

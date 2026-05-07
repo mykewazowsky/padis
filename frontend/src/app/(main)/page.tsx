@@ -74,9 +74,9 @@ export default function LandingPage() {
 
             <div className="space-y-6">
               <h1 className="animate-fade-up text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-                Analisis risiko padi berbasis{" "}
+                Analisis Risiko Padi Berbasis{" "}
                 <span className="text-[var(--color-secondary)]">
-                  bencana banjir, kekeringan, dan multi-hazard
+                  Bencana Banjir, Kekeringan, dan Multi-hazard
                 </span>
               </h1>
 
@@ -274,7 +274,7 @@ export default function LandingPage() {
                     Luaran
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">
-                    Loss & AAL
+                    Kerugian langsung & AAL
                   </p>
                 </div>
 
@@ -314,7 +314,7 @@ export default function LandingPage() {
                 </div>
 
                 <p className="mt-4 text-sm text-[var(--color-gray)]">
-                  Gambaran ringkas besaran kerugian dan risiko tahunan rata-rata.
+                  Gambaran ringkas besaran kerugian langsung dan risiko tahunan rata-rata.
                 </p>
               </div>
 

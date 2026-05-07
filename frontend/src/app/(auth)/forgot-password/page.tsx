@@ -1,11 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  CheckCircle2,
+  Clock,
   KeyRound,
   Mail,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -14,27 +17,19 @@ import { buildApiUrl } from "../../../lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   function validateForm() {
-    if (!email.trim()) {
-      return "Email wajib diisi.";
-    }
-
-    const emailPattern = /\S+@\S+\.\S+/;
-    if (!emailPattern.test(email.trim())) {
-      return "Format email tidak valid.";
-    }
-
+    if (!email.trim()) return "Email wajib diisi.";
+    if (!/\S+@\S+\.\S+/.test(email.trim())) return "Format email tidak valid.";
     return "";
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     const validationError = validateForm();
     if (validationError) {
@@ -47,12 +42,8 @@ export default function ForgotPasswordPage() {
     try {
       const res = await fetch(buildApiUrl("/api/forgot-password"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
       });
 
       const json = await res.json().catch(() => ({}));
@@ -61,10 +52,7 @@ export default function ForgotPasswordPage() {
         throw new Error(json.error || "Permintaan reset password gagal.");
       }
 
-      setSuccess(
-        json.message ||
-          "Jika email terdaftar, tautan reset password telah dikirim ke email."
-      );
+      setSentTo(email.trim());
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -76,9 +64,16 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  function handleTryAgain() {
+    setSentTo("");
+    setEmail("");
+    setError("");
+  }
+
   return (
     <main className="auth-page-gradient min-h-screen">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+        {/* Hero section */}
         <section className="auth-hero-gradient relative hidden overflow-hidden lg:flex">
           <div className="auth-hero-overlay" />
           <div className="hero-grid-overlay" />
@@ -96,9 +91,9 @@ export default function ForgotPasswordPage() {
               </h1>
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
-                Masukkan email akun Anda untuk membuat tautan reset password.
-                Setelah itu Anda dapat menetapkan password baru dan kembali
-                mengakses dashboard PADIS.
+                Masukkan email akun Anda untuk mendapatkan tautan reset
+                password. Setelah itu Anda dapat menetapkan password baru dan
+                kembali mengakses dashboard PADIS.
               </p>
             </div>
 
@@ -110,11 +105,9 @@ export default function ForgotPasswordPage() {
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">
-                        Pemulihan Aman
-                      </p>
+                      <p className="text-sm font-semibold text-white">Pemulihan Aman</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Token reset dibuat dengan masa berlaku terbatas untuk
+                        Token reset dibuat dengan masa berlaku 30 menit untuk
                         menjaga keamanan akun.
                       </p>
                     </div>
@@ -127,12 +120,10 @@ export default function ForgotPasswordPage() {
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">
-                        Dikirim Lewat Email
-                      </p>
+                      <p className="text-sm font-semibold text-white">Dikirim Lewat Email</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Tautan reset dikirim ke alamat email akun tanpa
-                        ditampilkan langsung di browser.
+                        Tautan reset dikirim langsung ke email terdaftar, tidak
+                        pernah ditampilkan di browser.
                       </p>
                     </div>
                   </div>
@@ -146,74 +137,146 @@ export default function ForgotPasswordPage() {
           </div>
         </section>
 
+        {/* Form / success section */}
         <section className="flex items-center justify-center px-6 py-10">
           <div className="w-full max-w-md">
-            <div className="card card-elevated p-8 md:p-9">
-              <div className="mb-8">
-                <span className="badge badge-primary">FORGOT PASSWORD</span>
-                <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
-                  Lupa password?
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                  Masukkan email akun PADIS Anda. Jika email terdaftar, sistem
-                  akan mengirim tautan reset password.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="input-label">Email</label>
-                  <div className="input-shell flex items-center gap-3 px-4 py-3">
-                    <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
-                    <input
-                      type="email"
-                      className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Masukkan email akun"
-                    />
+            {sentTo ? (
+              /* ── Success state ── */
+              <div className="card card-elevated p-8 md:p-9">
+                {/* Animated check icon */}
+                <div className="mb-6 flex flex-col items-center text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 ring-4 ring-green-100">
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  </div>
+                  <span className="badge badge-primary mb-3">EMAIL TERKIRIM</span>
+                  <h2 className="text-2xl font-bold tracking-tight text-[var(--auth-text)]">
+                    Cek inbox email Anda
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
+                    Tautan reset password telah dikirim ke:
+                  </p>
+                  <div className="mt-2 flex items-center gap-2 rounded-xl bg-[var(--auth-input-bg)] px-4 py-2.5 ring-1 ring-[var(--auth-input-border)]">
+                    <Mail className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />
+                    <span className="text-sm font-semibold text-[var(--auth-text)]">
+                      {sentTo}
+                    </span>
                   </div>
                 </div>
 
-                {error ? (
-                  <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
-                    {error}
-                  </div>
-                ) : null}
+                {/* Steps */}
+                <div className="mb-6 space-y-3">
+                  {[
+                    { n: "1", text: "Buka aplikasi email atau gmail.com" },
+                    { n: "2", text: 'Cari email dari "PADIS" dengan subjek "Reset Password Akun PADIS"' },
+                    { n: "3", text: "Klik tombol Reset Password di dalam email" },
+                    { n: "4", text: "Buat password baru dan login kembali" },
+                  ].map((step) => (
+                    <div key={step.n} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-[10px] font-bold text-white">
+                        {step.n}
+                      </span>
+                      <p className="text-sm leading-relaxed text-[var(--auth-text-muted)]">
+                        {step.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-                {success ? (
-                  <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-success-text)] [background:var(--auth-alert-success-bg)] [border-color:var(--auth-alert-success-border)]">
-                    {success}
-                  </div>
-                ) : null}
+                {/* Expiry notice */}
+                <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                  <p className="text-sm text-amber-800">
+                    Tautan berlaku selama{" "}
+                    <span className="font-semibold">30 menit</span>. Periksa
+                    juga folder{" "}
+                    <span className="font-semibold">Spam / Junk</span> jika
+                    email tidak muncul.
+                  </p>
+                </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <KeyRound className="h-4 w-4" />
-                  {loading ? "Memproses..." : "Kirim Tautan Reset"}
-                </button>
-              </form>
-
-              <div className="mt-6 flex items-center justify-between gap-3 text-sm">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Kembali ke Login
-                </Link>
-
-                <Link
-                  href="/register"
-                  className="font-medium text-[var(--color-primary)] transition hover:underline"
-                >
-                  Daftar akun
-                </Link>
+                {/* Actions */}
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTryAgain}
+                    className="btn-outline inline-flex w-full items-center justify-center gap-2 py-2.5 text-sm font-medium"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Kirim Ulang dengan Email Berbeda
+                  </button>
+                  <Link
+                    href="/login"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Kembali ke Login
+                  </Link>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* ── Form state ── */
+              <div className="card card-elevated p-8 md:p-9">
+                <div className="mb-8">
+                  <span className="badge badge-primary">FORGOT PASSWORD</span>
+                  <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
+                    Lupa password?
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
+                    Masukkan email akun PADIS Anda. Jika email terdaftar, sistem
+                    akan mengirim tautan reset password ke inbox Anda.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="input-label">Email</label>
+                    <div className="input-shell flex items-center gap-3 px-4 py-3">
+                      <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
+                      <input
+                        type="email"
+                        className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Masukkan email akun"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    {loading ? "Memproses..." : "Kirim Tautan Reset"}
+                  </button>
+                </form>
+
+                <div className="mt-6 flex items-center justify-between gap-3 text-sm">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Kembali ke Login
+                  </Link>
+
+                  <Link
+                    href="/register"
+                    className="font-medium text-[var(--color-primary)] transition hover:underline"
+                  >
+                    Daftar akun
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </div>

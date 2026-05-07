@@ -66,9 +66,11 @@ PADIS/
 |   |-- src/lib/                 # API/auth helper
 |   `-- src/services/            # Client data layer
 |-- docs/                        # Dokumentasi teknis Indonesia
+|-- scripts/                     # Helper operasional opsional
 |-- db/migrations/               # Migration SQL manual
 |-- padis.ps1                    # Launcher lokal Windows
 |-- install-padis-command.ps1    # Installer alias opsional
+|-- Dockerfile.pipeline          # Image opsional untuk pipeline operator
 `-- README.md
 ```
 
@@ -166,6 +168,19 @@ Contoh CLI:
 
 Untuk operator, cara yang disarankan tetap melalui Admin UI.
 
+## Opsi Docker Pipeline
+
+Workflow lokal tetap memakai `.\padis.ps1` dan Admin UI. Docker disiapkan sebagai jalur opsional untuk operator/admin lain yang ingin menjalankan pipeline tanpa mengatur dependency geospasial Python secara manual.
+
+Ringkas:
+
+```powershell
+Copy-Item env.pipeline.example .env.pipeline
+.\scripts\run-pipeline-docker.ps1 -Build -Mode full -Hazard flood -Operator nama_operator
+```
+
+Panduan lengkap ada di [docs/docker-pipeline.md](docs/docker-pipeline.md).
+
 ## Fitur Utama
 
 - Dashboard Web-GIS untuk melihat loss, AAL, hazard index, produksi, dan batas administrasi.
@@ -189,7 +204,8 @@ Urutan baca yang disarankan:
 6. [docs/database.md](docs/database.md) - skema database dan tabel utama.
 7. [docs/data-requirements.md](docs/data-requirements.md) - standar file input pipeline.
 8. [docs/deployment.md](docs/deployment.md) - panduan deployment.
-9. [docs/padis-dev-commands.md](docs/padis-dev-commands.md) - runbook command developer.
+9. [docs/docker-pipeline.md](docs/docker-pipeline.md) - jalur opsional menjalankan pipeline lewat Docker.
+10. [docs/padis-dev-commands.md](docs/padis-dev-commands.md) - runbook command developer.
 
 ## Graphify
 

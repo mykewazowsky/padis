@@ -67,6 +67,32 @@ Catatan:
 - `multi` membutuhkan file final flood dan drought.
 - Untuk operator, tombol "Muat ke Database Saja" di Admin UI lebih aman karena mengecek tiga file final.
 
+## Opsi Pipeline Docker
+
+Workflow lokal resmi tetap `.\padis.ps1`. Docker tersedia sebagai jalur opsional untuk operator/admin yang ingin menjalankan pipeline dengan dependency geospasial yang sudah dipaketkan.
+
+Setup awal:
+
+```powershell
+Copy-Item env.pipeline.example .env.pipeline
+```
+
+Build dan run:
+
+```powershell
+.\scripts\run-pipeline-docker.ps1 -Build -Mode full -Hazard flood -Operator nama_operator
+```
+
+Run berikutnya:
+
+```powershell
+.\scripts\run-pipeline-docker.ps1 -Mode full -Hazard drought -Operator nama_operator
+.\scripts\run-pipeline-docker.ps1 -Mode full -Hazard multi -Operator nama_operator
+.\scripts\run-pipeline-docker.ps1 -Mode web -Hazard multi -Operator nama_operator
+```
+
+Panduan lengkap: `docs/docker-pipeline.md`.
+
 ## Command Internal CLI
 
 `.\padis.ps1` meneruskan argumen ke CLI internal:
@@ -285,6 +311,12 @@ kabkota_multihazard_final.geojson
 .\padis.ps1 run --mode full --hazard drought --operator nama_operator
 .\padis.ps1 run --mode full --hazard multi --operator nama_operator
 .\padis.ps1 run --mode web --hazard multi --operator nama_operator
+
+# Pipeline Docker opsional
+.\scripts\run-pipeline-docker.ps1 -Build -Mode full -Hazard flood -Operator nama_operator
+.\scripts\run-pipeline-docker.ps1 -Mode full -Hazard drought -Operator nama_operator
+.\scripts\run-pipeline-docker.ps1 -Mode full -Hazard multi -Operator nama_operator
+.\scripts\run-pipeline-docker.ps1 -Mode web -Hazard multi -Operator nama_operator
 
 # Backend manual
 .\backend\venv\Scripts\Activate.ps1

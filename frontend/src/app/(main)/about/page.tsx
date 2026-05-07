@@ -469,7 +469,7 @@ export default function AboutPage() {
             {partnerCards.map((item) => (
               <div
                 key={item.short}
-                className="group flex flex-col items-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-6 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-md)]"
+                className="group flex flex-col items-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-3 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-md)] sm:p-6"
               >
                 {/* Logo tile */}
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--content-logo-tile-bg)] p-2.5">
@@ -504,7 +504,7 @@ export default function AboutPage() {
 
      <section className="section-shell content-section">
       <div className="section-container">
-        <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-10 text-center shadow-[var(--shadow-lg)]">
+        <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-6 text-center shadow-[var(--shadow-lg)] sm:p-10">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
             <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-[var(--color-secondary)]/10 blur-3xl" />

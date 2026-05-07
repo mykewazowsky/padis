@@ -399,7 +399,7 @@ export default function CaraKerjaPage() {
       {/* CTA */}
       <section className="section-shell content-section">
         <div className="section-container">
-          <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-10 text-center shadow-[var(--shadow-lg)]">
+          <div className="content-cta-panel relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] p-6 text-center shadow-[var(--shadow-lg)] sm:p-10">
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
               <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-[var(--color-secondary)]/10 blur-3xl" />
@@ -410,7 +410,7 @@ export default function CaraKerjaPage() {
                 LANGKAH BERIKUTNYA
               </p>
 
-              <h3 className="mt-2 text-3xl font-bold text-[var(--color-text)] md:text-4xl">
+              <h3 className="mt-2 text-2xl font-bold text-[var(--color-text)] md:text-3xl lg:text-4xl">
                 Mulai Identifikasi Wilayah Risiko Padi
               </h3>
 

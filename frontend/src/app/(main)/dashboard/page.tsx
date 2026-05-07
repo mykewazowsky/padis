@@ -883,7 +883,7 @@ export default function DashboardPage() {
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
                       Total Kerugian Langsung
                     </p>
-                    <p className="mt-1 whitespace-nowrap text-base font-semibold text-[var(--dashboard-text)]">
+                    <p className="mt-1 whitespace-nowrap text-sm font-semibold text-[var(--dashboard-text)] md:text-base">
                       {loadingLayer ? (
                         <span className="animate-pulse text-[var(--dashboard-text-soft)]">—</span>
                       ) : (

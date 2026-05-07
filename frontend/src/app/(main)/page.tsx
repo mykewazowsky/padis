@@ -66,7 +66,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="section-container relative z-20 grid gap-14 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-28">
+        <div className="section-container relative z-20 grid gap-8 py-12 md:gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-28">
           <div className="space-y-8">
             <span className="badge badge-secondary">
               WebGIS PADIS: Paddy Disaster Information System
@@ -140,7 +140,7 @@ export default function LandingPage() {
       </section>
 
       {/* CAKUPAN */}
-      <section className="content-section-soft relative overflow-hidden py-24">
+      <section className="content-section-soft relative overflow-hidden py-14 md:py-24">
         {/* ambient */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-[-4rem] top-16 h-72 w-72 rounded-full bg-[var(--color-primary-soft)] opacity-40 blur-3xl" />

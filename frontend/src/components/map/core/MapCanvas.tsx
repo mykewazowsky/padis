@@ -289,8 +289,8 @@ function getVtStyle(
 ): Record<string, unknown> {
   const regionKey = normalizeRegionKey(props.kab_kota as string | undefined);
   const hasSelection = Boolean(selectedRegion);
-  const isSelected = hasSelection && regionKey === normalizeRegionKey(selectedRegion);
-  const isDimmed = hasSelection && !isSelected;
+  const isDimmed =
+    hasSelection && regionKey !== normalizeRegionKey(selectedRegion);
 
   const isDark = basemapKey === "dark" || basemapKey === "imagery";
 
@@ -322,16 +322,14 @@ function getVtStyle(
     fill: true,
     fillColor: getColorFromBreaks(value, jenksBreaks, hazard),
     fillOpacity,
-    color: isSelected
-      ? getSelectedBorderColor(hazard)
-      : isDimmed
+    color: isDimmed
         ? (isDark ? "#374151" : "#d1d5db")
         : isTopRegion
           ? "#f59e0b"
           : defaultBorder,
-    weight: isSelected ? 2.5 : isDimmed ? 0.3 : isTopRegion ? 1.3 : isDark ? 1.0 : 0.8,
+    weight: isDimmed ? 0.3 : isTopRegion ? 1.3 : isDark ? 1.0 : 0.8,
     opacity: isDimmed ? 0.3 : 1,
-    dashArray: isSelected ? undefined : isTopRegion ? "4 2" : undefined,
+    dashArray: isTopRegion ? "4 2" : undefined,
   };
 }
 
@@ -597,7 +595,7 @@ export default function MapCanvas({
   dataBounds,
   regionCentroids,
 }: MapCanvasProps) {
-  const vtLayersRef = useRef<Partial<Record<LayerKey | "thematic", L.Layer>>>({});
+  const vtLayersRef = useRef<Partial<Record<LayerKey | "selection" | "thematic", L.Layer>>>({});
   const popupRef = useRef<L.Popup | null>(null);
   const zoomSourceRef = useRef<"click" | null>(null);
 
@@ -756,14 +754,13 @@ export default function MapCanvas({
           production: (props: Record<string, unknown>) => {
             const rk = normalizeRegionKey(props.kab_kota as string | undefined);
             const hasSel = Boolean(selectedRegion);
-            const isSel = hasSel && rk === normalizeRegionKey(selectedRegion);
-            const isDim = hasSel && !isSel;
+            const isDim = hasSel && rk !== normalizeRegionKey(selectedRegion);
             return {
               fill: true,
               fillColor: "#ffa200",
               fillOpacity: isDim ? Math.max(0.05, prodOpacity * 0.12) : prodOpacity,
-              color: isSel ? getSelectedBorderColor(hazard) : isDim ? (isDark ? "#374151" : "#d1d5db") : "#ffb700",
-              weight: isSel ? 2.5 : isDim ? 0.3 : isDark ? 1.4 : 1.2,
+              color: isDim ? (isDark ? "#374151" : "#d1d5db") : "#ffb700",
+              weight: isDim ? 0.3 : isDark ? 1.4 : 1.2,
               opacity: isDim ? 0.3 : 1,
             };
           },
@@ -815,6 +812,33 @@ export default function MapCanvas({
 
       regionLayer.addTo(map);
       vtLayersRef.current.regions = regionLayer;
+    }
+
+    if (selectedRegion) {
+      const selectionUrl = `${BASE_URL}/api/tiles/regions/{z}/{x}/{y}`;
+      const selectedKey = normalizeRegionKey(selectedRegion);
+
+      const selectionLayer = LVG.vectorGrid.protobuf(selectionUrl, {
+        vectorTileLayerStyles: {
+          regions: (props: Record<string, unknown>) => {
+            const isSelected =
+              normalizeRegionKey(props.kab_kota as string | undefined) === selectedKey;
+            return {
+              fill: false,
+              fillOpacity: 0,
+              color: getSelectedBorderColor(hazard),
+              weight: isSelected ? 3 : 0,
+              opacity: isSelected ? 1 : 0,
+            };
+          },
+        },
+        interactive: false,
+        maxNativeZoom: 12,
+        pane: "overlayPane",
+      });
+
+      selectionLayer.addTo(map);
+      vtLayersRef.current.selection = selectionLayer;
     }
     })();
 

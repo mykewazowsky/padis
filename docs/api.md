@@ -18,6 +18,8 @@ Authorization: Bearer <token>
 
 Mendaftarkan user baru.
 
+Rate limit: **10 per jam** per IP.
+
 Body:
 
 ```json
@@ -32,6 +34,8 @@ Body:
 
 Login dan menerima token JWT.
 
+Rate limit: **20 per menit, 100 per jam** per IP.
+
 Body:
 
 ```json
@@ -45,19 +49,25 @@ Response berisi token, data user, dan role.
 
 ### GET `/api/me`
 
-Mengambil user saat ini dari token.
+Mengambil user saat ini dari token. Membutuhkan JWT.
 
 ### POST `/api/logout`
 
-Logout sisi client. Backend mengembalikan status sukses.
+Logout sisi client. Backend mengembalikan status sukses. Membutuhkan JWT.
 
 ### POST `/api/forgot-password`
 
 Meminta email reset password.
 
+Rate limit: **5 per jam** per IP.
+
 ### POST `/api/reset-password`
 
 Mengganti password memakai token reset.
+
+Rate limit: **10 per jam** per IP.
+
+Token yang dikirim adalah raw JWT yang diterima user dari email. Backend memverifikasi dengan membandingkan SHA-256 hash dari token tersebut.
 
 ## Run Aktif dan Analitik
 
@@ -338,6 +348,7 @@ Catatan penting:
 - `full` tidak menjalankan ETL.
 - Untuk load database dari UI, gunakan `/api/admin/load-database`, bukan `start-pipeline` mode `web`.
 - Backend menolak run baru jika masih ada run non-stale yang running.
+- Jika env var `PIPELINE_SPAWN_DISABLED=true`, endpoint mengembalikan `503`. Dipakai untuk deployment production di mana pipeline dijalankan manual oleh operator.
 
 ### GET `/api/admin/final-analysis-status`
 
@@ -371,6 +382,8 @@ Response:
 ### POST `/api/admin/load-database`
 
 Menjalankan ETL/load database untuk tiga file final. Endpoint ini tidak menerima hazard.
+
+Jika env var `PIPELINE_SPAWN_DISABLED=true`, endpoint mengembalikan `503`.
 
 Body:
 

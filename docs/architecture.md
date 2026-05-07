@@ -39,7 +39,7 @@ backend/
 |   |   |-- admin/               # data, process, output, user admin
 |   |   |-- analytics_routes.py  # ringkasan dan chart data
 |   |   `-- report_routes.py     # CSV, XLSX, report
-|   |-- services/                # integrasi email/geoserver
+|   |-- services/                # email service, audit log
 |   `-- utils/report/            # renderer report, chart, peta
 |-- scripts/
 |   |-- main.py                  # entry point pipeline
@@ -182,6 +182,46 @@ Database utama adalah PostgreSQL + PostGIS. Tabel yang paling sering dipakai:
 - `runs`: metadata eksekusi pipeline.
 - `app_users`: akun aplikasi.
 - `password_reset_tokens`: token reset password.
+- `admin_audit_log`: log aksi admin (role/status change, password reset).
+
+## Keamanan
+
+### Rate Limiting
+
+Backend memakai Flask-Limiter dengan storage in-memory per worker. Batas per endpoint:
+
+| Endpoint | Limit |
+|---|---|
+| `POST /api/register` | 10 per jam |
+| `POST /api/login` | 20 per menit, 100 per jam |
+| `POST /api/forgot-password` | 5 per jam |
+| `POST /api/reset-password` | 10 per jam |
+
+### Security Headers
+
+Backend menyertakan header keamanan pada setiap response:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: geolocation=(), camera=(), microphone=()`
+
+### Token Reset Password
+
+Raw JWT reset password dikirim ke email user. Backend hanya menyimpan SHA-256 hex digest dari token tersebut di kolom `token_hash`. Nilai plaintext tidak pernah tersimpan di database.
+
+### Audit Log
+
+Setiap aksi admin (ubah role, ubah status, reset password selesai) dicatat ke tabel `admin_audit_log` beserta IP address, waktu, dan detail perubahan.
+
+### Pipeline Spawn Guard
+
+Endpoint `POST /api/admin/start-pipeline` dan `POST /api/admin/load-database` mengembalikan `503` jika env var `PIPELINE_SPAWN_DISABLED=true`. Ini dipakai untuk deployment production di mana pipeline dijalankan manual oleh operator.
+
+### Bootstrap Admin
+
+`seed_default_users()` hanya berjalan jika `BOOTSTRAP_DEFAULT_ADMIN=true`. Seeding memakai `ON CONFLICT DO NOTHING` sehingga tidak menimpa password yang sudah diubah operator.
 
 ## CORS dan Auth
 

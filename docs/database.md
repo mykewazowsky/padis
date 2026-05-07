@@ -179,10 +179,28 @@ Token reset password.
 |---|---|---|
 | `id` | uuid | Primary key. |
 | `user_id` | uuid | FK ke user. |
-| `token_hash` | text | Hash token reset. |
+| `token_hash` | text | SHA-256 hex digest dari raw JWT reset. Nilai plaintext tidak disimpan. |
 | `created_at` | timestamptz | Waktu dibuat. |
 | `expires_at` | timestamptz | Waktu kedaluwarsa. |
 | `used_at` | timestamptz | Waktu dipakai. |
+
+### `admin_audit_log`
+
+Log aksi admin. Dibuat otomatis oleh backend saat startup.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | uuid | Primary key, default `gen_random_uuid()`. |
+| `admin_id` | text | ID admin yang melakukan aksi. |
+| `admin_email` | text | Email admin. |
+| `action` | text | Nama aksi, contoh `role_changed`, `status_changed`, `password_reset_completed`. |
+| `target_type` | text | Tipe objek yang diubah, contoh `user`. |
+| `target_id` | text | ID objek yang diubah. |
+| `detail` | text | JSON string berisi detail perubahan. |
+| `ip_address` | text | IP address request. |
+| `created_at` | timestamptz | Waktu aksi, default `NOW()`. |
+
+Tabel ini tidak memerlukan migration manual. Backend membuat tabel ini dengan `CREATE TABLE IF NOT EXISTS` saat startup.
 
 ## Pola Query Utama
 
@@ -235,5 +253,7 @@ Migration penting:
 - `003_runs_created_at_index.sql`: index waktu run.
 - `004_runs_active_management.sql`: `finished_at` dan index run aktif.
 - `005_password_reset_tokens.sql`: tabel token reset password.
+
+Tabel `admin_audit_log` tidak memerlukan migration file. Backend membuatnya otomatis saat startup.
 
 Jalankan migration sesuai kebutuhan environment database.

@@ -168,11 +168,7 @@ def oauth_callback():
     if not access_token:
         return jsonify({"error": "access_token wajib diisi"}), 400
 
-    logging.debug(
-        "[oauth_callback] token received: len=%d prefix=%s",
-        len(access_token),
-        access_token[:50],
-    )
+    logging.debug("[oauth_callback] token received")
 
     supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
     supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY", "").strip()

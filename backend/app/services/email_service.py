@@ -4,18 +4,37 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import requests
+
 logger = logging.getLogger(__name__)
+
+RESEND_API_URL = "https://api.resend.com/emails"
 
 
 class EmailConfigurationError(RuntimeError):
     pass
 
 
+def _get_env(name: str, default: str = "") -> str:
+    value = os.getenv(name, default).strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        value = value[1:-1].strip()
+    return value
+
+
 def _get_required_env(name: str) -> str:
-    value = os.getenv(name, "").strip()
+    value = _get_env(name)
     if not value:
         raise EmailConfigurationError(f"{name} belum dikonfigurasi")
     return value
+
+
+def _format_sender(from_email: str, from_name: str) -> str:
+    if "<" in from_email and ">" in from_email:
+        return from_email
+    if from_name:
+        return f"{from_name} <{from_email}>"
+    return from_email
 
 
 def _build_reset_email_html(reset_link: str, expiry_minutes: int = 30) -> str:
@@ -228,13 +247,48 @@ def send_password_reset_email(
     reset_link: str,
     expiry_minutes: int = 30,
 ) -> None:
+    resend_api_key = _get_env("RESEND_API_KEY")
+    if resend_api_key:
+        from_email = _get_env("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+        from_name = _get_env("RESEND_FROM_NAME", "PADIS")
+
+        if not from_email:
+            raise EmailConfigurationError(
+                "RESEND_FROM_EMAIL belum dikonfigurasi"
+            )
+
+        response = requests.post(
+            RESEND_API_URL,
+            headers={
+                "Authorization": f"Bearer {resend_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": _format_sender(from_email, from_name),
+                "to": [to_email],
+                "subject": "Reset Password Akun PADIS",
+                "text": _build_reset_email_text(reset_link, expiry_minutes),
+                "html": _build_reset_email_html(reset_link, expiry_minutes),
+                "headers": {"X-Mailer": "PADIS Mailer"},
+            },
+            timeout=15,
+        )
+
+        if response.status_code >= 400:
+            raise RuntimeError(
+                f"Resend API error {response.status_code}: {response.text}"
+            )
+
+        logger.info("Password reset email sent to %s via Resend API", to_email)
+        return
+
     smtp_host = _get_required_env("SMTP_HOST")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_username = os.getenv("SMTP_USERNAME", "").strip()
-    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
-    from_email = os.getenv("SMTP_FROM_EMAIL", smtp_username).strip()
-    from_name = os.getenv("SMTP_FROM_NAME", "PADIS").strip()
-    use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() not in {
+    smtp_port = int(_get_env("SMTP_PORT", "587"))
+    smtp_username = _get_env("SMTP_USERNAME")
+    smtp_password = _get_env("SMTP_PASSWORD")
+    from_email = _get_env("SMTP_FROM_EMAIL", smtp_username)
+    from_name = _get_env("SMTP_FROM_NAME", "PADIS")
+    use_tls = _get_env("SMTP_USE_TLS", "true").lower() not in {
         "0", "false", "no",
     }
 
@@ -245,7 +299,7 @@ def send_password_reset_email(
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = "Reset Password Akun PADIS"
-    msg["From"] = f"{from_name} <{from_email}>"
+    msg["From"] = _format_sender(from_email, from_name)
     msg["To"] = to_email
     msg["X-Mailer"] = "PADIS Mailer"
 

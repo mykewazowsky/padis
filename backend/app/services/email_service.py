@@ -248,6 +248,10 @@ def send_password_reset_email(
     expiry_minutes: int = 30,
 ) -> None:
     resend_api_key = _get_env("RESEND_API_KEY")
+    smtp_host_hint = _get_env("SMTP_HOST").lower()
+    if not resend_api_key and smtp_host_hint == "smtp.resend.com":
+        resend_api_key = _get_env("SMTP_PASSWORD")
+
     if resend_api_key:
         from_email = _get_env("RESEND_FROM_EMAIL", "onboarding@resend.dev")
         from_name = _get_env("RESEND_FROM_NAME", "PADIS")

@@ -37,6 +37,17 @@ type Props = {
   regionCentroids?: Record<string, [number, number]>;
 };
 
+type MapFeature = {
+  type: "Feature";
+  geometry: unknown;
+  properties: {
+    kab_kota?: string | null;
+    loss?: number | null;
+    aal?: number | null;
+    mean_value?: number | null;
+  };
+};
+
 function formatCompactRupiah(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "Rp 0";
 
@@ -125,17 +136,17 @@ export default function MapViewClient({
   const activeValues = useMemo(() => {
     if (activeLayers.hazard && layers?.hazard?.features?.length) {
       return layers.hazard.features.map(
-        (f: any) => Number(f?.properties?.mean_value ?? 0)
+        (f: MapFeature) => Number(f?.properties?.mean_value ?? 0)
       );
     }
     if (activeLayers.aal && layers?.aal?.features?.length) {
       return layers.aal.features.map(
-        (f: any) => Number(f?.properties?.aal ?? 0)
+        (f: MapFeature) => Number(f?.properties?.aal ?? 0)
       );
     }
     if (activeLayers.loss && layers?.loss?.features?.length) {
       return layers.loss.features.map(
-        (f: any) => Number(f?.properties?.loss ?? 0)
+        (f: MapFeature) => Number(f?.properties?.loss ?? 0)
       );
     }
     return [];
@@ -154,13 +165,14 @@ export default function MapViewClient({
     return new Set(
       [...layers.loss.features]
         .sort(
-          (a: any, b: any) =>
+          (a: MapFeature, b: MapFeature) =>
             (b.properties?.loss ?? 0) - (a.properties?.loss ?? 0)
         )
         .slice(0, 5)
-        .map((f: any) =>
+        .map((f: MapFeature) =>
           f.properties?.kab_kota?.toLowerCase().trim()
         )
+        .filter((key): key is string => Boolean(key))
     );
   }, [layers.loss]);
 

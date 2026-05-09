@@ -389,7 +389,7 @@ export default function MetodologiPage() {
                             }}
                             itemStyle={{ color: chartTheme.tooltipText }}
                             labelStyle={{ color: chartTheme.tooltipMuted }}
-                            formatter={(value: any, name: any) => [
+                            formatter={(value: unknown, name: unknown) => [
                               Math.round(Number(value)),
                               name === "Kejadian Banjir" ? "Banjir" : "Kekeringan",
                             ]}
@@ -713,7 +713,7 @@ export default function MetodologiPage() {
                       }}
                       itemStyle={{ color: chartTheme.tooltipText }}
                       labelStyle={{ color: chartTheme.tooltipMuted }}
-                      formatter={(value: any) => [
+                      formatter={(value: unknown) => [
                         formatPercent(Number(value)),
                         "Loss",
                       ]}
@@ -871,7 +871,7 @@ export default function MetodologiPage() {
                       }}
                       itemStyle={{ color: chartTheme.tooltipText }}
                       labelStyle={{ color: chartTheme.tooltipMuted }}
-                      formatter={(value: any) => [
+                      formatter={(value: unknown) => [
                         formatPercent(Number(value)),
                         "Loss",
                       ]}

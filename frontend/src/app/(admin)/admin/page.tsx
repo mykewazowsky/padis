@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { fetchJsonWithAuth } from "../../../lib/fetcher-auth";
+import { getErrorMessage } from "../../../lib/error";
 
 type AdminSummary = {
   raw_count?: number;
@@ -158,8 +159,8 @@ export default function AdminOverviewPage() {
 
       if (errors.length > 0) setLoadError(`Sebagian data gagal dimuat: ${errors.join(", ")}.`);
       setLastSyncedAt(new Date().toISOString());
-    } catch (err: any) {
-      setLoadError(err?.message || "Gagal memuat data admin.");
+    } catch (err: unknown) {
+      setLoadError(getErrorMessage(err, "Gagal memuat data admin."));
       setDataSummary(DEFAULT_SUMMARY); setOutputs([]); setProcessStatus(null); setUsers([]);
     } finally {
       setLoading(false); setRefreshing(false); inFlightRef.current = false;

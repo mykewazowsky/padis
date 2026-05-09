@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
+import { getErrorMessage, getResponseError } from "../../../../lib/error";
 
 type HazardKey = "flood" | "drought" | "multi";
 type ModeKey = "full" | "preprocess" | "analysis" | "web";
@@ -44,6 +45,16 @@ type FinalAnalysisStatus = {
   ready: boolean;
   files: FinalFile[];
   missing: string[];
+};
+
+type AdminActionResponse = {
+  pid?: number | string;
+  error?: string;
+  missing?: string[];
+  active_run?: {
+    operator_name?: string | null;
+    step?: string | null;
+  };
 };
 
 const HAZARD_OPTIONS: { key: HazardKey; label: string; desc: string }[] = [
@@ -206,12 +217,12 @@ export default function AdminProcessPage() {
       const res = await fetchWithAuth("/api/admin/process-status");
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error((json as any).error || "Gagal memuat status proses. Coba refresh atau periksa koneksi server.");
+        throw new Error(getResponseError(json, "Gagal memuat status proses. Coba refresh atau periksa koneksi server."));
       }
       const json = await res.json();
       setStatus(json);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Gagal memuat status proses.");
+    } catch (err: unknown) {
+      setErrorMessage(getErrorMessage(err, "Gagal memuat status proses."));
     } finally {
       setRefreshing(false);
     }
@@ -258,16 +269,16 @@ export default function AdminProcessPage() {
         method: "POST",
         body: JSON.stringify({ mode, hazard: selectedHazard, operator: operatorName || "operator" }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await res.json().catch(() => ({})) as AdminActionResponse;
       if (res.status === 202) {
-        const pid = (json as any).pid;
+        const pid = json.pid;
         setSuccessMessage(
           `Pipeline analisis berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
         );
         setHasRunThisSession(true);
         await loadStatus(false);
       } else if (res.status === 409) {
-        const active = (json as any).active_run;
+        const active = json.active_run;
         const who = active?.operator_name ? ` oleh ${active.operator_name}` : "";
         const step = active?.step ? ` — step: ${active.step}` : "";
         setErrorMessage(
@@ -275,12 +286,11 @@ export default function AdminProcessPage() {
         );
       } else {
         throw new Error(
-          (json as any)?.error ||
-          `Gagal memulai pipeline (${res.status}). Periksa koneksi server.`
+          getResponseError(json, `Gagal memulai pipeline (${res.status}). Periksa koneksi server.`)
         );
       }
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Gagal menjalankan proses. Periksa koneksi server.");
+    } catch (err: unknown) {
+      setErrorMessage(getErrorMessage(err, "Gagal menjalankan proses. Periksa koneksi server."));
     } finally {
       setRunningAction(false);
     }
@@ -299,17 +309,17 @@ export default function AdminProcessPage() {
         method: "POST",
         body: JSON.stringify({ operator: operatorName || "operator" }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await res.json().catch(() => ({})) as AdminActionResponse;
 
       if (res.status === 202) {
-        const pid = (json as any).pid;
+        const pid = json.pid;
         setSuccessMessage(
           `Load database berhasil dimulai${pid ? ` (PID ${pid})` : ""}. Pantau progress di bawah.`
         );
         setHasRunThisSession(true);
         await loadStatus(false);
       } else if (res.status === 409) {
-        const missing = (json as any).missing as string[] | undefined;
+        const missing = json.missing;
         if (missing && missing.length > 0) {
           setFinalStatus((prev) =>
             prev
@@ -320,16 +330,15 @@ export default function AdminProcessPage() {
             `Belum bisa memuat ke database. File final berikut belum tersedia: ${missing.join(", ")}.`
           );
         } else {
-          setErrorMessage((json as any)?.error || "Tidak dapat menjalankan load database saat ini.");
+          setErrorMessage(getResponseError(json, "Tidak dapat menjalankan load database saat ini."));
         }
       } else {
         throw new Error(
-          (json as any)?.error ||
-          `Gagal memulai load database (${res.status}). Periksa koneksi server.`
+          getResponseError(json, `Gagal memulai load database (${res.status}). Periksa koneksi server.`)
         );
       }
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Gagal menjalankan load database. Periksa koneksi server.");
+    } catch (err: unknown) {
+      setErrorMessage(getErrorMessage(err, "Gagal menjalankan load database. Periksa koneksi server."));
     } finally {
       setRunningAction(false);
     }

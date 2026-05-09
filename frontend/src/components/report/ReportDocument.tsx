@@ -28,6 +28,10 @@ type RegionRow = {
   total_prod?: number | null;
 };
 
+type LossValuesResponse = {
+  data?: RegionRow[];
+};
+
 export type ReportDocumentProps = {
   hazard: string;
   climate: string;
@@ -191,7 +195,7 @@ export default function ReportDocument({
       fetchJson<AalSummary>(
         `/api/aal-summary?hazard=${h}&run_id=${runId}`
       ),
-      fetchJson(
+      fetchJson<LossValuesResponse>(
         `/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`
       ),
     ])

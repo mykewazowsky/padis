@@ -3,16 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "../../../lib/useDebounce";
 import dynamic from "next/dynamic";
+import type { StylesConfig } from "react-select";
 import { ShieldAlert, X } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
 import { fetchAllLayers, fetchLatestRunId, type LayerItem } from "../../../services/fetchLayers";
 import { buildApiUrl } from "../../../lib/api";
 import { getToken, clearToken } from "../../../lib/auth";
+import { getErrorMessage } from "../../../lib/error";
 import DashboardLoadingBlock from "../../../components/dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../../../components/dashboard/DashboardEmptyState";
 import DashboardMapFilters from "../../../components/dashboard/DashboardMapFilters";
-import type { AalSummary } from "../../../types/map";
+import type { AalSummary, GeoFeature, GeoJsonData } from "../../../types/map";
 import type { DistItem } from "../../../components/charts/AdvancedCharts";
 import type { LayerKey } from "../../../components/map/core/MapLegendPanel";
 
@@ -55,6 +57,16 @@ type PresetItem = {
   hazard: string;
   climate: string;
   scenario: string;
+};
+
+type LayerFeature = GeoFeature;
+
+type DashboardLayers = {
+  regions: GeoJsonData | null;
+  production: GeoJsonData | null;
+  loss: GeoJsonData | null;
+  aal: GeoJsonData | null;
+  hazard: GeoJsonData | null;
 };
 
 const hazardOptions: OptionType[] = [
@@ -149,8 +161,8 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
   };
 }
 
-const selectStyles = {
-  control: (base: any, state: any) => ({
+const selectStyles: StylesConfig<OptionType, false> = {
+  control: (base, state) => ({
     ...base,
     minHeight: 38,
     borderRadius: 8,
@@ -166,14 +178,14 @@ const selectStyles = {
       backgroundColor: "var(--dashboard-control-bg)",
     },
   }),
-  valueContainer: (base: any) => ({
+  valueContainer: (base) => ({
     ...base,
     paddingTop: 2,
     paddingBottom: 2,
     paddingLeft: 2,
     paddingRight: 6,
   }),
-  option: (base: any, state: any) => ({
+  option: (base, state) => ({
     ...base,
     backgroundColor: state.isSelected
       ? "var(--color-primary)"
@@ -186,24 +198,24 @@ const selectStyles = {
     paddingBottom: 9,
     fontSize: 13,
   }),
-  singleValue: (base: any) => ({
+  singleValue: (base) => ({
     ...base,
     color: "var(--dashboard-text-strong)",
     fontWeight: 700,
     fontSize: 13,
     letterSpacing: "0.01em",
   }),
-  placeholder: (base: any) => ({
+  placeholder: (base) => ({
     ...base,
     color: "var(--dashboard-text-soft)",
     fontSize: 13,
   }),
-  input: (base: any) => ({
+  input: (base) => ({
     ...base,
     color: "var(--dashboard-input-text)",
     fontSize: 13,
   }),
-  menu: (base: any) => ({
+  menu: (base) => ({
     ...base,
     zIndex: 50,
     borderRadius: 12,
@@ -252,7 +264,7 @@ export default function DashboardPage() {
   const [regions, setRegions] = useState<RegionItem[]>([]);
   const [aalSummary, setAalSummary] = useState<AalSummary | null>(null);
   const [regionAalSummary, setRegionAalSummary] = useState<AalSummary | null>(null);
-  const [layers, setLayers] = useState<any>({
+  const [layers, setLayers] = useState<DashboardLayers>({
     regions: null,
     production: null,
     loss: null,
@@ -626,9 +638,9 @@ export default function DashboardPage() {
       link.remove();
 
       window.URL.revokeObjectURL(objectUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setDownloadError(err.message || "Gagal download file.");
+      setDownloadError(getErrorMessage(err, "Gagal download file."));
     }
   }
 
@@ -687,19 +699,19 @@ export default function DashboardPage() {
     }
 
     const validFeatures = layers.loss.features.filter(
-      (f: any) =>
+      (f: LayerFeature) =>
         f.properties?.loss !== null &&
         f.properties?.loss !== undefined &&
         !Number.isNaN(Number(f.properties.loss))
     );
 
     const totalLoss = validFeatures.reduce(
-      (sum: number, f: any) => sum + Number(f.properties.loss ?? 0),
+      (sum: number, f: LayerFeature) => sum + Number(f.properties.loss ?? 0),
       0
     );
 
     const topFeature = validFeatures.reduce(
-      (max: any | null, f: any) => {
+      (max: LayerFeature | null, f: LayerFeature) => {
         if (!max) return f;
 
         return Number(f.properties.loss ?? 0) >
@@ -707,7 +719,7 @@ export default function DashboardPage() {
           ? f
           : max;
       },
-      null as any
+      null as LayerFeature | null
     );
 
     return {
@@ -804,12 +816,12 @@ export default function DashboardPage() {
     climateChangeInfo,
   ]);
 
-  const selectPortalStyles = {
-    menuPortal: (base: any) => ({
+  const selectPortalStyles: StylesConfig<OptionType, false> = {
+    menuPortal: (base) => ({
       ...base,
       zIndex: 9999,
     }),
-    menu: (base: any) => ({
+    menu: (base) => ({
       ...base,
       zIndex: 9999,
     }),

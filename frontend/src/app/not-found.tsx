@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--theme-body-bg)] px-4 text-[var(--theme-body-text)]">
@@ -22,19 +24,19 @@ export default function NotFound() {
         </p>
 
         <div className="mt-6 flex gap-3">
-          <a
+          <Link
             href="/"
             className="rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition"
           >
             Beranda
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/dashboard"
             className="rounded-xl border border-[var(--theme-shell-border)] px-5 py-2.5 text-sm font-semibold text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)]"
           >
             Dashboard
-          </a>
+          </Link>
         </div>
 
       </div>

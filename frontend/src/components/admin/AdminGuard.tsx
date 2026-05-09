@@ -6,6 +6,7 @@ import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { buildApiUrl } from "../../lib/api";
 import { clearToken, getToken } from "../../lib/auth";
+import { getErrorMessage } from "../../lib/error";
 
 type MeResponse = {
   user?: {
@@ -86,12 +87,12 @@ export default function AdminGuard({
         setForbidden(false);
         setErrorMessage("");
         setChecking(false);
-      } catch (err: any) {
-        if (!mounted || err?.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (!mounted || (err instanceof DOMException && err.name === "AbortError")) return;
 
         setForbidden(false);
         setErrorMessage(
-          err?.message || "Terjadi kesalahan saat memverifikasi akses admin."
+          getErrorMessage(err, "Terjadi kesalahan saat memverifikasi akses admin.")
         );
         setChecking(false);
       }

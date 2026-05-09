@@ -1,5 +1,6 @@
 import { buildApiUrl } from "./api";
 import { clearToken, getToken } from "./auth";
+import { getResponseError } from "./error";
 
 type FetchWithAuthOptions = RequestInit & {
   redirectToLogin?: boolean;
@@ -42,7 +43,7 @@ export async function fetchWithAuth(
   return res;
 }
 
-export async function fetchJsonWithAuth<T = any>(
+export async function fetchJsonWithAuth<T = unknown>(
   path: string,
   options: FetchWithAuthOptions = {}
 ): Promise<T> {
@@ -52,7 +53,7 @@ export async function fetchJsonWithAuth<T = any>(
 
   if (!res.ok) {
     throw new Error(
-      (json as any)?.error || `Request gagal dengan status ${res.status}`
+      getResponseError(json, `Request gagal dengan status ${res.status}`)
     );
   }
 

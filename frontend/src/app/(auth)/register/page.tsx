@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { buildApiUrl } from "../../../lib/api";
+import { getErrorMessage, getResponseError } from "../../../lib/error";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -89,7 +90,7 @@ export default function RegisterPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Registrasi gagal");
+        throw new Error(getResponseError(json, "Registrasi gagal"));
       }
 
       setSuccess(
@@ -105,8 +106,8 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push("/login");
       }, 1400);
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat registrasi.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Terjadi kesalahan saat registrasi."));
     } finally {
       setLoading(false);
     }

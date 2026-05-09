@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { buildApiUrl } from "../../../../lib/api";
 import { getToken } from "../../../../lib/auth";
+import { getErrorMessage, getResponseError } from "../../../../lib/error";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
 
 const GeoJsonMiniMap = dynamic(
@@ -46,7 +47,7 @@ type PreviewData =
       type: "geojson";
       filename: string;
       feature_count: number;
-      sample_properties: Record<string, any>;
+      sample_properties: Record<string, unknown>;
     }
   | {
       type: "csv";
@@ -147,7 +148,7 @@ export default function AdminOutputPage() {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
 
   const [previewMap, setPreviewMap] = useState<Record<string, PreviewData>>({});
-  const [geoJsonMap, setGeoJsonMap] = useState<Record<string, any>>({});
+  const [geoJsonMap, setGeoJsonMap] = useState<Record<string, GeoJSON.GeoJsonObject>>({});
 
   const [activeRun, setActiveRun] = useState<ActiveRun | null>(null);
 
@@ -161,7 +162,7 @@ export default function AdminOutputPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memuat hasil.");
+        throw new Error(getResponseError(json, "Gagal memuat hasil."));
       }
 
       const sorted = [...json].sort(
@@ -170,9 +171,9 @@ export default function AdminOutputPage() {
       );
 
       setOutputs(sorted);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Load outputs error:", err);
-      setError(err.message || "Gagal memuat hasil.");
+      setError(getErrorMessage(err, "Gagal memuat hasil."));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -267,7 +268,7 @@ export default function AdminOutputPage() {
         let message = "Gagal mengunduh file.";
         try {
           const json = await res.json();
-          message = json.error || message;
+          message = getResponseError(json, message);
         } catch {}
         throw new Error(message);
       }
@@ -281,9 +282,9 @@ export default function AdminOutputPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Download error:", err);
-      setError(err.message || "Gagal mengunduh file.");
+      setError(getErrorMessage(err, "Gagal mengunduh file."));
     } finally {
       setDownloadingFile("");
     }
@@ -335,7 +336,7 @@ export default function AdminOutputPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memuat preview.");
+        throw new Error(getResponseError(json, "Gagal memuat preview."));
       }
 
       setPreviewMap((prev) => ({
@@ -367,9 +368,9 @@ export default function AdminOutputPage() {
       }
 
       setExpandedFile(filename);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Preview error:", err);
-      setError(err.message || "Gagal memuat preview.");
+      setError(getErrorMessage(err, "Gagal memuat preview."));
     } finally {
       setPreviewingFile("");
     }

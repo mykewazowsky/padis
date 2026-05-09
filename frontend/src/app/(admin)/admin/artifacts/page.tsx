@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildApiUrl } from "../../../../lib/api";
+import { getErrorMessage, getResponseError } from "../../../../lib/error";
 import { getToken } from "../../../../lib/auth";
 
 type DatasetStatus = "active" | "ready" | "missing" | "invalid" | "partial";
@@ -113,13 +114,13 @@ export default function AdminArtifactsPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memuat artifacts.");
+        throw new Error(getResponseError(json, "Gagal memuat artifacts."));
       }
 
       setData(json);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Fetch artifacts error:", err);
-      setError(err.message || "Gagal memuat artifacts.");
+      setError(getErrorMessage(err, "Gagal memuat artifacts."));
     } finally {
       setLoading(false);
     }

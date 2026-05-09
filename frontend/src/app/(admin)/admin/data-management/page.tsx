@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "../../../../lib/fetcher-auth";
+import { getErrorMessage, getResponseError } from "../../../../lib/error";
 import {
   CheckCircle2,
   XCircle,
@@ -115,10 +116,10 @@ export default function AdminDataPage() {
       setDataError("");
       const res = await fetchWithAuth("/api/admin/data");
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Gagal memuat data.");
+      if (!res.ok) throw new Error(getResponseError(json, "Gagal memuat data."));
       setRegistryData(json);
-    } catch (err: any) {
-      setDataError(err.message || "Gagal memuat data.");
+    } catch (err: unknown) {
+      setDataError(getErrorMessage(err, "Gagal memuat data."));
     } finally {
       setLoadingData(false);
     }
@@ -142,10 +143,10 @@ export default function AdminDataPage() {
       setCheckResult(null);
       const res = await fetchWithAuth("/api/admin/data/readiness");
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Gagal memeriksa kesiapan data.");
+      if (!res.ok) throw new Error(getResponseError(json, "Gagal memeriksa kesiapan data."));
       setCheckResult(json);
-    } catch (err: any) {
-      setCheckError(err.message || "Gagal memeriksa kesiapan data.");
+    } catch (err: unknown) {
+      setCheckError(getErrorMessage(err, "Gagal memeriksa kesiapan data."));
     } finally {
       setChecking(false);
     }

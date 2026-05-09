@@ -15,6 +15,7 @@ import {
 
 import { buildApiUrl } from "../../../lib/api";
 import { getToken, saveToken, clearToken } from "../../../lib/auth";
+import { getErrorMessage, getResponseError } from "../../../lib/error";
 import { supabase } from "../../../lib/supabase";
 
 export default function LoginPage() {
@@ -102,13 +103,13 @@ export default function LoginPage() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(json.error || "Login gagal");
+        throw new Error(getResponseError(json, "Login gagal"));
       }
 
       saveToken(json.token);
       router.replace(redirectTo);
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Terjadi kesalahan"));
     } finally {
       setLoading(false);
     }

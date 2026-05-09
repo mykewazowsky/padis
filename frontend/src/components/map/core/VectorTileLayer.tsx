@@ -24,6 +24,30 @@ export type VGStyleFn = (
   zoom: number
 ) => PathOptions;
 
+type VectorTileFeature = {
+  properties?: Record<string, unknown>;
+};
+
+type VectorTileEvent = {
+  layer?: VectorTileFeature;
+  latlng: L.LatLng;
+};
+
+type VectorGridLayer = L.Layer & {
+  setFeatureStyle(id: string, style: PathOptions): void;
+  resetFeatureStyle(id: string): void;
+  on(type: "mouseover" | "mousemove" | "mouseout" | "click", fn: (event: VectorTileEvent) => void): VectorGridLayer;
+};
+
+type LeafletWithVectorGrid = typeof L & {
+  vectorGrid?: {
+    protobuf(url: string, options: Record<string, unknown>): VectorGridLayer;
+  };
+  canvas: typeof L.canvas & {
+    tile?: unknown;
+  };
+};
+
 /** Exposed via the `layerHandle` prop for imperative selection highlighting. */
 export interface VectorTileLayerHandle {
   /** Override style for a single feature by its kab_kota string. */
@@ -74,7 +98,7 @@ export default function VectorTileLayer({
   const map = useMap();
 
   // Internal ref to the live VectorGrid layer (typed as any — vectorGrid is dynamic)
-  const vgLayerRef = useRef<any>(null);
+  const vgLayerRef = useRef<VectorGridLayer | null>(null);
 
   // Keep event callbacks in refs so they stay current without causing
   // layer re-creation when parent re-renders
@@ -93,9 +117,9 @@ export default function VectorTileLayer({
     layerHandle.current = {
       setFeatureStyle: (id, style) =>
         // @types/leaflet.vectorgrid types id as number; actual impl accepts any
-        (vgLayerRef.current as any)?.setFeatureStyle(id, style),
+        vgLayerRef.current?.setFeatureStyle(id, style),
       resetFeatureStyle: (id) =>
-        (vgLayerRef.current as any)?.resetFeatureStyle(id),
+        vgLayerRef.current?.resetFeatureStyle(id),
     };
     return () => {
       if (layerHandle) layerHandle.current = null;
@@ -112,14 +136,18 @@ export default function VectorTileLayer({
       // leaflet.vectorgrid bundles its own deps but attaches to the global L.
       // Expose the webpack module's L as globalThis.L before importing so the
       // bundle finds it and attaches vectorGrid / canvas.tile to the same object.
-      if (!(L as any).vectorGrid) {
-        (globalThis as any).L = L;
+      const leaflet = L as LeafletWithVectorGrid;
+      if (!leaflet.vectorGrid) {
+        (globalThis as typeof globalThis & { L?: typeof L }).L = L;
 
         // leaflet.vectorgrid@1.3.0 calls L.DomEvent.fakeStop() which was removed
         // in Leaflet 1.8.0. Polyfill it before the plugin loads so event handlers
         // (click, mouseover) don't abort mid-execution with a TypeError.
-        if (!(L.DomEvent as any).fakeStop) {
-          (L.DomEvent as any).fakeStop = (e: Event) => {
+        const domEvent = L.DomEvent as typeof L.DomEvent & {
+          fakeStop?: (e: Event) => void;
+        };
+        if (!domEvent.fakeStop) {
+          domEvent.fakeStop = (e: Event) => {
             if (e) L.DomEvent.stopPropagation(e);
           };
         }
@@ -135,22 +163,22 @@ export default function VectorTileLayer({
         vgLayerRef.current = null;
       }
 
-      const layer = (L as any).vectorGrid.protobuf(url, {
+      const layer = leaflet.vectorGrid!.protobuf(url, {
         vectorTileLayerStyles: {
           [layerName]: styleFunction as PathOptions,
         },
         interactive,
         // Use kab_kota name as feature ID so setFeatureStyle matches
         // the selectedRegion string stored in component state
-        getFeatureId: (f: any) =>
+        getFeatureId: (f: VectorTileFeature) =>
           (f.properties?.kab_kota as string) ?? undefined,
         maxZoom: 18,
         fetchOptions: { cache: "default" } as RequestInit,
-        rendererFactory: (L as any).canvas.tile,
+        rendererFactory: leaflet.canvas.tile,
       });
 
       if (interactive) {
-        layer.on("mouseover", (e: any) => {
+        layer.on("mouseover", (e) => {
           const props = (e.layer?.properties ?? {}) as Record<string, unknown>;
           activeTooltip?.remove();
           if (tooltipFnRef.current) {
@@ -161,7 +189,7 @@ export default function VectorTileLayer({
           }
         });
 
-        layer.on("mousemove", (e: any) => {
+        layer.on("mousemove", (e) => {
           activeTooltip?.setLatLng(e.latlng);
         });
 
@@ -170,7 +198,7 @@ export default function VectorTileLayer({
           activeTooltip = null;
         });
 
-        layer.on("click", (e: any) => {
+        layer.on("click", (e) => {
           const props = (e.layer?.properties ?? {}) as Record<string, unknown>;
           activeTooltip?.remove();
           activeTooltip = null;
@@ -194,9 +222,9 @@ export default function VectorTileLayer({
         if (layerHandle) {
           layerHandle.current = {
             setFeatureStyle: (id, style) =>
-              (vgLayerRef.current as any)?.setFeatureStyle(id, style),
+              vgLayerRef.current?.setFeatureStyle(id, style),
             resetFeatureStyle: (id) =>
-              (vgLayerRef.current as any)?.resetFeatureStyle(id),
+              vgLayerRef.current?.resetFeatureStyle(id),
           };
         }
 

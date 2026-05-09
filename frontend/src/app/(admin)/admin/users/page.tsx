@@ -22,6 +22,7 @@ import {
 
 import { buildApiUrl } from "../../../../lib/api";
 import { getToken, clearToken } from "../../../../lib/auth";
+import { getErrorMessage, getResponseError } from "../../../../lib/error";
 
 type UserItem = {
   id: string;
@@ -210,14 +211,14 @@ export default function AdminUsersPage() {
       const json = await res.json().catch(() => []);
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memuat data pengguna.");
+        throw new Error(getResponseError(json, "Gagal memuat data pengguna."));
       }
 
       setUsers(Array.isArray(json) ? json : []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotice({
         type: "error",
-        message: err.message || "Terjadi kesalahan saat memuat data pengguna.",
+        message: getErrorMessage(err, "Terjadi kesalahan saat memuat data pengguna."),
       });
     } finally {
       setLoading(false);
@@ -364,7 +365,7 @@ export default function AdminUsersPage() {
       }
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memperbarui role pengguna.");
+        throw new Error(getResponseError(json, "Gagal memperbarui role pengguna."));
       }
 
       setUsers((prev) =>
@@ -377,10 +378,10 @@ export default function AdminUsersPage() {
         type: "success",
         message: "Role pengguna berhasil diperbarui.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotice({
         type: "error",
-        message: err.message || "Terjadi kesalahan saat memperbarui role.",
+        message: getErrorMessage(err, "Terjadi kesalahan saat memperbarui role."),
       });
     } finally {
       setUpdatingRoleId(null);
@@ -421,7 +422,7 @@ export default function AdminUsersPage() {
       }
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal memperbarui status pengguna.");
+        throw new Error(getResponseError(json, "Gagal memperbarui status pengguna."));
       }
 
       setUsers((prev) =>
@@ -434,10 +435,10 @@ export default function AdminUsersPage() {
         type: "success",
         message: "Status pengguna berhasil diperbarui.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotice({
         type: "error",
-        message: err.message || "Terjadi kesalahan saat memperbarui status.",
+        message: getErrorMessage(err, "Terjadi kesalahan saat memperbarui status."),
       });
     } finally {
       setUpdatingStatusId(null);

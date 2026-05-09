@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { buildApiUrl } from "../../../lib/api";
+import { getErrorMessage, getResponseError } from "../../../lib/error";
 
 /* ── Password strength ─────────────────────────────────── */
 type Strength = "weak" | "medium" | "strong";
@@ -113,13 +114,13 @@ function ResetPasswordForm() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(json.error || "Reset password gagal.");
+        throw new Error(getResponseError(json, "Reset password gagal."));
       }
 
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2200);
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat reset password.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Terjadi kesalahan saat reset password."));
     } finally {
       setLoading(false);
     }

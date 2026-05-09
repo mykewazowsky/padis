@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Select from "react-select";
+import type { StylesConfig } from "react-select";
 import { ShieldAlert, Cloud, RefreshCw, MapPin } from "lucide-react";
 
 type OptionType = {
@@ -9,7 +10,7 @@ type OptionType = {
   label: string;
 };
 
-type SelectStyles = Record<string, any>;
+type SelectStyles = StylesConfig<OptionType, false>;
 
 type Props = {
   hazardOptions: OptionType[];
@@ -99,10 +100,10 @@ function FilterFields({
     HAZARD_ACCENT[selectedHazardOption?.value ?? "multi"] ?? HAZARD_ACCENT.multi;
 
   const buildSelectStyles = useMemo(
-    () => (fieldId: string) => ({
+    () => (fieldId: string): SelectStyles => ({
       ...selectStyles,
       ...selectPortalStyles,
-      control: (base: any, state: any) => {
+      control: (base, state) => {
         const originalControl =
           typeof selectStyles.control === "function"
             ? selectStyles.control(base, state)

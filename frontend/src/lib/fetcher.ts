@@ -1,9 +1,11 @@
 import { buildApiUrl } from "./api";
 
+type QueryValue = string | number | boolean | null | undefined;
+
 // =========================
 // GENERIC FETCH JSON
 // =========================
-export async function fetchJson<T = any>(
+export async function fetchJson<T = unknown>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
@@ -38,7 +40,7 @@ export async function fetchJson<T = any>(
 // =========================
 // OPTIONAL: FETCH WITH PARAMS
 // =========================
-export function buildQuery(params: Record<string, any>) {
+export function buildQuery(params: Record<string, QueryValue>) {
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -53,9 +55,9 @@ export function buildQuery(params: Record<string, any>) {
 // =========================
 // OPTIONAL: HELPER GET
 // =========================
-export async function fetchGet<T = any>(
+export async function fetchGet<T = unknown>(
   path: string,
-  params?: Record<string, any>
+  params?: Record<string, QueryValue>
 ): Promise<T> {
   const query = params ? `?${buildQuery(params)}` : "";
   return fetchJson<T>(`${path}${query}`);

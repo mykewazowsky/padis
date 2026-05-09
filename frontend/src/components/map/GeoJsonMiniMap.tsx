@@ -16,10 +16,9 @@ function FitBounds({ bounds }: { bounds: LatLngBounds }) {
 
 export default function GeoJsonMiniMap({ data }: GeoJsonMiniMapProps) {
   const bounds = useMemo(() => {
-    const geo = data as any;
     const coords: LatLngTuple[] = [];
 
-    function collectCoordinates(input: any) {
+    function collectCoordinates(input: unknown) {
       if (!input) return;
 
       if (
@@ -39,14 +38,27 @@ export default function GeoJsonMiniMap({ data }: GeoJsonMiniMapProps) {
       }
     }
 
-    if (geo.type === "FeatureCollection") {
-      for (const feature of geo.features || []) {
-        collectCoordinates(feature?.geometry?.coordinates);
+    function collectGeometry(geometry: GeoJSON.Geometry | null | undefined) {
+      if (!geometry) return;
+      if (geometry.type === "GeometryCollection") {
+        for (const child of geometry.geometries) {
+          collectGeometry(child);
+        }
+        return;
       }
-    } else if (geo.type === "Feature") {
-      collectCoordinates(geo.geometry?.coordinates);
+      collectCoordinates(geometry.coordinates);
+    }
+
+    if (data.type === "FeatureCollection") {
+      const collection = data as GeoJSON.FeatureCollection;
+      for (const feature of collection.features || []) {
+        collectGeometry(feature?.geometry);
+      }
+    } else if (data.type === "Feature") {
+      const feature = data as GeoJSON.Feature;
+      collectGeometry(feature.geometry);
     } else {
-      collectCoordinates(geo.coordinates);
+      collectGeometry(data as GeoJSON.Geometry);
     }
 
     if (coords.length === 0) return null;
@@ -66,7 +78,7 @@ export default function GeoJsonMiniMap({ data }: GeoJsonMiniMapProps) {
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <GeoJSON data={data as any} />
+        <GeoJSON data={data} />
         {bounds ? <FitBounds bounds={bounds} /> : null}
       </MapContainer>
     </div>

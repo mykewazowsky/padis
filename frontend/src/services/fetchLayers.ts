@@ -59,7 +59,8 @@ export async function fetchLatestRunId(hazard?: string): Promise<LatestRun> {
   };
 }
 
-// runId wajib; template {z}/{x}/{y} diisi Leaflet saat render.
+// runId is required so the map never mixes tiles from different analysis runs.
+// The {z}/{x}/{y} placeholders are filled by Leaflet during tile rendering.
 export function buildTileUrl(
   layer: string,
   hazard: string,
@@ -94,7 +95,9 @@ function toFC(items: LayerItem[], bounds: DataBounds | null = null): FeatureColl
   };
 }
 
-// Endpoint ringan; rendering peta via MVT tiles (/api/tiles/…) oleh Leaflet.
+// Lightweight value endpoints; actual geometry rendering uses MVT tiles
+// (/api/tiles/...) in MapCanvas. Keeping values and geometry separate keeps
+// filter changes responsive and avoids downloading large GeoJSON geometry.
 // activeAal / activeHazard: skip fetching layer data when the layer is toggled off.
 // Loss is always fetched (default active layer).
 export async function fetchAllLayers({

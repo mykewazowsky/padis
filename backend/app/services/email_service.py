@@ -247,6 +247,8 @@ def send_password_reset_email(
     reset_link: str,
     expiry_minutes: int = 30,
 ) -> None:
+    # Prefer Resend's HTTPS API when available. Some hosts block outbound SMTP,
+    # while HTTPS generally remains reachable; SMTP below is kept as fallback.
     resend_api_key = _get_env("RESEND_API_KEY")
     smtp_host_hint = _get_env("SMTP_HOST").lower()
     if not resend_api_key and smtp_host_hint == "smtp.resend.com":

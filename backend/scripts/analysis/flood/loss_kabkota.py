@@ -10,6 +10,15 @@ def extract_rp(col_name: str) -> int:
 
 
 def compute_loss_flood_kab(gdf, prod_df, gabah):
+    """
+    Aggregate flood LOP to kabupaten/kota and convert it to monetary loss.
+
+    Core formula:
+        loss = LOP * total_prod * gabah
+
+    total_prod comes from the production exposure table; gabah is the
+    commodity price/constant used consistently across hazard pipelines.
+    """
 
     # =========================
     # PREPARE
@@ -42,6 +51,8 @@ def compute_loss_flood_kab(gdf, prod_df, gabah):
     # =========================
     # AGGREGATE LOP → KAB
     # =========================
+    # Overlay can create multiple sawah/admin pieces per kabupaten/kota. Use
+    # mean LOP to keep the value as a fractional productivity-loss indicator.
     agg_dict = {col: "mean" for col in lop_cols}
 
     gdf_kab = gdf.dissolve(

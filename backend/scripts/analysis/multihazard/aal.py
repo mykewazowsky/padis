@@ -15,6 +15,12 @@ def extract_rp(col_name: str) -> int:
 
 
 def calculate_aal(losses: list[float], probs: list[float]) -> float:
+    """
+    Estimate Average Annual Loss from sampled return periods.
+
+    Probabilities are 1/RP. Multi-hazard losses are already combined before
+    this step, so this integrates the final multi-hazard exceedance curve.
+    """
     if any(pd.isna(v) for v in losses):
         return np.nan
 

@@ -3,6 +3,8 @@ import geopandas as gpd
 
 
 def drought_polynomial(x: float) -> float:
+    # This vulnerability curve maps normalized drought intensity to LOP.
+    # Keep the coefficients aligned with the capstone method section.
     """
     Polynomial vulnerability function
 

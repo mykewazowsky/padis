@@ -720,6 +720,8 @@ export default function MapCanvas({
       };
     };
 
+    // Analysis layer uses MVT geometry. Classification values and breaks are
+    // fetched separately, then applied here as vector-tile styles.
     // Analysis layer dirender lebih dulu (di bawah production overlay).
     const analysisKey: LayerKey | null = activeLayers.hazard
       ? "hazard"
@@ -779,6 +781,8 @@ export default function MapCanvas({
       vtLayersRef.current.thematic = vtLayer;
     }
 
+    // Production uses sawah geometry and is drawn above the thematic analysis
+    // layer so exposed rice areas remain visible.
     // Production dirender di atas analysis layer.
     if (activeLayers.production && hasRequiredFilters) {
       const prodOpacity = layerOpacityMap.production;

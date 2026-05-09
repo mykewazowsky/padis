@@ -102,6 +102,13 @@ def get_raster_info(raster_path: str):
 # CENTROID MODE (FIXED)
 # ===============================
 def centroid_point_query(gdf, raster_info, stats):
+    """
+    Fast sampling mode for coarse rasters.
+
+    For coarse hazard grids, polygon zonal statistics can overstate precision.
+    Sampling at each feature centroid keeps the extraction simple and avoids
+    tiny polygon/raster overlap artifacts.
+    """
     data = raster_info["data"]
     transform = raster_info["transform"]
     nodata = raster_info["nodata"] or RASTER_NODATA
@@ -143,6 +150,12 @@ def centroid_point_query(gdf, raster_info, stats):
 # ZONAL STATS
 # ===============================
 def bulk_zonal_stats(gdf, raster_path, chunk_size, stats):
+    """
+    Polygon zonal statistics for finer rasters.
+
+    The chunk loop limits memory use when many sawah/admin overlay polygons
+    are evaluated against each raster.
+    """
     results = {s: [] for s in stats}
 
     total = len(gdf)
@@ -190,6 +203,12 @@ def run_zonal(
     temp_output_path=None,
     overwrite=False,
 ):
+    """
+    Extract raster hazard values into the vector overlay table.
+
+    Output columns preserve raster names through format_field_name(), so later
+    analysis steps can infer hazard, scenario, and return period from columns.
+    """
 
     require_file(vector_path, "Vector")
     rasters = get_raster_files(raster_folder, raster_prefix, raster_suffix)
@@ -220,6 +239,8 @@ def run_zonal(
         # ===============================
         # MODE SELECTION
         # ===============================
+        # Coarse drought-like grids use centroid sampling; finer rasters use
+        # polygon zonal statistics. This is a methodological choice, not UI.
         if raster_info["is_coarse"]:
             print(f"[MODE] COARSE → centroid")
             stat_res = centroid_point_query(gdf_filtered, raster_info, stats)

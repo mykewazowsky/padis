@@ -66,6 +66,9 @@ def _bbox(col: str = "r.geom") -> str:
 
 
 def _tile_loss(db, p: dict) -> bytes:
+    # Tile responses carry geometry plus the value needed for hover/click
+    # styling. Detailed classification arrays are served separately by
+    # /api/layers/values/* to keep MVT payloads compact.
     sql = text(f"""
         SELECT ST_AsMVT(q.*, 'loss', 4096, 'geom') AS mvt
         FROM (
@@ -238,6 +241,8 @@ def get_tile(layer: str, z: int, x: int, y: int):
     if rp not in _RP_ID:
         return jsonify({"error": f"Unknown return period {rp}. Valid: {list(_RP_ID)}"}), 400
 
+    # Include every filter dimension in the cache key so tiles from different
+    # runs/scenarios cannot be reused across map states.
     cache_key = f"v{_TILE_VERSION}/{layer}/{z}/{x}/{y}/{hazard}/{climate}/{rp}/{run_id}"
     cached = tile_cache.get(cache_key)
     if cached is not None:

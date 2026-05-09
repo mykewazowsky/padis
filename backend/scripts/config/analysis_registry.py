@@ -56,6 +56,10 @@ def _load_prod() -> pd.DataFrame:
 # FLOOD PIPELINE (FIXED)
 # ===============================
 def flood_pipeline(zonal_path: str) -> str:
+    """
+    Flood analysis chain:
+    zonal mean depth -> flood LOP -> district loss -> AAL -> final layer.
+    """
     log.header("FLOOD ANALYSIS")
 
     os.makedirs(OUTPUT_ANALYSIS_DIR, exist_ok=True)
@@ -86,6 +90,10 @@ def flood_pipeline(zonal_path: str) -> str:
 # DROUGHT PIPELINE (FIXED)
 # ===============================
 def drought_pipeline(zonal_path: str) -> str:
+    """
+    Drought analysis chain:
+    zonal drought index -> drought intensity -> LOP -> district loss -> AAL.
+    """
     log.header("DROUGHT ANALYSIS")
 
     os.makedirs(OUTPUT_ANALYSIS_DIR, exist_ok=True)
@@ -119,6 +127,12 @@ def drought_pipeline(zonal_path: str) -> str:
 # MULTIHAZARD PIPELINE (TIDAK DIUBAH)
 # ===============================
 def multihazard_pipeline(zonal_path: str) -> str:
+    """
+    Multi-hazard analysis uses completed flood and drought final outputs.
+
+    It intentionally does not recompute single-hazard pipelines here, so the
+    operator must run flood and drought first and then combine those results.
+    """
     log.header("MULTIHAZARD ANALYSIS")
 
     flood_path = os.path.join(OUTPUT_ANALYSIS_DIR, "kabkota_flood_final.geojson")
@@ -171,6 +185,8 @@ def multihazard_pipeline(zonal_path: str) -> str:
 # REGISTRY
 # ===============================
 ANALYSIS_REGISTRY = {
+    # Central dispatch table used by pipeline runners. Adding a hazard requires
+    # registering its callable here so orchestration and admin execution agree.
     "flood": flood_pipeline,
     "drought": drought_pipeline,
     "multihazard": multihazard_pipeline,

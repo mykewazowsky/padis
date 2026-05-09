@@ -84,6 +84,13 @@ def build_report_context(
     climate,
     region=None,
 ):
+    """
+    Build the numeric and narrative context for the generated report.
+
+    Keep these aggregations aligned with dashboard/API semantics: loss is
+    summed over the selected scope, while AAL compares non-climate and climate
+    scenario totals for the same hazard.
+    """
     # ================= LABEL =================
     hazard_label = {
         "multi": "Multi-hazard",

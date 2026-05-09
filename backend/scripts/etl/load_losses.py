@@ -36,6 +36,8 @@ def run(cur, run_id: int, hazard: str = "multi") -> None:
     Tidak melakukan commit — tanggung jawab caller (run_all.py).
     Raise exception jika gagal agar caller dapat melakukan rollback.
     """
+    # Flatten each loss_* column into normalized DB rows keyed by district,
+    # hazard, scenario, return period, and run_id.
     log.info("LOSSES", f"Memuat data losses (hazard={hazard})...")
 
     hazards, scenarios, rps = _get_lookup(cur)

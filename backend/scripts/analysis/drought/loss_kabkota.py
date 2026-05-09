@@ -42,6 +42,15 @@ def _normalize_id(val) -> str | None:
 
 
 def compute_loss_drought_kab(gdf, prod_df, gabah):
+    """
+    Aggregate drought LOP to kabupaten/kota and convert it to monetary loss.
+
+    Core formula:
+        loss = LOP * total_prod * gabah
+
+    The ID normalization above is part of the data integration assumption:
+    production exposure and spatial overlay outputs must meet on id_kabkota.
+    """
 
     # =========================
     # PREPARE
@@ -75,6 +84,8 @@ def compute_loss_drought_kab(gdf, prod_df, gabah):
     # =========================
     # AGGREGATE LOP → KAB
     # =========================
+    # Overlay can create multiple sawah/admin pieces per kabupaten/kota. Use
+    # mean LOP to keep the value as a fractional productivity-loss indicator.
     agg_dict = {col: "mean" for col in lop_cols}
 
     gdf_kab = gdf.dissolve(

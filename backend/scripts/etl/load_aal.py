@@ -33,6 +33,8 @@ def run(cur, run_id: int, hazard: str = "multi") -> None:
     Tidak melakukan commit — tanggung jawab caller (run_all.py).
     Raise exception jika gagal agar caller dapat melakukan rollback.
     """
+    # AAL is already integrated across return periods, so rows are keyed only
+    # by district, hazard, scenario, and run_id.
     log.info("AAL", f"Memuat data AAL (hazard={hazard})...")
 
     hazards, scenarios = _get_lookup(cur)

@@ -188,6 +188,8 @@ export default function ReportDocument({
     const s = scenario.toLowerCase();
     const c = climate.toLowerCase();
 
+    // Report preview mirrors the dashboard filter state but fetches only the
+    // summary/value endpoints needed for the printable A4 document.
     Promise.all([
       fetchJson(
         `/api/top-regions?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`

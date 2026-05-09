@@ -63,6 +63,9 @@ def _fetch_bounds(db, bounds_sql: str, params: dict) -> dict | None:
 
 @layers_bp.route("/values/loss", methods=["GET"])
 def get_loss_values():
+    # Geometry is intentionally omitted here. Leaflet draws geometry from MVT
+    # tiles; this endpoint supplies values, has_data flags, and data bounds for
+    # client-side classification and auto-fit.
     hazard         = _normalize_hazard(request.args.get("hazard", "flood"))
     climate        = request.args.get("climate", "nonclimate").strip().lower()
     scenario_param = request.args.get("scenario", "rp100").strip().lower()
@@ -155,6 +158,8 @@ def get_loss_values():
 
 @layers_bp.route("/values/aal", methods=["GET"])
 def get_aal_values():
+    # AAL is scenario-level, not return-period-level, because the pipeline has
+    # already integrated the loss exceedance curve across RPs.
     hazard  = _normalize_hazard(request.args.get("hazard", "flood"))
     climate = request.args.get("climate", "nonclimate").strip().lower()
     run_id  = request.args.get("run_id", type=int)
@@ -235,6 +240,8 @@ def get_hazard_values():
     ?hazard=flood&scenario=<climate_value>&rp=rp100&run_id=<id>
     Note: 'scenario' param carries the climate value (nonclimate/climate).
     """
+    # Uses the same geometry-free response shape as loss/AAL. The historical
+    # query name "scenario" carries the climate value for this endpoint.
     hazard   = _normalize_hazard(request.args.get("hazard", "flood"))
     scenario = request.args.get("scenario", "nonclimate").strip().lower()  # = climate value
     rp_str   = request.args.get("rp", "rp100").strip().lower()

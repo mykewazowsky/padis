@@ -11,6 +11,8 @@ def extract_rp(col_name: str) -> int:
 
 
 def enforce_monotonic(losses):
+    # AAL integration assumes losses do not decrease as events become rarer
+    # and more severe. This correction keeps the exceedance curve physical.
     corrected = losses.copy()
     for i in range(1, len(corrected)):
         if corrected[i] < corrected[i-1]:
@@ -19,6 +21,12 @@ def enforce_monotonic(losses):
 
 
 def calculate_aal(losses: list[float], probs: list[float]) -> float:
+    """
+    Estimate Average Annual Loss from sampled return periods.
+
+    Probabilities are 1/RP. The loop integrates adjacent points with the
+    trapezoid rule; the last term approximates the tail beyond the rarest RP.
+    """
 
     # FIX NULL → 0
     losses = [0 if pd.isna(v) else v for v in losses]

@@ -73,6 +73,9 @@ def _compute_dashboard_breaks(values: np.ndarray):
     - unique
     - kalau <= 5 langsung pakai
     - kalau > 5 pakai min, 25%, 50%, 75%, max
+
+    Report maps use the same break logic as the dashboard so colors in the PDF
+    are defensible against what users see in the interactive map.
     """
     positive_values = [float(v) for v in values if v is not None and float(v) > 0]
 

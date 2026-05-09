@@ -3,6 +3,13 @@ import geopandas as gpd
 
 
 def flood_lop_function(x: float) -> float:
+    """
+    Flood vulnerability curve.
+
+    x is inundation depth from zonal statistics, and the output is LOP
+    (loss of productivity). Keep this formula close to the thesis/capstone
+    method section because it is one of the main scientific assumptions.
+    """
     if x is None or np.isnan(x) or x <= 0:
         return np.nan
 
@@ -12,7 +19,8 @@ def flood_lop_function(x: float) -> float:
 
 
 def compute_lop_flood(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    # auto-detect kolom flood
+    # Convert each flood intensity column into a matching LOP column while
+    # preserving the return-period suffix used by downstream loss and AAL steps.
     flood_cols = [c for c in gdf.columns if c.startswith("mean_flood_")]
 
     if not flood_cols:

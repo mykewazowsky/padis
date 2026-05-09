@@ -105,6 +105,11 @@ def _normalize_reverse(data: np.ndarray) -> np.ndarray:
 
     min = -6.5 (P1 global)
     max = -2 (SPI threshold)
+
+    Lower SPI means more severe drought. The reverse normalization therefore
+    maps more negative SPI values to higher drought intensity in [0, 1].
+    Keep the fixed thresholds documented in the method section because they
+    control the drought intensity scale used by the vulnerability curve.
     """
 
     if np.all(np.isnan(data)):
@@ -262,6 +267,9 @@ def normalize_drought_pair_with_common_overlap(
     4. area di luar overlap dijadikan nodata di keduanya
     5. normalisasi reverse min-max masing-masing raster
     6. simpan langsung jadi *_norm.tif
+
+    Common overlap is used so climate and non-climate rasters are compared on
+    the same valid footprint; otherwise missing cells could bias the zonal mean.
     """
 
     if (

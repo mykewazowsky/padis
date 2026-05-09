@@ -22,6 +22,10 @@ def parse_loss(col: str):
     - loss_flood_climate_rp100
     - loss_drought_nonclimate_rp25
     - loss_multi_climate_rp50
+
+    This naming convention is the bridge from analysis GeoJSON columns to the
+    normalized losses table: hazard, scenario, and return period are parsed
+    directly from the column name.
     """
 
     try:
@@ -51,6 +55,9 @@ def parse_zonal(col: str):
     - mean_flood_r100
     - mean_flood_rc100
     - mean_multi_rc50
+
+    Zonal columns encode raw hazard intensity by scenario and return period.
+    "rc" is treated as climate; other return-period names are non-climate.
     """
 
     try:
@@ -85,6 +92,9 @@ def parse_aal(col: str):
     - aal_flood_climate
     - aal_drought_nonclimate
     - aal_multi_climate
+
+    AAL columns omit return period because AAL is already integrated across
+    return periods for a hazard and scenario.
     """
 
     try:

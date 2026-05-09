@@ -5,6 +5,9 @@ from backend.scripts.config.settings import GABAH_KERING_PANEN
 
 W_FLOOD = 0.678
 W_DROUGHT = 0.322
+# Relative hazard weights used to combine single-hazard losses. Keep these
+# values traceable to the capstone method section because they directly affect
+# every multi-hazard loss and AAL output.
 
 
 # ===============================
@@ -24,6 +27,13 @@ def merge_hazards(
     flood: gpd.GeoDataFrame,
     drought: gpd.GeoDataFrame,
 ) -> gpd.GeoDataFrame:
+    """
+    Join completed flood and drought outputs at id_kabkota level.
+
+    Multi-hazard analysis deliberately depends on validated single-hazard
+    outputs so that the combined layer inherits the same district geometry and
+    return-period naming convention.
+    """
 
     flood = flood.copy()
     drought = drought.copy()
@@ -64,6 +74,12 @@ def compute_multihazard_loss(
     gdf: gpd.GeoDataFrame,
     gabah: float = GABAH_KERING_PANEN,
 ) -> gpd.GeoDataFrame:
+    """
+    Combine flood and drought loss columns per matching return period.
+
+    Formula:
+        loss_multi = loss_flood * W_FLOOD + loss_drought * W_DROUGHT
+    """
 
     gdf = gdf.copy()
 

@@ -41,7 +41,7 @@ const metadataRules = [
     source: "Badan Informasi Geospasial (BIG)",
     icon: MapIcon,
     iconColor: "text-blue-500",
-    badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
+    badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
     description:
       "Digunakan sebagai referensi spasial dasar untuk spatial join dan agregasi estimasi kerugian langsung & AAL hingga ke tingkat kabupaten/kota.",
     specs: [
@@ -56,7 +56,7 @@ const metadataRules = [
     source: "Kementerian LHK",
     icon: Layers,
     iconColor: "text-emerald-500",
-    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
     description:
       "Layer spasial yang merepresentasikan penutupan lahan area persawahan. Digunakan untuk proses masking dan ekstraksi nilai hazard yang tumpang tindih (overlay).",
     specs: [
@@ -71,7 +71,7 @@ const metadataRules = [
     source: "HEC-RAS 2D Analysis",
     icon: Droplets,
     iconColor: "text-cyan-500",
-    badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
     description:
       "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai ketinggian genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
     specs: [
@@ -86,7 +86,7 @@ const metadataRules = [
     source: "Standardized Precipitation Index (SPI)",
     icon: Leaf,
     iconColor: "text-orange-500",
-    badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
+    badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
     description:
       "Layer raster nilai Standardized Precipitation Index yang merepresentasikan tingkat defisit curah hujan ekstrem berdasarkan observasi satelit dan proyeksi Multi-Model Ensemble.",
     specs: [

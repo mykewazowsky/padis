@@ -23,6 +23,7 @@ import type {
 import type { MobilePanel } from "@/components/dashboard/DashboardMapOverlay";
 import type { DataBounds, FeatureProps, GeoJsonData } from "../../../types/map";
 import { buildTileUrl, BASE_URL } from "@/services/fetchLayers";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 type StyleConfig = {
   border: string;
@@ -362,13 +363,35 @@ function createTooltipHtml(params: {
   activeLayers: Record<LayerKey, boolean>;
   normalizedTopRegionKeys: Set<string>;
   hazard: string;
+  isDarkTheme: boolean;
 }) {
-  const { props, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys, hazard } = params;
+  const {
+    props,
+    accentColors,
+    formatCompactRupiah,
+    activeLayers,
+    normalizedTopRegionKeys,
+    hazard,
+    isDarkTheme,
+  } = params;
   const safeKabKota = escapeHtml(props?.kab_kota ?? "-");
   const safeProv = escapeHtml(props?.prov ?? "-");
   const regionKey = normalizeRegionKey(props?.kab_kota);
   const isTop5 = normalizedTopRegionKeys.has(regionKey);
   const valueLabel = getValueLabel(activeLayers);
+  const headerBg = isDarkTheme
+    ? `linear-gradient(135deg, ${accentColors.dark}38, rgba(17, 28, 49, 0.96))`
+    : accentColors.soft;
+  const headerBorder = isDarkTheme ? `${accentColors.dark}66` : `${accentColors.dark}22`;
+  const titleColor = isDarkTheme ? "#f8fbff" : accentColors.dark;
+  const subtitleColor = isDarkTheme ? "#c7d4e7" : `${accentColors.dark}99`;
+  const labelColor = isDarkTheme ? "#9fb0c8" : "#9ca3af";
+  const valueColor = isDarkTheme ? "#f8fbff" : "#111827";
+  const footerBg = isDarkTheme ? "#16233d" : "#f9fafb";
+  const footerBorder = isDarkTheme ? "#22324d" : "#f3f4f6";
+  const top5Bg = isDarkTheme ? "rgba(120, 53, 15, 0.34)" : "#fef3c7";
+  const top5Text = isDarkTheme ? "#fcd34d" : "#92400e";
+  const top5Border = isDarkTheme ? "rgba(251, 191, 36, 0.36)" : "#fcd34d";
 
   let value: number | null | undefined;
   if (activeLayers.hazard) value = props?.mean_value;
@@ -386,9 +409,9 @@ function createTooltipHtml(params: {
         display: inline-flex;
         align-items: center;
         gap: 3px;
-        background: #fef3c7;
-        color: #92400e;
-        border: 1px solid #fcd34d;
+        background: ${top5Bg};
+        color: ${top5Text};
+        border: 1px solid ${top5Border};
         border-radius: 999px;
         padding: 1px 7px;
         font-size: 9px;
@@ -406,27 +429,27 @@ function createTooltipHtml(params: {
       overflow: hidden;
     ">
       <div style="
-        background: ${accentColors.soft};
+        background: ${headerBg};
         margin: -8px -12px 8px -12px;
         padding: 7px 12px 6px;
-        border-bottom: 1px solid ${accentColors.dark}22;
+        border-bottom: 1px solid ${headerBorder};
       ">
-        <div style="font-size: 11.5px; font-weight: 800; color: ${accentColors.dark}; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="font-size: 11.5px; font-weight: 800; color: ${titleColor}; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
           ${safeKabKota}
         </div>
-        <div style="font-size: 9.5px; color: ${accentColors.dark}99;">
+        <div style="font-size: 9.5px; color: ${subtitleColor};">
           ${safeProv}
         </div>
       </div>
 
       <div style="padding: 0 2px;">
-        <div style="font-size: 9px; font-weight: 600; color: #9ca3af; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px;">
+        <div style="font-size: 9px; font-weight: 600; color: ${labelColor}; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px;">
           ${escapeHtml(valueLabel)}
         </div>
         <div style="
           font-size: 13px;
           font-weight: 800;
-          color: #111827;
+          color: ${valueColor};
           margin-bottom: ${isTop5 ? "6px" : "0"};
         ">
           ${safeValue}
@@ -437,10 +460,10 @@ function createTooltipHtml(params: {
       <div style="
         margin: 7px -12px -8px;
         padding: 4px 12px;
-        background: #f9fafb;
-        border-top: 1px solid #f3f4f6;
+        background: ${footerBg};
+        border-top: 1px solid ${footerBorder};
         font-size: 9px;
-        color: #9ca3af;
+        color: ${labelColor};
       ">
         Klik untuk zoom ke wilayah ini
       </div>
@@ -476,7 +499,10 @@ function ResetViewController({
   const map = useMap();
   const lastHandledSignal = useRef(0);
   const dataBoundsRef = useRef(dataBounds);
-  dataBoundsRef.current = dataBounds;
+
+  useEffect(() => {
+    dataBoundsRef.current = dataBounds;
+  }, [dataBounds]);
 
   useEffect(() => {
     if (!resetViewSignal || resetViewSignal === lastHandledSignal.current) return;
@@ -595,6 +621,8 @@ export default function MapCanvas({
   dataBounds,
   regionCentroids,
 }: MapCanvasProps) {
+  const { theme } = useTheme();
+  const isDarkTheme = theme === "dark";
   const vtLayersRef = useRef<Partial<Record<LayerKey | "selection" | "thematic", L.Layer>>>({});
   const popupRef = useRef<L.Popup | null>(null);
   const zoomSourceRef = useRef<"click" | null>(null);
@@ -727,7 +755,15 @@ export default function MapCanvas({
       vtLayer.on("mouseover", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
         popupRef.current
-          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers, normalizedTopRegionKeys, hazard }))
+          ?.setContent(createTooltipHtml({
+            props: ev.layer.properties,
+            accentColors,
+            formatCompactRupiah,
+            activeLayers,
+            normalizedTopRegionKeys,
+            hazard,
+            isDarkTheme,
+          }))
           .setLatLng(ev.latlng)
           .openOn(map);
       });
@@ -775,7 +811,15 @@ export default function MapCanvas({
       prodLayer.on("mouseover", (e) => {
         const ev = e as unknown as { layer: { properties: FeatureProps }; latlng: L.LatLng };
         popupRef.current
-          ?.setContent(createTooltipHtml({ props: ev.layer.properties, accentColors, formatCompactRupiah, activeLayers: productionOnlyLayers, normalizedTopRegionKeys, hazard }))
+          ?.setContent(createTooltipHtml({
+            props: ev.layer.properties,
+            accentColors,
+            formatCompactRupiah,
+            activeLayers: productionOnlyLayers,
+            normalizedTopRegionKeys,
+            hazard,
+            isDarkTheme,
+          }))
           .setLatLng(ev.latlng)
           .openOn(map);
       });
@@ -862,6 +906,7 @@ export default function MapCanvas({
     activeLayerOpacity,
     layerOpacityMap.production,
     basemapKey,
+    isDarkTheme,
   ]);
 
   const legendItems = useMemo(() => {

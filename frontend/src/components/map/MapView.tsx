@@ -234,6 +234,7 @@ export default function MapView({
         selectedRegionAalShare={selectedRegionAalShare ?? undefined}
         isTopRegion={isTopRegion}
         activeLayers={activeLayers}
+        hazard={hazard}
         onResetView={onResetView}
         onClearRegion={onRegionSelect ? () => onRegionSelect("") : undefined}
         onDownloadCsv={onDownloadCsv}

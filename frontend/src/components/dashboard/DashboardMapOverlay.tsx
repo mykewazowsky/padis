@@ -25,6 +25,7 @@ type Props = {
   selectedRegionAalShare?: number;
   isTopRegion?: boolean;
   activeLayers: Record<LayerKey, boolean>;
+  hazard?: string;
   onResetView?: () => void;
   /** Deselects the region without resetting map position. */
   onClearRegion?: () => void;
@@ -90,6 +91,7 @@ export default function DashboardMapOverlay({
   selectedRegionAalShare,
   isTopRegion = false,
   activeLayers,
+  hazard,
   onResetView,
   onClearRegion,
   onDownloadCsv,
@@ -307,7 +309,9 @@ export default function DashboardMapOverlay({
                       : "-"}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted">
-                    Skala 0 – 1 (lebih tinggi = lebih berbahaya)
+                    {hazard === "flood"
+                      ? "Kedalaman genangan (m)"
+                      : "Skala 0 – 1 (lebih tinggi = lebih berbahaya)"}
                   </p>
                 </div>
               )}

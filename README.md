@@ -47,7 +47,7 @@ PADIS/
 |-- backend/
 |   |-- app/
 |   |   |-- routes/              # Blueprint Flask: auth, layers, tiles, admin, report
-|   |   |-- services/            # Service eksternal seperti GeoServer/email
+|   |   |-- services/            # Email service, audit log
 |   |   `-- utils/               # Helper report dan utilitas backend
 |   |-- data/
 |   |   |-- raw/                 # Input operator

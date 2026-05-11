@@ -37,7 +37,6 @@ src/app/
 |       |-- process-control/
 |       |-- pipeline-monitor/
 |       |-- outputs/
-|       |-- artifacts/
 |       |-- users/
 |       `-- guide/
 |-- (auth)/

@@ -15,7 +15,7 @@ if (isProduction && isLocalhost) {
 }
 
 async function fetchJson(path: string) {
-  const res = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });
+  const res = await fetch(`${BASE_URL}${path}`);
   if (!res.ok) throw new Error(`Fetch failed: ${path} (${res.status})`);
   return res.json();
 }

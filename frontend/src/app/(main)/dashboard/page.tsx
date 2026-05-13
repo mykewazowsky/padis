@@ -261,6 +261,8 @@ export default function DashboardPage() {
   const [hazard, setHazard] = useState("multi");
   const [climate, setClimate] = useState("nonclimate");
   const [selectedRegion, setSelectedRegion] = useState("");
+  const _selectedRegionRef = useRef("");
+  _selectedRegionRef.current = selectedRegion;
   const [regions, setRegions] = useState<RegionItem[]>([]);
   const [aalSummary, setAalSummary] = useState<AalSummary | null>(null);
   const [regionAalSummary, setRegionAalSummary] = useState<AalSummary | null>(null);
@@ -534,10 +536,10 @@ export default function DashboardPage() {
 
   const handleRegionChange = useCallback((region: string | null) => {
     const nextRegion = region?.trim() ?? "";
-    if (nextRegion.toLowerCase() === selectedRegion.toLowerCase().trim()) return;
+    if (nextRegion.toLowerCase() === _selectedRegionRef.current.toLowerCase().trim()) return;
     setSelectedRegion(nextRegion);
     if (nextRegion) setIsMapTransitioning(true);
-  }, [selectedRegion]);
+  }, []); // stable — reads selectedRegion via ref
 
   function handleResetView() {
     setSelectedRegion("");

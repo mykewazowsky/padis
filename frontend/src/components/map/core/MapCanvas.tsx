@@ -939,7 +939,7 @@ export default function MapCanvas({
   const legendSubtitle = activeLayers.hazard
     ? getHazardLegendSubtitle(hazard)
     : activeLayers.loss || activeLayers.aal
-      ? "Log-quantile - mengikuti filter aktif"
+      ? "Kelas tetap (Miliar IDR)"
       : "Distribusi kelas data";
 
   const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;

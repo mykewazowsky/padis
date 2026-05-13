@@ -67,6 +67,11 @@ function formatCompactRupiah(value: number | null | undefined) {
 const RISK_PALETTE = ["#1a9850", "#91cf60", "#fee08b", "#fc8d59", "#d73027"];
 const FLOOD_HAZARD_BREAKS = [0.5, 1, 2, 3.5, Number.POSITIVE_INFINITY];
 const DROUGHT_HAZARD_BREAKS = [0.3, 0.45, 0.6, 0.75, 1];
+// Kelas tetap loss & AAL — diturunkan dari distribusi data aktual (run nasional).
+// Loss: <10M, 10M–100M, 100M–500M, 500M–2T, >2T (IDR)
+const LOSS_BREAKS = [10e9, 100e9, 500e9, 2e12, Number.POSITIVE_INFINITY];
+// AAL:  <1M, 1M–10M, 10M–50M, 50M–100M, >100M (IDR)
+const AAL_BREAKS  = [1e9,  10e9,  50e9,  100e9, Number.POSITIVE_INFINITY];
 
 // Quantile — untuk data yang distribusinya merata (production)
 function quantileBreaks(values: number[], k = 5): number[] {
@@ -87,15 +92,6 @@ function getFixedHazardBreaks(hazard: string): number[] {
   return [];
 }
 
-// Log-Quantile — untuk data miring kanan (loss, AAL) agar kelas tidak didominasi outlier
-function logQuantileBreaks(values: number[], k = 5): number[] {
-  if (!values.length) return [];
-  const positives = values.filter((v) => v > 0);
-  if (positives.length < k) return quantileBreaks(values, k);
-  const logVals = positives.map((v) => Math.log10(v + 1));
-  const logBreaks = quantileBreaks(logVals, k);
-  return logBreaks.map((b) => +(Math.pow(10, b) - 1).toFixed(2));
-}
 
 function getColor(
   value: number | null | undefined,
@@ -155,7 +151,8 @@ export default function MapViewClient({
   const breaks = useMemo(() => {
     if (!activeValues.length) return [];
     if (activeLayers.hazard) return getFixedHazardBreaks(hazard);
-    if (activeLayers.aal || activeLayers.loss) return logQuantileBreaks(activeValues);
+    if (activeLayers.aal) return AAL_BREAKS;
+    if (activeLayers.loss) return LOSS_BREAKS;
     return quantileBreaks(activeValues);
   }, [activeValues, activeLayers.hazard, activeLayers.aal, activeLayers.loss, hazard]);
 

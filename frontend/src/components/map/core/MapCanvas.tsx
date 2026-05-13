@@ -41,6 +41,9 @@ const DEFAULT_STYLE_CONFIG: StyleConfig = {
   hoverOpacity: 0.85,
 };
 
+// Indeks 0-1 — break diturunkan dari P25/P50/P75/P90 distribusi ternormalisasi aktual.
+const NORMALIZED_BREAKS = [0.01, 0.05, 0.15, 0.30, 1.0];
+
 type MapCanvasProps = {
   data: GeoJsonData | null;
   hazard: string;
@@ -286,7 +289,9 @@ function getVtStyle(
   normalizedTopRegionKeys: Set<string>,
   selectedRegion: string,
   layerOpacity: number,
-  basemapKey: BasemapKey
+  basemapKey: BasemapKey,
+  normalizeMode: boolean,
+  maxValue: number,
 ): Record<string, unknown> {
   const regionKey = normalizeRegionKey(props.kab_kota as string | undefined);
   const hasSelection = Boolean(selectedRegion);
@@ -319,9 +324,14 @@ function getVtStyle(
 
   const defaultBorder = isDark ? "#94a3b8" : "#6b7280";
 
+  const colorValue =
+    normalizeMode && maxValue > 0 && (activeLayers.loss || activeLayers.aal) && value != null
+      ? value / maxValue
+      : value;
+
   return {
     fill: true,
-    fillColor: getColorFromBreaks(value, jenksBreaks, hazard),
+    fillColor: getColorFromBreaks(colorValue, jenksBreaks, hazard),
     fillOpacity,
     color: isDimmed
         ? (isDark ? "#374151" : "#d1d5db")
@@ -339,11 +349,16 @@ function formatLayerValue(
   value: number | null | undefined,
   activeLayers: Record<LayerKey, boolean>,
   formatCompactRupiah: MapCanvasProps["formatCompactRupiah"],
-  hazard: string
+  hazard: string,
+  normalizeMode = false,
+  maxValue = 0,
 ): string {
   if (value == null || Number.isNaN(value)) return "-";
   if (activeLayers.hazard) return formatHazardValue(value, hazard);
-  if (activeLayers.loss || activeLayers.aal) return formatCompactRupiah(value);
+  if (activeLayers.loss || activeLayers.aal) {
+    if (normalizeMode && maxValue > 0) return (value / maxValue).toFixed(3);
+    return formatCompactRupiah(value);
+  }
   if (activeLayers.production) return `${value.toLocaleString("id-ID")} ton`;
   return formatCompactRupiah(value);
 }
@@ -364,6 +379,8 @@ function createTooltipHtml(params: {
   normalizedTopRegionKeys: Set<string>;
   hazard: string;
   isDarkTheme: boolean;
+  normalizeMode: boolean;
+  maxValue: number;
 }) {
   const {
     props,
@@ -373,6 +390,8 @@ function createTooltipHtml(params: {
     normalizedTopRegionKeys,
     hazard,
     isDarkTheme,
+    normalizeMode,
+    maxValue,
   } = params;
   const safeKabKota = escapeHtml(props?.kab_kota ?? "-");
   const safeProv = escapeHtml(props?.prov ?? "-");
@@ -401,7 +420,7 @@ function createTooltipHtml(params: {
   else value = props?.mean_value;
 
   const safeValue = escapeHtml(
-    formatLayerValue(value, activeLayers, formatCompactRupiah, hazard)
+    formatLayerValue(value, activeLayers, formatCompactRupiah, hazard, normalizeMode, maxValue)
   );
 
   const top5Badge = isTop5
@@ -635,6 +654,7 @@ export default function MapCanvas({
   const [layerOpacityMap, setLayerOpacityMap] = useState<Record<LayerKey, number>>({
     hazard: 1, loss: 1, aal: 1, production: 1, regions: 1,
   });
+  const [normalizeMode, setNormalizeMode] = useState(false);
 
   const toggleMobileSheet = (tab: Exclude<MobilePanel, null>) => {
     setMobileSheetTab((prev) => (prev === tab ? null : tab));
@@ -644,6 +664,26 @@ export default function MapCanvas({
     () => new Set(Array.from(topRegionKeys).map(normalizeRegionKey)),
     [topRegionKeys]
   );
+
+  const maxValue = useMemo(() => {
+    if (!normalizeMode) return 0;
+    if (activeLayers.loss && layers?.loss?.features?.length) {
+      return Math.max(
+        ...layers.loss.features.map((f) => Number((f as { properties?: { loss?: number | null } })?.properties?.loss ?? 0))
+      );
+    }
+    if (activeLayers.aal && layers?.aal?.features?.length) {
+      return Math.max(
+        ...layers.aal.features.map((f) => Number((f as { properties?: { aal?: number | null } })?.properties?.aal ?? 0))
+      );
+    }
+    return 0;
+  }, [normalizeMode, activeLayers.loss, activeLayers.aal, layers?.loss, layers?.aal]);
+
+  const effectiveBreaks = useMemo(() => {
+    if (normalizeMode && (activeLayers.loss || activeLayers.aal)) return NORMALIZED_BREAKS;
+    return jenksBreaks;
+  }, [normalizeMode, activeLayers.loss, activeLayers.aal, jenksBreaks]);
 
   const hasRequiredFilters = Boolean(hazard && scenario && climate);
 
@@ -741,12 +781,14 @@ export default function MapCanvas({
               props,
               activeLayers,
               getColorFromBreaks,
-              jenksBreaks,
+              effectiveBreaks,
               hazard,
               normalizedTopRegionKeys,
               selectedRegion,
               activeLayerOpacity,
-              basemapKey
+              basemapKey,
+              normalizeMode,
+              maxValue,
             ),
         },
         interactive: true,
@@ -765,6 +807,8 @@ export default function MapCanvas({
             normalizedTopRegionKeys,
             hazard,
             isDarkTheme,
+            normalizeMode,
+            maxValue,
           }))
           .setLatLng(ev.latlng)
           .openOn(map);
@@ -823,6 +867,8 @@ export default function MapCanvas({
             normalizedTopRegionKeys,
             hazard,
             isDarkTheme,
+            normalizeMode: false,
+            maxValue: 0,
           }))
           .setLatLng(ev.latlng)
           .openOn(map);
@@ -899,7 +945,9 @@ export default function MapCanvas({
     scenario,
     climate,
     runId,
-    jenksBreaks,
+    effectiveBreaks,
+    normalizeMode,
+    maxValue,
     hasRequiredFilters,
     getColorFromBreaks,
     formatCompactRupiah,
@@ -914,19 +962,22 @@ export default function MapCanvas({
   ]);
 
   const legendItems = useMemo(() => {
-    if (!jenksBreaks.length) return [];
+    if (!effectiveBreaks.length) return [];
     if (activeLayers.hazard) {
-      return getFixedHazardLegendItems(hazard, jenksBreaks, getColorFromBreaks);
+      return getFixedHazardLegendItems(hazard, effectiveBreaks, getColorFromBreaks);
     }
-    return jenksBreaks.map((upper, index) => {
-      const lower = index === 0 ? 0 : (jenksBreaks[index - 1] ?? 0);
-      const sampleValue = upper ?? lower;
+    const isNormMode = normalizeMode && (activeLayers.loss || activeLayers.aal);
+    return effectiveBreaks.map((upper, index) => {
+      const lower = index === 0 ? 0 : (effectiveBreaks[index - 1] ?? 0);
+      const sampleValue = upper === Number.POSITIVE_INFINITY ? lower * 1.5 : upper;
       return {
-        color: getColorFromBreaks(sampleValue, jenksBreaks, hazard),
-        label: `${formatLayerValue(lower, activeLayers, formatCompactRupiah, hazard)} - ${formatLayerValue(upper, activeLayers, formatCompactRupiah, hazard)}`,
+        color: getColorFromBreaks(sampleValue, effectiveBreaks, hazard),
+        label: isNormMode
+          ? `${lower.toFixed(2)} – ${upper === Number.POSITIVE_INFINITY ? "max" : upper.toFixed(2)}`
+          : `${formatLayerValue(lower, activeLayers, formatCompactRupiah, hazard)} – ${formatLayerValue(upper, activeLayers, formatCompactRupiah, hazard)}`,
       };
     });
-  }, [jenksBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah]);
+  }, [effectiveBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah, normalizeMode]);
 
   const legendTitle = activeLayers.hazard
     ? getHazardLegendTitle(hazard)
@@ -939,7 +990,9 @@ export default function MapCanvas({
   const legendSubtitle = activeLayers.hazard
     ? getHazardLegendSubtitle(hazard)
     : activeLayers.loss || activeLayers.aal
-      ? "Kelas tetap (Miliar IDR)"
+      ? normalizeMode
+        ? "Indeks relatif 0–1 (maks run aktif)"
+        : "Kelas tetap (Miliar IDR)"
       : "Distribusi kelas data";
 
   const hasAnalysisLayer = activeLayers.hazard || activeLayers.loss || activeLayers.aal;
@@ -1141,7 +1194,16 @@ export default function MapCanvas({
       </div>
 
       {hasLegend && (
-        <div className="hidden md:block">
+        <div className="absolute bottom-4 right-4 z-[1060] hidden w-64 flex-col gap-2 md:flex">
+          {(activeLayers.loss || activeLayers.aal) && (
+            <button
+              type="button"
+              onClick={() => setNormalizeMode((prev) => !prev)}
+              className="w-full rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] px-3 py-2 text-xs font-medium text-[var(--color-primary)] shadow-md backdrop-blur transition hover:bg-[var(--dashboard-active-surface)]"
+            >
+              {normalizeMode ? "Tampilkan dalam IDR" : "Tampilkan sebagai Indeks 0–1"}
+            </button>
+          )}
           <MapLegendPanel
             title={legendTitle}
             subtitle={legendSubtitle}
@@ -1149,6 +1211,7 @@ export default function MapCanvas({
             collapsed={legendCollapsed}
             onToggle={() => setLegendCollapsed((prev) => !prev)}
             showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+            inline
           />
         </div>
       )}
@@ -1281,15 +1344,26 @@ export default function MapCanvas({
                     />
                   </div>
                 ) : (
-                  <MapLegendPanel
-                    title={legendTitle}
-                    subtitle={legendSubtitle}
-                    items={legendItems}
-                    collapsed={legendCollapsed}
-                    onToggle={() => setLegendCollapsed((prev) => !prev)}
-                    showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
-                    inline
-                  />
+                  <div className="space-y-2">
+                    {(activeLayers.loss || activeLayers.aal) && (
+                      <button
+                        type="button"
+                        onClick={() => setNormalizeMode((prev) => !prev)}
+                        className="w-full rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface)] px-3 py-2 text-xs font-medium text-[var(--color-primary)] shadow-sm transition hover:bg-[var(--dashboard-active-surface)]"
+                      >
+                        {normalizeMode ? "Tampilkan dalam IDR" : "Tampilkan sebagai Indeks 0–1"}
+                      </button>
+                    )}
+                    <MapLegendPanel
+                      title={legendTitle}
+                      subtitle={legendSubtitle}
+                      items={legendItems}
+                      collapsed={legendCollapsed}
+                      onToggle={() => setLegendCollapsed((prev) => !prev)}
+                      showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+                      inline
+                    />
+                  </div>
                 )}
               </div>
             </div>

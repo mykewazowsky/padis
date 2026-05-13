@@ -72,9 +72,8 @@ def _get_pipeline_python() -> str:
 
 def _fetch_latest_run(session):
     """
-    Ambil monitoring run terbaru (source='local') dari tabel runs.
-    Filter source='local' mencegah ETL run (source=NULL) menyembunyikan
-    monitoring run operator.
+    Ambil monitoring run terbaru (source IN ('local','etl')) dari tabel runs.
+    Filter eksplisit mencegah run lama ber-source=NULL menyembunyikan run operator.
     Fallback ke query tanpa kolom baru jika migration 002/004/005 belum dijalankan.
     """
     try:
@@ -82,7 +81,7 @@ def _fetch_latest_run(session):
             SELECT id, run_name, created_at, finished_at, status, is_active,
                    step, progress, message, operator_name, source, data_year
             FROM runs
-            WHERE source = 'local'
+            WHERE source IN ('local', 'etl')
             ORDER BY created_at DESC, id DESC
             LIMIT 1
         """)).fetchone()
@@ -97,7 +96,7 @@ def _fetch_latest_run(session):
                        NULL AS step, 0 AS progress, NULL AS message,
                        NULL AS operator_name, NULL AS source, NULL AS data_year
                 FROM runs
-                WHERE source = 'local'
+                WHERE source IN ('local', 'etl')
                 ORDER BY created_at DESC, id DESC
                 LIMIT 1
             """)).fetchone()
@@ -274,7 +273,7 @@ def admin_dependencies():
 @admin_required
 def admin_list_runs():
     """
-    Mengembalikan daftar monitoring run terbaru (source='local').
+    Mengembalikan daftar monitoring run terbaru (source IN ('local','etl')).
 
     Query params:
         limit         int  1–50, default 10
@@ -288,7 +287,7 @@ def admin_list_runs():
         operator_filter = request.args.get("operator_name", "").strip()
         hazard_filter   = request.args.get("hazard", "").strip()
 
-        conditions = ["source = 'local'"]
+        conditions = ["source IN ('local', 'etl')"]
         params: dict = {"limit": limit}
 
         if operator_filter:

@@ -132,6 +132,8 @@ Komponen Leaflet utama. Fungsi:
 - Menampilkan label kabupaten/kota pada zoom tertentu.
 - Menampilkan legend layer analisis.
 
+**Pola stabilitas callback region:** `handleRegionChange` di `dashboard/page.tsx` menggunakan deps array kosong dengan ref `_selectedRegionRef` yang di-sync saat render. Ini mencegah fungsi baru dibuat setiap klik wilayah, yang sebelumnya memicu rebuild penuh VT layer di `MapCanvas` karena prop `onRegionSelect` berubah referensi.
+
 ## Layer Dashboard
 
 Layer yang dipakai:

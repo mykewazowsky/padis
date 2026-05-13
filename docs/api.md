@@ -120,6 +120,17 @@ Breakdown nilai hazard/loss untuk kebutuhan analitik.
 
 Endpoint values mengembalikan atribut tanpa geometri. Frontend memakai data ini untuk klasifikasi warna, overlay, chart, dan dropdown. Geometri peta tetap diambil dari endpoint tile.
 
+Response dikembalikan dengan gzip-encoding (level 1) dan header caching:
+
+```http
+Content-Type: application/json
+Content-Encoding: gzip
+Cache-Control: public, max-age=300
+X-Cache: HIT | MISS
+```
+
+Backend menyimpan hasil di in-memory LRU cache (500 entry, TTL 1 jam). `X-Cache: HIT` berarti respons dari cache tanpa query ke database.
+
 ### GET `/api/layers/values/loss`
 
 Query:

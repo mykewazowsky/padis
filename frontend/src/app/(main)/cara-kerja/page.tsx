@@ -85,7 +85,7 @@ const useCases = [
   {
     title: "Perbandingan",
     icon: ShieldAlert,
-    desc: "Membandingkan kondisi iklim dan non-iklim untuk melihat perubahan risiko secara lebih sistematis.",
+    desc: "Membandingkan kondisi projection dan baseline untuk melihat perubahan risiko secara lebih sistematis.",
   },
   {
     title: "Prioritas",
@@ -239,7 +239,7 @@ export default function CaraKerjaPage() {
               {[
                 "Alur analisis PADIS",
                 "Membaca peta risiko",
-                "Filter skenario & iklim",
+                "Filter skenario & projection",
                 "Ekspor data CSV",
                 "Interpretasi AAL",
               ].map((item) => (

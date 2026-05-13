@@ -109,7 +109,7 @@ function getHazardLabel(hazard: string) {
 }
 
 function getClimateLabel(climate: string) {
-  return climate === "climate" ? "Iklim" : "Non-Iklim";
+  return climate === "climate" ? "Projection" : "Baseline";
 }
 
 function formatScenarioLabel(scenario: string) {
@@ -756,7 +756,7 @@ export default function AdvancedCharts({
             ) : !hasTopRegionData ? (
               <DashboardEmptyState
                 message="Belum ada data top wilayah untuk kombinasi filter ini."
-                actionHint="Coba ubah hazard, scenario, atau kondisi iklim."
+                actionHint="Coba ubah hazard, scenario, atau skenario projection."
                 compact
               />
             ) : (
@@ -968,7 +968,7 @@ export default function AdvancedCharts({
               <div className="h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1">
                 <DashboardEmptyState
                   message={metricConfig.emptyMsg}
-                  actionHint="Coba ubah hazard, scenario, atau kondisi iklim."
+                  actionHint="Coba ubah hazard, scenario, atau skenario projection."
                   compact
                 />
               </div>

@@ -70,7 +70,7 @@ const TIPS = [
   },
   {
     title: "Prefix flood_ dan drought_ wajib",
-    body: "Raster hazard harus diawali flood_ atau drought_ diikuti kode periode ulang (r25, r50, r100, r250) atau iklim (rc25, rc50, rc100, rc250).",
+    body: "Raster hazard harus diawali flood_ atau drought_ diikuti kode periode ulang (r25, r50, r100, r250) atau projection (rc25, rc50, rc100, rc250).",
   },
   {
     title: "Proyeksi EPSG:4326",

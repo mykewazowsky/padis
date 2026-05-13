@@ -163,11 +163,11 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="kpi-sub">{{ top_loss }} · {{ top_loss_share }}% dari total</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Perubahan AAL (Climate)</div>
+      <div class="kpi-label">Perubahan AAL (Projection)</div>
       <div class="kpi-value kpi-value-sm {% if aal_pct_up %}up{% else %}down{% endif %}">
         {{ aal_pct }}
       </div>
-      <div class="kpi-sub">vs Non-Climate Baseline · selisih {{ aal_delta }}</div>
+      <div class="kpi-sub">vs Baseline · selisih {{ aal_delta }}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Cakupan Data</div>
@@ -177,17 +177,17 @@ tbody tr:last-child td { border-bottom: none; }
   </div>
 
   <!-- AAL COMPARISON -->
-  <p class="sec-head">Perbandingan AAL — Non-Climate vs Climate</p>
+  <p class="sec-head">Perbandingan AAL — Baseline vs Projection</p>
   <div class="aal-row">
     <div class="aal-card nc">
-      <div class="info-title">AAL Non-Climate (Baseline)</div>
+      <div class="info-title">AAL Baseline</div>
       <div class="info-value" style="font-size:16px">{{ aal_nonclimate }}</div>
-      <div class="info-sub">Risiko tahunan rata-rata tanpa dampak perubahan iklim</div>
+      <div class="info-sub">Risiko tahunan rata-rata skenario baseline</div>
     </div>
     <div class="aal-card cc">
-      <div class="info-title">AAL Climate</div>
+      <div class="info-title">AAL Projection</div>
       <div class="info-value" style="font-size:16px">{{ aal_climate }}</div>
-      <div class="info-sub">Risiko tahunan rata-rata dengan skenario perubahan iklim</div>
+      <div class="info-sub">Risiko tahunan rata-rata skenario projection</div>
     </div>
     <div class="aal-card delta">
       <div class="info-title">Perubahan (Δ AAL)</div>
@@ -276,7 +276,7 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="info-title">Parameter Analisis</div>
       <table style="font-size:10px; margin-top:4px; width:100%; border:none">
         <tr><td style="color:#6b7280; padding:3px 0; border:none; width:40%">Hazard</td><td style="font-weight:600; border:none">{{ hazard_label }}</td></tr>
-        <tr><td style="color:#6b7280; padding:3px 0; border:none">Climate</td><td style="font-weight:600; border:none">{{ climate_label }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">Projection</td><td style="font-weight:600; border:none">{{ climate_label }}</td></tr>
         <tr><td style="color:#6b7280; padding:3px 0; border:none">Return Period</td><td style="font-weight:600; border:none">{{ scenario_label }}</td></tr>
         <tr><td style="color:#6b7280; padding:3px 0; border:none">Cakupan</td><td style="font-weight:600; border:none">Nasional ({{ data_count }} Kab/Kota)</td></tr>
         <tr><td style="color:#6b7280; padding:3px 0; border:none">Tanggal Cetak</td><td style="font-weight:600; border:none">{{ generated_at }}</td></tr>
@@ -288,7 +288,7 @@ tbody tr:last-child td { border-bottom: none; }
         <tr><td style="color:#6b7280; padding:3px 0; border:none; width:50%">Total Loss</td><td style="font-weight:600; border:none">{{ total_loss }}</td></tr>
         <tr><td style="color:#6b7280; padding:3px 0; border:none">Wilayah Tertinggi</td><td style="font-weight:600; border:none; font-size:9px">{{ top_region }}</td></tr>
         <tr><td style="color:#6b7280; padding:3px 0; border:none">AAL Baseline</td><td style="font-weight:600; border:none">{{ aal_nonclimate }}</td></tr>
-        <tr><td style="color:#6b7280; padding:3px 0; border:none">AAL Climate</td><td style="font-weight:600; border:none">{{ aal_climate }}</td></tr>
+        <tr><td style="color:#6b7280; padding:3px 0; border:none">AAL Projection</td><td style="font-weight:600; border:none">{{ aal_climate }}</td></tr>
         <tr><td style="color:#6b7280; padding:3px 0; border:none">Perubahan AAL</td>
           <td style="font-weight:700; border:none" class="{% if aal_pct_up %}up{% else %}down{% endif %}">{{ aal_pct }}</td>
         </tr>

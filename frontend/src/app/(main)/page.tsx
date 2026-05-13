@@ -83,7 +83,7 @@ export default function LandingPage() {
               <p className="animate-fade-up max-w-2xl text-base leading-relaxed text-[var(--hero-text-muted)] md:text-lg" style={{ animationDelay: "80ms" }}>
                 PADIS membantu memahami kerugian padi secara spasial melalui
                 analisis banjir, kekeringan, dan multi-hazard, serta perbandingan
-                kondisi iklim dan non-iklim untuk mendukung pengambilan keputusan
+                kondisi projection dan baseline untuk mendukung pengambilan keputusan
                 berbasis data.
               </p>
             </div>
@@ -119,7 +119,7 @@ export default function LandingPage() {
               Dashboard Analisis Risiko Berbasis Geospasial
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-[var(--hero-text-muted)]">
-              PADIS mengintegrasikan data bencana, skenario iklim dan non-iklim,
+              PADIS mengintegrasikan data bencana, skenario projection dan baseline,
               dan produksi padi untuk menghasilkan estimasi kerugian langsung dan
               Average Annual Loss (AAL) secara spasial.
             </p>
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 Penilaian Multi-hazard
               </div>
               <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
-                Skenario Iklim dan Non-Iklim
+                Skenario Projection dan Baseline
               </div>
             </div>
           </div>
@@ -178,7 +178,7 @@ export default function LandingPage() {
               },
               {
                 icon: Globe,
-                title: "Iklim & Non-Iklim",
+                title: "Projection & Baseline",
                 desc: "Analisis berbasis data observasi dan proyeksi untuk berbagai periode ulang.",
                 iconBg: "border border-[rgba(14,165,233,0.22)] bg-[rgba(14,165,233,0.14)]",
                 iconText: "text-[var(--color-primary)]",

@@ -76,8 +76,8 @@ const hazardOptions: OptionType[] = [
 ];
 
 const climateOptions: OptionType[] = [
-  { value: "nonclimate", label: "Non-Iklim" },
-  { value: "climate", label: "Iklim" },
+  { value: "nonclimate", label: "Baseline" },
+  { value: "climate", label: "Projection" },
 ];
 
 const scenarioOptions: OptionType[] = [
@@ -104,14 +104,14 @@ const quickPresets: PresetItem[] = [
   },
   {
     id: "flood-climate-rp100",
-    label: "Banjir Iklim RP100",
+    label: "Banjir Projection RP100",
     hazard: "flood",
     climate: "climate",
     scenario: "rp100",
   },
   {
     id: "drought-climate-rp250",
-    label: "Kekeringan Iklim RP250",
+    label: "Kekeringan Projection RP250",
     hazard: "drought",
     climate: "climate",
     scenario: "rp250",
@@ -125,7 +125,7 @@ function getHazardLabel(hazard: string) {
 }
 
 function getClimateLabel(climate: string) {
-  return climate === "climate" ? "Iklim" : "Non-Iklim";
+  return climate === "climate" ? "Projection" : "Baseline";
 }
 
 function formatCompact(value: number) {
@@ -1115,7 +1115,7 @@ export default function DashboardPage() {
             <DashboardSectionHeader
               eyebrow="ANALISIS LANJUTAN"
               title="Ringkasan Statistik dan Grafik"
-              desc="Perbandingan AAL antar jenis bencana, total kerugian langsung skenario analisis iklim dan non-iklim, wilayah terdampak utama, dan distribusi sebaran kerugian serta indeks bahaya."
+              desc="Perbandingan AAL antar jenis bencana, total kerugian langsung skenario analisis projection dan baseline, wilayah terdampak utama, dan distribusi sebaran kerugian serta indeks bahaya."
             />
 
             {chartsReady && (

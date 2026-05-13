@@ -148,7 +148,7 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="kpi">
       <div class="kpi-label">Perubahan AAL</div>
       <div class="kpi-value kpi-value-sm {% if aal_pct_up %}up{% else %}down{% endif %}">{{ aal_pct }}</div>
-      <div class="kpi-sub">Perubahan risiko tahunan akibat iklim · selisih {{ aal_delta }}</div>
+      <div class="kpi-sub">Perubahan risiko tahunan projection · selisih {{ aal_delta }}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Hazard Index (rata-rata)</div>
@@ -162,17 +162,17 @@ tbody tr:last-child td { border-bottom: none; }
   </div>
 
   <!-- AAL COMPARISON -->
-  <p class="sec-head">Perbandingan AAL — Non-Climate vs Climate</p>
+  <p class="sec-head">Perbandingan AAL — Baseline vs Projection</p>
   <div class="aal-compare">
     <div class="aal-card aal-nc">
-      <div class="aal-label">AAL Non-Climate (Baseline)</div>
+      <div class="aal-label">AAL Baseline</div>
       <div class="aal-value">{{ aal_nonclimate }}</div>
-      <div class="aal-sub">Risiko tahunan rata-rata tanpa dampak perubahan iklim</div>
+      <div class="aal-sub">Risiko tahunan rata-rata skenario baseline</div>
     </div>
     <div class="aal-card aal-cc">
-      <div class="aal-label">AAL Climate</div>
+      <div class="aal-label">AAL Projection</div>
       <div class="aal-value">{{ aal_climate }}</div>
-      <div class="aal-sub">Risiko tahunan rata-rata pada skenario perubahan iklim</div>
+      <div class="aal-sub">Risiko tahunan rata-rata skenario projection</div>
     </div>
     <div class="aal-card aal-delta">
       <div class="aal-label">Perubahan (Δ AAL)</div>

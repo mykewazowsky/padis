@@ -93,7 +93,7 @@ const uploadRules: UploadRule[] = [
     destination: "raw/hazard/",
     notes: [
       "Nama file harus persis sesuai standar agar pipeline dapat membacanya.",
-      "Set banjir mencakup skenario current (r*) dan iklim (rc*).",
+      "Set banjir mencakup skenario baseline (r*) dan projection (rc*).",
       "Pastikan raster memiliki extent dan CRS yang valid.",
     ],
   },
@@ -104,7 +104,7 @@ const uploadRules: UploadRule[] = [
     destination: "raw/hazard/",
     notes: [
       "Nama file harus persis sesuai standar agar pipeline dapat membacanya.",
-      "Set kekeringan mencakup skenario current (r*) dan iklim (rc*).",
+      "Set kekeringan mencakup skenario baseline (r*) dan projection (rc*).",
       "Pastikan raster dapat dibaca dengan baik oleh sistem.",
     ],
   },

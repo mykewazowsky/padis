@@ -77,8 +77,8 @@ const metadataRules = [
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "30 meter" },
-      { label: "Skenario Non-Iklim", value: "R25, R50, R100, R250" },
-      { label: "Skenario Iklim", value: "RC25, RC50, RC100, RC250" },
+      { label: "Skenario Baseline", value: "R25, R50, R100, R250" },
+      { label: "Skenario Projection", value: "RC25, RC50, RC100, RC250" },
     ],
   },
   {
@@ -92,8 +92,8 @@ const metadataRules = [
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "~11 Kilometer" },
-      { label: "Skenario Non-Iklim", value: "GPM25, GPM50, GPM100, GPM250" },
-      { label: "Skenario Iklim", value: "MME25, MME50, MME100, MME250" },
+      { label: "Skenario Baseline", value: "GPM25, GPM50, GPM100, GPM250" },
+      { label: "Skenario Projection", value: "MME25, MME50, MME100, MME250" },
     ],
   },
 ];
@@ -513,12 +513,12 @@ export default function MetodologiPage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
-                Skenario Iklim dan Non-Iklim
+                Skenario Projection dan Baseline
               </h2>
               <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
                 Dalam PADIS, istilah{" "}
-                <strong className="text-heading">Iklim</strong> dan{" "}
-                <strong className="text-heading">Non-Iklim</strong> merujuk pada
+                <strong className="text-heading">Projection</strong> dan{" "}
+                <strong className="text-heading">Baseline</strong> merujuk pada
                 dua skenario pembentukan <em>raster hazard</em>. Keduanya memiliki format data yang sama,
                 tetapi berbeda pada faktor pembentuk nilai bahayanya.
                 

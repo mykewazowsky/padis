@@ -92,7 +92,7 @@ function hazardLabel(h: string): string {
 }
 
 function climateLabel(c: string): string {
-  return c === "climate" ? "Perubahan Iklim (Proyeksi)" : "Non-Iklim (Baseline)";
+  return c === "climate" ? "Projection" : "Baseline";
 }
 
 function scenarioLabel(s: string): string {
@@ -249,8 +249,8 @@ export default function ReportDocument({
   const regionDisplay = selectedRegion?.trim() || "Seluruh Indonesia";
 
   const aalCompareData = [
-    { name: "Non-Iklim", value: aalNc },
-    { name: "Iklim",     value: aalC  },
+    { name: "Baseline",   value: aalNc },
+    { name: "Projection", value: aalC  },
   ];
 
   const MEDAL_COLORS = ["#c9a227", "#9ca3af", "#b45309"] as const;
@@ -365,7 +365,7 @@ export default function ReportDocument({
             >
               {([
                 ["Jenis Bahaya",          hazardLabel(hazard)],
-                ["Skenario Iklim",        climateLabel(climate)],
+                ["Skenario",              climateLabel(climate)],
                 ["Periode Ulang",         scenarioLabel(scenario)],
                 ["Wilayah Analisis",      regionDisplay],
                 ["Jumlah Kabupaten/Kota", `${validCount} terdampak · ${dataCount} total`],
@@ -392,15 +392,15 @@ export default function ReportDocument({
                 accent={NAVY}
               />
               <KpiCard
-                label="AAL Non-Iklim"
+                label="AAL Baseline"
                 value={fmtCompact(aalNc)}
                 sub="Kerugian tahunan baseline"
                 accent={BLUE}
               />
               <KpiCard
-                label="AAL Iklim"
+                label="AAL Projection"
                 value={fmtCompact(aalC)}
-                sub="Proyeksi perubahan iklim"
+                sub="Projection"
                 accent={AMBER}
               />
               <KpiCard

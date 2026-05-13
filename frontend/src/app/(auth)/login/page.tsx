@@ -183,7 +183,7 @@ export default function LoginPage() {
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
                 Login untuk mengeksplorasi hasil analisis risiko, melihat peta
-                interaktif, membandingkan iklim dan non-iklim, serta
+                interaktif, membandingkan projection dan baseline, serta
                 mengunduh output PADIS secara lebih lengkap.
               </p>
             </div>

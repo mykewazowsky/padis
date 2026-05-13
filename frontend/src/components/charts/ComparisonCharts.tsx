@@ -85,8 +85,8 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
       ? "text-[var(--dashboard-status-danger-text)]"
       : "text-[var(--dashboard-status-success-text)]",
     description: isUp
-      ? "Nilai iklim lebih tinggi dibanding non-iklim."
-      : "Nilai iklim lebih rendah dibanding non-iklim.",
+      ? "Nilai projection lebih tinggi dibanding baseline."
+      : "Nilai projection lebih rendah dibanding baseline.",
     isUp,
     delta: climateValue - nonclimateValue,
   };
@@ -223,7 +223,7 @@ function LineTooltip({
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-[var(--chart-tooltip-muted)]">
-              {entry.name === "nonclimate" ? "Non-Iklim" : "Iklim"}:{" "}
+              {entry.name === "nonclimate" ? "Baseline" : "Projection"}:{" "}
               <span className="font-semibold text-[var(--chart-tooltip-text)]">
                 {formatRupiah(Number(entry.value))}
               </span>
@@ -277,7 +277,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       .catch((err) => {
         console.error("Loss compare climate fetch error:", err);
         setErrorLoss(
-          "Gagal memuat perbandingan total loss iklim vs non-iklim."
+          "Gagal memuat perbandingan total loss projection vs baseline."
         );
         setLossCompareClimate([]);
       })
@@ -544,12 +544,12 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <XAxis
                     type="number"
                     dataKey="x"
-                    name="Non-Iklim"
+                    name="Baseline"
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
-                      value: "Non-Iklim (Rp)",
+                      value: "Baseline (Rp)",
                       position: "insideBottom",
                       offset: -25,
                       fontSize: 11,
@@ -559,13 +559,13 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="Iklim"
+                    name="Projection"
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     width={72}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
-                      value: "Iklim (Rp)",
+                      value: "Projection (Rp)",
                       angle: -90,
                       position: "insideLeft",
                       offset: 20,
@@ -672,7 +672,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <p
                     className={`text-sm font-semibold ${lossInsight.compareInfo.colorClass}`}
                   >
-                    Total iklim vs non-iklim:{" "}
+                    Total projection vs baseline:{" "}
                     {lossInsight.compareInfo.label}
                   </p>
                   <p className="mt-1 text-sm text-muted">
@@ -688,7 +688,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               <DashboardLoadingBlock
                 heightClass="h-full"
                 title="Memuat perbandingan total kerugian..."
-                description="Ringkasan kerugian iklim vs non-iklim sedang disiapkan."
+                description="Ringkasan kerugian projection vs baseline sedang disiapkan."
               />
             ) : errorLoss ? (
               <div className={ERROR_CANVAS_CLASS}>
@@ -722,7 +722,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <Legend
                     wrapperStyle={{ color: chartTheme.axis, fontSize: 12 }}
                     formatter={(value: string) =>
-                      value === "nonclimate" ? "Non-Iklim" : "Iklim"
+                      value === "nonclimate" ? "Baseline" : "Projection"
                     }
                   />
                   <Line

@@ -25,6 +25,16 @@ import type { DataBounds, FeatureProps, GeoJsonData } from "../../../types/map";
 import { buildTileUrl, BASE_URL } from "@/services/fetchLayers";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
+// Eagerly start loading leaflet.vectorgrid when this module is first imported so
+// that the dynamic import resolves instantly inside useEffect rather than
+// waiting for a network fetch on the first user interaction.
+let _vgModule: Promise<void> | null = null;
+function _ensureVectorGrid(): Promise<void> {
+  if (!_vgModule) _vgModule = import("leaflet.vectorgrid").then(() => undefined);
+  return _vgModule;
+}
+if (typeof window !== "undefined") void _ensureVectorGrid();
+
 type StyleConfig = {
   border: string;
   hoverBorder: string;
@@ -84,6 +94,7 @@ type RegionLabel = {
   id: string;
   name: string;
   position: L.LatLngExpression;
+  icon: DivIcon;
 };
 
 type FixedLegendItem = {
@@ -645,6 +656,10 @@ export default function MapCanvas({
   const vtLayersRef = useRef<Partial<Record<LayerKey | "selection" | "thematic", L.Layer>>>({});
   const popupRef = useRef<L.Popup | null>(null);
   const zoomSourceRef = useRef<"click" | null>(null);
+  // Ref so style callbacks always read the latest selectedRegion without being
+  // closed over a stale value — updated synchronously during render.
+  const selectedRegionRef = useRef(selectedRegion);
+  selectedRegionRef.current = selectedRegion;
 
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_ZOOM);
@@ -736,13 +751,15 @@ export default function MapCanvas({
     let cancelled = false;
 
     (async () => {
-      await import("leaflet.vectorgrid");
+      await _ensureVectorGrid();
       if (cancelled) return;
 
-    Object.values(vtLayersRef.current).forEach((layer) => {
+    // Preserve the selection layer — it is managed by its own useEffect below.
+    for (const key of ["thematic", "production", "regions"] as const) {
+      const layer = vtLayersRef.current[key as keyof typeof vtLayersRef.current];
       if (layer && map.hasLayer(layer)) map.removeLayer(layer);
-    });
-    vtLayersRef.current = {};
+    }
+    vtLayersRef.current = { selection: vtLayersRef.current.selection };
 
     if (!popupRef.current) {
       popupRef.current = L.popup({
@@ -784,7 +801,7 @@ export default function MapCanvas({
               effectiveBreaks,
               hazard,
               normalizedTopRegionKeys,
-              selectedRegion,
+              selectedRegionRef.current,
               activeLayerOpacity,
               basemapKey,
               normalizeMode,
@@ -837,8 +854,8 @@ export default function MapCanvas({
         vectorTileLayerStyles: {
           production: (props: Record<string, unknown>) => {
             const rk = normalizeRegionKey(props.kab_kota as string | undefined);
-            const hasSel = Boolean(selectedRegion);
-            const isDim = hasSel && rk !== normalizeRegionKey(selectedRegion);
+            const hasSel = Boolean(selectedRegionRef.current);
+            const isDim = hasSel && rk !== normalizeRegionKey(selectedRegionRef.current);
             return {
               fill: true,
               fillColor: "#ffa200",
@@ -908,32 +925,6 @@ export default function MapCanvas({
       vtLayersRef.current.regions = regionLayer;
     }
 
-    if (selectedRegion) {
-      const selectionUrl = `${BASE_URL}/api/tiles/regions/{z}/{x}/{y}`;
-      const selectedKey = normalizeRegionKey(selectedRegion);
-
-      const selectionLayer = LVG.vectorGrid.protobuf(selectionUrl, {
-        vectorTileLayerStyles: {
-          regions: (props: Record<string, unknown>) => {
-            const isSelected =
-              normalizeRegionKey(props.kab_kota as string | undefined) === selectedKey;
-            return {
-              fill: false,
-              fillOpacity: 0,
-              color: getSelectedBorderColor(hazard),
-              weight: isSelected ? 3 : 0,
-              opacity: isSelected ? 1 : 0,
-            };
-          },
-        },
-        interactive: false,
-        maxNativeZoom: 12,
-        pane: "overlayPane",
-      });
-
-      selectionLayer.addTo(map);
-      vtLayersRef.current.selection = selectionLayer;
-    }
     })();
 
     return () => { cancelled = true; };
@@ -954,12 +945,75 @@ export default function MapCanvas({
     accentColors,
     onRegionSelect,
     normalizedTopRegionKeys,
-    selectedRegion,
     activeLayerOpacity,
     layerOpacityMap.production,
     basemapKey,
     isDarkTheme,
   ]);
+
+  // Selection-highlight layer is managed independently so that clicking a region
+  // never triggers a full rebuild of the thematic/production/regions layers.
+  useEffect(() => {
+    if (!isMapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    let cancelled = false;
+
+    (async () => {
+      await _ensureVectorGrid();
+      if (cancelled) return;
+
+      const existing = vtLayersRef.current.selection;
+      if (existing && map.hasLayer(existing)) map.removeLayer(existing);
+      vtLayersRef.current.selection = undefined;
+
+      if (!selectedRegion) return;
+
+      const LVG = L as unknown as {
+        vectorGrid: {
+          protobuf: (url: string, opts: Record<string, unknown>) => L.Layer & {
+            on: (event: string, handler: (e: Record<string, unknown>) => void) => void;
+          };
+        };
+      };
+      const selectedKey = normalizeRegionKey(selectedRegion);
+      const selectionLayer = LVG.vectorGrid.protobuf(
+        `${BASE_URL}/api/tiles/regions/{z}/{x}/{y}`,
+        {
+          vectorTileLayerStyles: {
+            regions: (props: Record<string, unknown>) => {
+              const isSelected =
+                normalizeRegionKey(props.kab_kota as string | undefined) === selectedKey;
+              return {
+                fill: false,
+                fillOpacity: 0,
+                color: getSelectedBorderColor(hazard),
+                weight: isSelected ? 3 : 0,
+                opacity: isSelected ? 1 : 0,
+              };
+            },
+          },
+          interactive: false,
+          maxNativeZoom: 12,
+          pane: "overlayPane",
+        }
+      );
+      selectionLayer.addTo(map);
+      vtLayersRef.current.selection = selectionLayer;
+    })();
+
+    return () => { cancelled = true; };
+  }, [isMapReady, selectedRegion, hazard, mapRef]);
+
+  // When selectedRegion changes, redraw existing thematic/production layers so
+  // the dimming style (isDimmed) updates. Tiles are served from the browser's
+  // HTTP cache so there is no network round-trip.
+  useEffect(() => {
+    if (!isMapReady) return;
+    type Redrawable = L.Layer & { redraw(): void };
+    (vtLayersRef.current.thematic as Redrawable | undefined)?.redraw();
+    (vtLayersRef.current.production as Redrawable | undefined)?.redraw();
+  }, [selectedRegion, isMapReady]);
 
   const legendItems = useMemo(() => {
     if (!effectiveBreaks.length) return [];
@@ -1060,12 +1114,52 @@ export default function MapCanvas({
 
   const regionLabels = useMemo<RegionLabel[]>(() => {
     if (!showLabels || !regionCentroids || !Object.keys(regionCentroids).length) return [];
-    return Object.entries(regionCentroids).map(([key, coords], index) => ({
-      id: `label-${key}-${index}`,
-      name: regionNameMap[key] ?? key,
-      position: coords as L.LatLngExpression,
-    }));
-  }, [showLabels, regionCentroids, regionNameMap]);
+    const fontSize =
+      currentZoom >= 10 ? "10px" :
+      currentZoom >= 9  ? "9px"  :
+      currentZoom >= 8  ? "8px"  : "7px";
+    const opacity =
+      currentZoom >= 10 ? 1    :
+      currentZoom >= 9  ? 0.90 :
+      currentZoom >= 8  ? 0.75 : 0.60;
+    return Object.entries(regionCentroids).map(([key, coords], index) => {
+      const name = regionNameMap[key] ?? key;
+      const icon: DivIcon = L.divIcon({
+        className: "kabkota-label-icon",
+        html: `
+          <div style="
+            font-family: Figtree, sans-serif;
+            font-size: ${fontSize};
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.1;
+            white-space: nowrap;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            padding: 1px 4px;
+            opacity: ${opacity};
+            text-shadow:
+              0 0 3px rgba(0,0,0,0.95),
+              0 0 6px rgba(0,0,0,0.7),
+              1px  1px 0 rgba(0,0,0,0.8),
+             -1px -1px 0 rgba(0,0,0,0.8),
+              1px -1px 0 rgba(0,0,0,0.8),
+             -1px  1px 0 rgba(0,0,0,0.8);
+          ">
+            ${escapeHtml(name)}
+          </div>
+        `,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+      return {
+        id: `label-${key}-${index}`,
+        name,
+        position: coords as L.LatLngExpression,
+        icon,
+      };
+    });
+  }, [showLabels, regionCentroids, regionNameMap, currentZoom]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -1099,55 +1193,15 @@ export default function MapCanvas({
         />
 
         {showLabels &&
-          regionLabels.map((item) => {
-            const fontSize =
-              currentZoom >= 10 ? "10px" :
-              currentZoom >= 9  ? "9px"  :
-              currentZoom >= 8  ? "8px"  : "7px";
-            const opacity =
-              currentZoom >= 10 ? 1    :
-              currentZoom >= 9  ? 0.90 :
-              currentZoom >= 8  ? 0.75 : 0.60;
-
-            const icon: DivIcon = L.divIcon({
-              className: "kabkota-label-icon",
-              html: `
-                <div style="
-                  font-family: Figtree, sans-serif;
-                  font-size: ${fontSize};
-                  font-weight: 700;
-                  color: #ffffff;
-                  line-height: 1.1;
-                  white-space: nowrap;
-                  pointer-events: none;
-                  transform: translate(-50%, -50%);
-                  padding: 1px 4px;
-                  opacity: ${opacity};
-                  text-shadow:
-                    0 0 3px rgba(0,0,0,0.95),
-                    0 0 6px rgba(0,0,0,0.7),
-                    1px  1px 0 rgba(0,0,0,0.8),
-                   -1px -1px 0 rgba(0,0,0,0.8),
-                    1px -1px 0 rgba(0,0,0,0.8),
-                   -1px  1px 0 rgba(0,0,0,0.8);
-                ">
-                  ${escapeHtml(item.name)}
-                </div>
-              `,
-              iconSize: [0, 0],
-              iconAnchor: [0, 0],
-            });
-
-            return (
-              <Marker
-                key={item.id}
-                position={item.position}
-                icon={icon}
-                interactive={false}
-                keyboard={false}
-              />
-            );
-          })}
+          regionLabels.map((item) => (
+            <Marker
+              key={item.id}
+              position={item.position}
+              icon={item.icon}
+              interactive={false}
+              keyboard={false}
+            />
+          ))}
 
         <ZoomToRegion
           selectedRegion={selectedRegion}

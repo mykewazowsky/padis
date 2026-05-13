@@ -206,6 +206,15 @@ _TILE_HEADERS = {
     "Vary":             "Accept-Encoding",
 }
 
+# regions and production geometry never changes between runs — cache longer at
+# the browser level and use a filter-agnostic backend cache key so the same
+# tile is reused across hazard/scenario/climate switches.
+_STATIC_TILE_HEADERS = {
+    **_TILE_HEADERS,
+    "Cache-Control": "public, max-age=86400",
+}
+_STATIC_LAYERS = frozenset({"regions", "production"})
+
 # ─── Route ───────────────────────────────────────────────────────────────────
 
 
@@ -241,12 +250,17 @@ def get_tile(layer: str, z: int, x: int, y: int):
     if rp not in _RP_ID:
         return jsonify({"error": f"Unknown return period {rp}. Valid: {list(_RP_ID)}"}), 400
 
-    # Include every filter dimension in the cache key so tiles from different
-    # runs/scenarios cannot be reused across map states.
-    cache_key = f"v{_TILE_VERSION}/{layer}/{z}/{x}/{y}/{hazard}/{climate}/{rp}/{run_id}"
+    # Static layers (regions, production) do not filter on hazard/climate/rp/run_id
+    # in their SQL, so their cache key omits those dimensions — the same tile
+    # can be reused across any filter combination.
+    if layer in _STATIC_LAYERS:
+        cache_key = f"v{_TILE_VERSION}/{layer}/{z}/{x}/{y}"
+    else:
+        cache_key = f"v{_TILE_VERSION}/{layer}/{z}/{x}/{y}/{hazard}/{climate}/{rp}/{run_id}"
     cached = tile_cache.get(cache_key)
     if cached is not None:
-        return Response(cached, 200, headers={**_TILE_HEADERS, "X-Cache": "HIT"})
+        headers = _STATIC_TILE_HEADERS if layer in _STATIC_LAYERS else _TILE_HEADERS
+        return Response(cached, 200, headers={**headers, "X-Cache": "HIT"})
 
     params: dict = {
         "z": z, "x": x, "y": y,
@@ -281,9 +295,10 @@ def get_tile(layer: str, z: int, x: int, y: int):
     db = SessionLocal()
     try:
         raw_mvt    = _HANDLERS[layer](db, params)
-        compressed = gzip.compress(raw_mvt, compresslevel=6)
+        compressed = gzip.compress(raw_mvt, compresslevel=1)
         tile_cache.set(cache_key, compressed)
-        return Response(compressed, 200, headers={**_TILE_HEADERS, "X-Cache": "MISS"})
+        headers = _STATIC_TILE_HEADERS if layer in _STATIC_LAYERS else _TILE_HEADERS
+        return Response(compressed, 200, headers={**headers, "X-Cache": "MISS"})
     except Exception:
         logger.exception(
             "Tile generation failed: layer=%s z=%s x=%s y=%s run_id=%s",

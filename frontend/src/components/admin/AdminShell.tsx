@@ -341,24 +341,36 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           ].join(" ")}
           style={{ background: SIDEBAR_BG }}
         >
-          {/* Brand */}
+          {/* Brand + toggle */}
           <div
             className={[
               "flex shrink-0 items-center border-b border-white/[0.06]",
-              sidebarExpanded ? "gap-2.5 px-4 py-[14px]" : "justify-center px-[10px] py-[14px]",
+              sidebarExpanded
+                ? "justify-between gap-2.5 px-4 py-[14px]"
+                : "flex-col gap-2 px-[10px] py-3",
             ].join(" ")}
           >
-            <BrandMark />
-            {sidebarExpanded && (
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">
-                  PADIS
-                </p>
-                <p className="text-[13px] font-bold leading-tight text-white">
-                  Control Center
-                </p>
-              </div>
-            )}
+            <div className={["flex items-center", sidebarExpanded ? "gap-2.5" : "justify-center"].join(" ")}>
+              <BrandMark />
+              {sidebarExpanded && (
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">
+                    PADIS
+                  </p>
+                  <p className="text-[13px] font-bold leading-tight text-white">
+                    Control Center
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+              className="rounded-md p-1 text-white/30 transition hover:bg-white/[0.06] hover:text-white/70"
+            >
+              {sidebarExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
           </div>
 
           {/* Nav */}
@@ -366,44 +378,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <SidebarNav pathname={pathname} collapsed={!sidebarExpanded} />
           </div>
 
-          {/* Footer: env indicator + toggle */}
-          <div
-            className={[
-              "shrink-0 border-t border-white/[0.06]",
-              sidebarExpanded
-                ? "flex items-center justify-between px-4 py-3"
-                : "flex flex-col items-center gap-2 py-3",
-            ].join(" ")}
-          >
+          {/* Footer: env indicator */}
+          <div className="flex shrink-0 items-center justify-center border-t border-white/[0.06] py-3">
             {sidebarExpanded ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[11px] font-medium text-white/35">
-                    Production
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleSidebar}
-                  aria-label="Collapse sidebar"
-                  className="rounded-md p-1 text-white/30 transition hover:bg-white/[0.06] hover:text-white/70"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-              </>
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[11px] font-medium text-white/35">Production</span>
+              </div>
             ) : (
-              <>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" title="Production" />
-                <button
-                  type="button"
-                  onClick={toggleSidebar}
-                  aria-label="Expand sidebar"
-                  className="rounded-md p-1 text-white/30 transition hover:bg-white/[0.06] hover:text-white/70"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" title="Production" />
             )}
           </div>
         </aside>

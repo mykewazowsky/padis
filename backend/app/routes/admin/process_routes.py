@@ -1072,6 +1072,74 @@ def admin_finish_analysis():
 
 
 # =============================================================================
+# PATCH /api/admin/runs/<id>  — edit run_name dan/atau operator_name
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>", methods=["PATCH"])
+@admin_required
+def admin_update_run(run_id: int):
+    """
+    Edit metadata run: run_name dan/atau operator_name.
+
+    Body JSON (semua opsional, minimal satu harus ada):
+        { "run_name": "flood_fix_v2", "operator_name": "admin" }
+        { "run_name": null }   — hapus run_name
+        { "operator_name": null }   — hapus operator_name
+
+    Response:
+        200  { "run_id": int, "run_name": str|null, "operator_name": str|null }
+        400  body tidak valid
+        404  run tidak ditemukan
+    """
+    body = request.get_json(silent=True) or {}
+
+    allowed = {"run_name", "operator_name"}
+    provided = {k: v for k, v in body.items() if k in allowed}
+
+    if not provided:
+        return jsonify({"error": "Minimal satu field ('run_name' atau 'operator_name') harus ada di request body."}), 400
+
+    for field, value in provided.items():
+        if value is not None and not isinstance(value, str):
+            return jsonify({"error": f"Field '{field}' harus berupa string atau null."}), 400
+        if isinstance(value, str) and len(value.strip()) == 0:
+            provided[field] = None
+        elif isinstance(value, str):
+            provided[field] = value.strip()
+
+    set_clause = ", ".join(f"{k} = :{k}" for k in provided)
+    params = {**provided, "id": run_id}
+
+    db = SessionLocal()
+    try:
+        row = db.execute(
+            text("SELECT id, run_name, operator_name FROM runs WHERE id = :id"),
+            {"id": run_id},
+        ).fetchone()
+        if row is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan."}), 404
+
+        db.execute(text(f"UPDATE runs SET {set_clause} WHERE id = :id"), params)
+        db.commit()
+
+        updated = db.execute(
+            text("SELECT run_name, operator_name FROM runs WHERE id = :id"),
+            {"id": run_id},
+        ).fetchone()
+
+        return jsonify({
+            "run_id":        run_id,
+            "run_name":      updated.run_name,
+            "operator_name": updated.operator_name,
+        }), 200
+
+    except Exception as e:
+        logger.exception("Update run metadata failed for run %s", run_id)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()
+
+
 # PATCH /api/admin/runs/<id>/data-year  — set tahun model data pada sebuah run
 # =============================================================================
 

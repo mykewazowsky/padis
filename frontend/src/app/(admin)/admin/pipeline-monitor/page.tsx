@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
-  AlertCircle,
   CheckCircle2,
   Clock3,
   GitBranch,
@@ -244,6 +243,18 @@ export default function AdminPipelineMonitorPage() {
   const [savingYear, setSavingYear]             = useState(false);
   const [yearError, setYearError]               = useState<string | null>(null);
 
+  // Inline run_name editor state
+  const [editingNameRunId, setEditingNameRunId] = useState<number | null>(null);
+  const [nameDraft, setNameDraft]               = useState("");
+  const [savingName, setSavingName]             = useState(false);
+  const [nameError, setNameError]               = useState<string | null>(null);
+
+  // Inline operator_name editor state
+  const [editingOpRunId, setEditingOpRunId] = useState<number | null>(null);
+  const [opDraft, setOpDraft]               = useState("");
+  const [savingOp, setSavingOp]             = useState(false);
+  const [opError, setOpError]               = useState<string | null>(null);
+
   // Deletion modal state
   const [deletionTarget, setDeletionTarget] = useState<RunStatus | null>(null);
   const [deletionValidation, setDeletionValidation] = useState<ValidationResult | null>(null);
@@ -360,6 +371,66 @@ export default function AdminPipelineMonitorPage() {
       setYearError(msg);
     } finally {
       setSavingYear(false);
+    }
+  };
+
+  const startEditName = (run: RunStatus) => {
+    setEditingNameRunId(run.id);
+    setNameDraft(run.run_name ?? "");
+    setNameError(null);
+  };
+  const cancelEditName = () => { setEditingNameRunId(null); setNameDraft(""); setNameError(null); };
+  const saveRunName = async (runId: number) => {
+    setSavingName(true);
+    setNameError(null);
+    try {
+      const res = await fetchWithAuth(`/api/admin/runs/${runId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_name: nameDraft.trim() || null }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error ?? "Gagal menyimpan run name.");
+      }
+      const json = await res.json();
+      setRecentRuns((prev) => prev.map((r) => r.id === runId ? { ...r, run_name: json.run_name } : r));
+      if (currentRun?.id === runId) setCurrentRun((prev) => prev ? { ...prev, run_name: json.run_name } : prev);
+      setEditingNameRunId(null);
+    } catch (err: unknown) {
+      setNameError(err instanceof Error ? err.message : "Gagal menyimpan.");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const startEditOp = (run: RunStatus) => {
+    setEditingOpRunId(run.id);
+    setOpDraft(run.operator_name ?? "");
+    setOpError(null);
+  };
+  const cancelEditOp = () => { setEditingOpRunId(null); setOpDraft(""); setOpError(null); };
+  const saveOperator = async (runId: number) => {
+    setSavingOp(true);
+    setOpError(null);
+    try {
+      const res = await fetchWithAuth(`/api/admin/runs/${runId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operator_name: opDraft.trim() || null }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error ?? "Gagal menyimpan operator.");
+      }
+      const json = await res.json();
+      setRecentRuns((prev) => prev.map((r) => r.id === runId ? { ...r, operator_name: json.operator_name } : r));
+      if (currentRun?.id === runId) setCurrentRun((prev) => prev ? { ...prev, operator_name: json.operator_name } : prev);
+      setEditingOpRunId(null);
+    } catch (err: unknown) {
+      setOpError(err instanceof Error ? err.message : "Gagal menyimpan.");
+    } finally {
+      setSavingOp(false);
     }
   };
 
@@ -756,12 +827,33 @@ export default function AdminPipelineMonitorPage() {
                         </span>
                       </td>
                       <td className="py-3 pr-4">
-                        <p
-                          className="max-w-[180px] truncate font-medium text-slate-900"
-                          title={run.run_name ?? "-"}
-                        >
-                          {run.run_name ?? <span className="text-slate-400">—</span>}
-                        </p>
+                        {editingNameRunId === run.id ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={nameDraft}
+                                onChange={(e) => setNameDraft(e.target.value)}
+                                placeholder="run_name"
+                                className="w-40 rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-900 focus:border-[var(--color-primary)] focus:outline-none"
+                                onKeyDown={(e) => { if (e.key === "Enter") void saveRunName(run.id); if (e.key === "Escape") cancelEditName(); }}
+                                autoFocus
+                              />
+                              <button type="button" onClick={() => void saveRunName(run.id)} disabled={savingName} className="rounded bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white hover:opacity-90 disabled:opacity-50">{savingName ? "…" : "Simpan"}</button>
+                              <button type="button" onClick={cancelEditName} className="rounded border border-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
+                            </div>
+                            {nameError && <p className="text-[10px] text-red-500">{nameError}</p>}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <p className="max-w-[160px] truncate font-medium text-slate-900" title={run.run_name ?? "-"}>
+                              {run.run_name ?? <span className="font-normal text-slate-400">—</span>}
+                            </p>
+                            <button type="button" onClick={() => startEditName(run)} className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" title="Edit run name">
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 pr-4">
                         <span
@@ -845,7 +937,33 @@ export default function AdminPipelineMonitorPage() {
                           </div>
                         )}
                       </td>
-                      <td className="py-3 pr-4 text-slate-600">{run.operator_name || "-"}</td>
+                      <td className="py-3 pr-4">
+                        {editingOpRunId === run.id ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={opDraft}
+                                onChange={(e) => setOpDraft(e.target.value)}
+                                placeholder="operator"
+                                className="w-32 rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-900 focus:border-[var(--color-primary)] focus:outline-none"
+                                onKeyDown={(e) => { if (e.key === "Enter") void saveOperator(run.id); if (e.key === "Escape") cancelEditOp(); }}
+                                autoFocus
+                              />
+                              <button type="button" onClick={() => void saveOperator(run.id)} disabled={savingOp} className="rounded bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white hover:opacity-90 disabled:opacity-50">{savingOp ? "…" : "Simpan"}</button>
+                              <button type="button" onClick={cancelEditOp} className="rounded border border-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
+                            </div>
+                            {opError && <p className="text-[10px] text-red-500">{opError}</p>}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-600">{run.operator_name || <span className="text-slate-400">—</span>}</span>
+                            <button type="button" onClick={() => startEditOp(run)} className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" title="Edit operator">
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
                       <td className="py-3 pr-4 text-slate-500">{formatDateTime(run.created_at)}</td>
                       <td className="py-3 pr-4 text-slate-500">{formatDateTime(run.finished_at)}</td>
                       <td className="py-3">

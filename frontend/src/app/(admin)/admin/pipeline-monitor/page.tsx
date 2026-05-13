@@ -734,7 +734,7 @@ export default function AdminPipelineMonitorPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left">
-                  {["Run Name", "Status", "Aktif", "Progress", "Th. Model", "Operator", "Dibuat", "Selesai", "Aksi"].map((h) => (
+                  {["#", "Run Name", "Status", "Aktif", "Progress", "Th. Model", "Operator", "Dibuat", "Selesai", "Aksi"].map((h) => (
                     <th
                       key={h}
                       className="pb-3 pr-4 last:pr-0 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -751,11 +751,16 @@ export default function AdminPipelineMonitorPage() {
                   return (
                     <tr key={run.id} className={`transition-colors hover:bg-slate-50 ${isThisActive ? "bg-amber-50/40" : ""}`}>
                       <td className="py-3 pr-4">
+                        <span className="font-mono text-xs font-semibold text-slate-400">
+                          #{run.id}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
                         <p
                           className="max-w-[180px] truncate font-medium text-slate-900"
-                          title={run.run_name}
+                          title={run.run_name ?? "-"}
                         >
-                          {run.run_name}
+                          {run.run_name ?? <span className="text-slate-400">—</span>}
                         </p>
                       </td>
                       <td className="py-3 pr-4">

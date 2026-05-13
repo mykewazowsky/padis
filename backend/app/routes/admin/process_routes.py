@@ -82,7 +82,7 @@ def _fetch_latest_run(session):
                    step, progress, message, operator_name, source, data_year
             FROM runs
             WHERE source IN ('local', 'etl')
-            ORDER BY created_at DESC, id DESC
+            ORDER BY id DESC
             LIMIT 1
         """)).fetchone()
     except Exception:
@@ -97,7 +97,7 @@ def _fetch_latest_run(session):
                        NULL AS operator_name, NULL AS source, NULL AS data_year
                 FROM runs
                 WHERE source IN ('local', 'etl')
-                ORDER BY created_at DESC, id DESC
+                ORDER BY id DESC
                 LIMIT 1
             """)).fetchone()
         except Exception:
@@ -307,7 +307,7 @@ def admin_list_runs():
                            step, progress, message, operator_name, source, data_year
                     FROM runs
                     WHERE {where_clause}
-                    ORDER BY created_at DESC, id DESC
+                    ORDER BY id DESC
                     LIMIT :limit
                 """), params).fetchall()
             except Exception:
@@ -321,7 +321,7 @@ def admin_list_runs():
                            NULL AS data_year
                     FROM runs
                     WHERE {where_clause}
-                    ORDER BY created_at DESC, id DESC
+                    ORDER BY id DESC
                     LIMIT :limit
                 """), params).fetchall()
 

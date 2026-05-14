@@ -712,6 +712,17 @@ export default function MapCanvas({
 
   const accentColors = useMemo(() => getAccentColors(hazard), [hazard]);
 
+  // Refs for values read only inside VT style/event callbacks. Keeping them out
+  // of the main effect deps prevents a second full layer rebuild when data
+  // arrives after a filter change (e.g. normalizedTopRegionKeys updating after
+  // fetchAllLayers resolves). redraw() is used instead to apply style changes.
+  const normalizedTopRegionKeysRef = useRef(normalizedTopRegionKeys);
+  normalizedTopRegionKeysRef.current = normalizedTopRegionKeys;
+  const accentColorsRef = useRef(accentColors);
+  accentColorsRef.current = accentColors;
+  const isDarkThemeRef = useRef(isDarkTheme);
+  isDarkThemeRef.current = isDarkTheme;
+
   // Production punya VT layer sendiri dengan opacity terpisah.
   const activeLayerOpacity = useMemo(() => {
     if (activeLayers.hazard) return layerOpacityMap.hazard;
@@ -800,7 +811,7 @@ export default function MapCanvas({
               getColorFromBreaks,
               effectiveBreaks,
               hazard,
-              normalizedTopRegionKeys,
+              normalizedTopRegionKeysRef.current,
               selectedRegionRef.current,
               activeLayerOpacity,
               basemapKey,
@@ -818,12 +829,12 @@ export default function MapCanvas({
         popupRef.current
           ?.setContent(createTooltipHtml({
             props: ev.layer.properties,
-            accentColors,
+            accentColors: accentColorsRef.current,
             formatCompactRupiah,
             activeLayers,
-            normalizedTopRegionKeys,
+            normalizedTopRegionKeys: normalizedTopRegionKeysRef.current,
             hazard,
-            isDarkTheme,
+            isDarkTheme: isDarkThemeRef.current,
             normalizeMode,
             maxValue,
           }))
@@ -878,12 +889,12 @@ export default function MapCanvas({
         popupRef.current
           ?.setContent(createTooltipHtml({
             props: ev.layer.properties,
-            accentColors,
+            accentColors: accentColorsRef.current,
             formatCompactRupiah,
             activeLayers: productionOnlyLayers,
-            normalizedTopRegionKeys,
+            normalizedTopRegionKeys: normalizedTopRegionKeysRef.current,
             hazard,
-            isDarkTheme,
+            isDarkTheme: isDarkThemeRef.current,
             normalizeMode: false,
             maxValue: 0,
           }))
@@ -942,13 +953,10 @@ export default function MapCanvas({
     hasRequiredFilters,
     getColorFromBreaks,
     formatCompactRupiah,
-    accentColors,
     onRegionSelect,
-    normalizedTopRegionKeys,
     activeLayerOpacity,
     layerOpacityMap.production,
     basemapKey,
-    isDarkTheme,
   ]);
 
   // Selection-highlight layer is managed independently so that clicking a region
@@ -1005,15 +1013,15 @@ export default function MapCanvas({
     return () => { cancelled = true; };
   }, [isMapReady, selectedRegion, hazard, mapRef]);
 
-  // When selectedRegion changes, redraw existing thematic/production layers so
-  // the dimming style (isDimmed) updates. Tiles are served from the browser's
-  // HTTP cache so there is no network round-trip.
+  // Redraw when selectedRegion (dimming) or normalizedTopRegionKeys (top-5
+  // gold border) changes — style-only updates that don't need a full VTL
+  // rebuild. Tiles come from browser HTTP cache; no network round-trip.
   useEffect(() => {
     if (!isMapReady) return;
     type Redrawable = L.Layer & { redraw(): void };
     (vtLayersRef.current.thematic as Redrawable | undefined)?.redraw();
     (vtLayersRef.current.production as Redrawable | undefined)?.redraw();
-  }, [selectedRegion, isMapReady]);
+  }, [selectedRegion, normalizedTopRegionKeys, isMapReady]);
 
   const legendItems = useMemo(() => {
     if (!effectiveBreaks.length) return [];

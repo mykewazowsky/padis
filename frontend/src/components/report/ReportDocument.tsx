@@ -530,7 +530,7 @@ export default function ReportDocument({
               {/* Chart B — AAL comparison */}
               <div>
                 <p className="mb-1.5 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
-                  B. Perbandingan AAL: Non-Iklim vs Iklim
+                  B. Perbandingan AAL: Baseline vs Projection
                 </p>
                 <div className="chart-wrapper" style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height={160}>

@@ -507,7 +507,7 @@ export default function MetodologiPage() {
         </div>
       </section>
 
-      {/* 3. SKENARIO IKLIM DAN NON-IKLIM */}
+      {/* 3. SKENARIO PROJECTION DAN BASELINE */}
       <section className="section-shell content-section">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="mx-auto max-w-5xl">

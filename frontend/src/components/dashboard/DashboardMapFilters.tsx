@@ -186,7 +186,7 @@ function FilterFields({
         />
       </div>
 
-      {/* Skenario iklim */}
+      {/* Skenario (Baseline / Projection) */}
       <div className={getFieldClassName("climate")}>
         <FilterLabel icon={Cloud} inline={isInline}>
           Skenario Analisis

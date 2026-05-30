@@ -439,7 +439,7 @@ function handleDownloadManual() {
     <tr><th>Parameter</th><th>Nilai</th><th>Keterangan</th></tr>
     <tr><td>Hazard</td><td>Banjir, Kekeringan, Multi-hazard</td><td>Jenis bahaya yang dianalisis</td></tr>
     <tr><td>Return Period</td><td>RP25, RP50, RP100, RP250</td><td>Periode ulang kejadian (tahun)</td></tr>
-    <tr><td>Skenario Iklim</td><td>Baseline (r*), Projection (rc*)</td><td>Kondisi iklim saat ini vs proyeksi perubahan iklim</td></tr>
+    <tr><td>Skenario</td><td>Baseline (r*), Projection (rc*)</td><td>Parameter standar pemodelan hazard vs proyeksi skenario masa depan (RCP/SSP)</td></tr>
   </table>
   <div class="callout">
     Total kombinasi per run penuh: 3 hazard × 4 RP × 2 skenario = 24 kombinasi analisis.
@@ -628,7 +628,7 @@ function handleDownloadManual() {
 
   <h3>6.2 Cara Generate Laporan</h3>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><div class="step-body">Buka Dashboard → pilih hazard, return period, dan skenario iklim yang diinginkan.</div></div>
+    <div class="step"><div class="step-num">1</div><div class="step-body">Buka Dashboard → pilih hazard, return period, dan skenario (Baseline/Projection) yang diinginkan.</div></div>
     <div class="step"><div class="step-num">2</div><div class="step-body">Klik tombol <strong>Laporan</strong> di dashboard untuk membuka dialog laporan.</div></div>
     <div class="step"><div class="step-num">3</div><div class="step-body">Pilih jenis laporan: Regional (satu wilayah) atau Nasional (seluruh Indonesia).</div></div>
     <div class="step"><div class="step-num">4</div><div class="step-body">Klik <strong>Preview</strong> untuk melihat laporan, lalu <strong>Print / Save as PDF</strong> via dialog print browser.</div></div>

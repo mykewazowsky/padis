@@ -177,7 +177,7 @@ function ScatterTooltip({
             style={{ backgroundColor: NONCLIMATE_COLOR }}
           />
           <span className="text-[var(--chart-tooltip-muted)]">
-            Non-Iklim:{" "}
+            Baseline:{" "}
             <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.x)}
             </span>
@@ -189,7 +189,7 @@ function ScatterTooltip({
             style={{ backgroundColor: CLIMATE_COLOR }}
           />
           <span className="text-[var(--chart-tooltip-muted)]">
-            Iklim:{" "}
+            Projection:{" "}
             <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.y)}
             </span>
@@ -447,7 +447,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan AAL Non-Iklim dan Iklim untuk Banjir, Kekeringan,
+                Perbandingan AAL Baseline dan Projection untuk Banjir, Kekeringan,
                 dan Multi-hazard.
               </p>
             </div>
@@ -619,7 +619,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan Non-Iklim dan Iklim untuk hazard{" "}
+                Perbandingan Baseline dan Projection untuk hazard{" "}
                 {getHazardLabel(hazard)} pada semua skenario analisis.
               </p>
             </div>

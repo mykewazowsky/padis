@@ -519,24 +519,25 @@ export default function MetodologiPage() {
                 Dalam PADIS, istilah{" "}
                 <strong className="text-heading">Projection</strong> dan{" "}
                 <strong className="text-heading">Baseline</strong> merujuk pada
-                dua skenario pembentukan <em>raster hazard</em>. Keduanya memiliki format data yang sama,
-                tetapi berbeda pada faktor pembentuk nilai bahayanya.
-                
+                dua skenario pembentukan <em>raster hazard</em>. Keduanya
+                menggunakan alur perhitungan yang sama, tetapi berbeda pada{" "}
+                <strong className="text-heading">parameter masukan</strong> yang
+                digunakan dalam pemodelan.
               </p>
             </div>
 
             {/* Kartu perbandingan dua skenario */}
             <div className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
-              {/* Non-Iklim */}
+              {/* Baseline */}
               <div className="card p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <p className="section-eyebrow text-xs mb-1">Skenario</p>
                     <h5 className="text-xl font-bold text-heading">
-                      Non-Iklim
+                      Baseline
                     </h5>
                     <p className="text-sm italic text-muted mt-0.5">
-                      
+                      Parameter standar pemodelan hazard
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
@@ -544,11 +545,13 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed text-muted">
-                  Merepresentasikan kondisi hazard yang dipengaruhi oleh faktor fisik,
-                  spasial, dan sosial-ekonomi wilayah. Faktor ini dapat dikaitkan dengan pendekatan 
-                  sosial-ekonomi seperti SSP, misalnya perubahan penggunaan lahan, aktivitas manusia, 
-                  sistem irigasi, ketersediaan air, dan kondisi infrastruktur wilayah.
-                   
+                  Merepresentasikan kondisi hazard yang dibangun menggunakan
+                  parameter-parameter standar pemodelan seperti data fisik
+                  wilayah, karakteristik spasial, dan kondisi hidrologis.
+                  Skenario ini tidak dikaitkan dengan pendekatan skenario masa
+                  depan seperti RCP maupun SSP, melainkan mencerminkan kondisi
+                  berdasarkan parameter yang umum digunakan dalam pembangunan
+                  model hazard.
                 </p>
               </div>
 
@@ -566,9 +569,9 @@ export default function MetodologiPage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)] mb-1">
                       Skenario
                     </p>
-                    <h5 className="text-xl font-bold text-heading">Iklim</h5>
+                    <h5 className="text-xl font-bold text-heading">Projection</h5>
                     <p className="text-sm italic text-[var(--color-secondary-dark)] mt-0.5">
-                      
+                      Dua pendekatan: RCP atau SSP
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
@@ -576,10 +579,16 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed text-muted">
-                  Merepresentasikan kondisi hazard yang dipengaruhi oleh faktor iklim. 
-                  Faktor ini dapat dikaitkan dengan pendekatan skenario iklim seperti RCP, 
-                  misalnya perubahan pola curah hujan, hujan ekstrem, suhu, evapotranspirasi, 
-                  dan kecenderungan kekeringan.
+                  Merepresentasikan kondisi hazard yang dipengaruhi oleh
+                  skenario masa depan. Projection dapat menggunakan dua
+                  pendekatan: (1){" "}
+                  <strong className="text-heading">RCP</strong> (Representative
+                  Concentration Pathways), berbasis proyeksi iklim seperti
+                  perubahan curah hujan, suhu, dan evapotranspirasi; atau (2){" "}
+                  <strong className="text-heading">SSP</strong> (Shared
+                  Socioeconomic Pathways), berbasis proyeksi sosial-ekonomi
+                  seperti perubahan tata guna lahan, pertumbuhan penduduk, dan
+                  infrastruktur wilayah.
                 </p>
               </div>
             </div>

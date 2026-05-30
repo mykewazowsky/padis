@@ -265,6 +265,19 @@ export default function CaraKerjaPage() {
                 Buka di YouTube →
               </a>
             </p>
+
+            {/* Manual book download */}
+            <div className="mt-6 flex justify-center">
+              <a
+                href="/manual-book/PADIS_Manual_Book.pdf"
+                download="PADIS_Manual_Book.pdf"
+                aria-label="Unduh manual pengguna PADIS"
+                className="btn-outline inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
+              >
+                <FileDown className="h-4 w-4" />
+                Unduh Manual Book
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -428,16 +441,6 @@ export default function CaraKerjaPage() {
                 >
                   Buka Dashboard
                 </Link>
-
-                <a
-                  href="/manual-book/PADIS_Manual_Book.pdf"
-                  download="PADIS_Manual_Book.pdf"
-                  aria-label="Unduh manual pengguna PADIS"
-                  className="btn-outline inline-flex items-center gap-2 px-6 py-3 text-base font-semibold"
-                >
-                  <FileDown className="h-5 w-5" />
-                  Unduh Manual Book
-                </a>
 
                 <Link
                   href="/"

@@ -429,6 +429,16 @@ export default function CaraKerjaPage() {
                   Buka Dashboard
                 </Link>
 
+                <a
+                  href="/manual-book/PADIS_Manual_Book.pdf"
+                  download="PADIS_Manual_Book.pdf"
+                  aria-label="Unduh manual pengguna PADIS"
+                  className="btn-outline inline-flex items-center gap-2 px-6 py-3 text-base font-semibold"
+                >
+                  <FileDown className="h-5 w-5" />
+                  Unduh Manual Book
+                </a>
+
                 <Link
                   href="/"
                   aria-label="Kembali ke halaman beranda"

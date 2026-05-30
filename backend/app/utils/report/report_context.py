@@ -98,7 +98,7 @@ def build_report_context(
         "drought": "Drought",
     }.get(hazard, hazard)
 
-    climate_label = "Climate" if climate == "climate" else "Non-Climate"
+    climate_label = "Projection" if climate == "climate" else "Baseline"
     scenario_label = scenario.upper()
 
     # ================= INIT =================

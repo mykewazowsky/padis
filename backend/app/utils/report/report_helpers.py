@@ -50,7 +50,7 @@ def get_hazard_label(hazard: str) -> str:
 
 
 def get_climate_label(climate: str) -> str:
-    return "Climate" if climate == "climate" else "Non-Climate"
+    return "Projection" if climate == "climate" else "Baseline"
 
 
 def get_geojson_path(output_dir: str, hazard: str, scenario: str, climate: str) -> str:

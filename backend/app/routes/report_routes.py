@@ -344,7 +344,7 @@ def _sheet_ringkasan(ws, ctx, all_rows):
 
     kpis = [
         ("Total Kerugian",       ctx["total_loss"],       "Kerugian Tertinggi",    ctx["top_loss"]),
-        ("AAL Non-Climate",      ctx["aal_nonclimate"],   "AAL Climate",           ctx["aal_climate"]),
+        ("AAL Baseline",         ctx["aal_nonclimate"],   "AAL Projection",        ctx["aal_climate"]),
         ("Δ AAL (abs)",          ctx["aal_delta"],        "% Perubahan AAL",       ctx["aal_pct"]),
         ("Wilayah Terdampak",    ctx["valid_count"],      "Total Wilayah",         ctx["data_count"]),
         ("Top-3 Share (%)",      ctx["top3_share_label"], "Wilayah #1 Share (%)",  ctx["top1_share_label"]),
@@ -591,7 +591,7 @@ def generate_report_v2():
         # Narrative insight for Summary sheet
         insight_parts = [
             f"Berdasarkan analisis {_HAZARD_LABEL.get(db_hazard, db_hazard)} skenario "
-            f"{'Climate Change' if climate == 'climate' else 'Non-Climate'} "
+            f"{'Projection' if climate == 'climate' else 'Baseline'} "
             f"periode ulang {scenario.upper()}, total kerugian produksi padi mencapai "
             f"{_fmt(total_loss)} dari {valid_count} kabupaten/kota terdampak "
             f"(dari {data_count} wilayah teranalisis)."
@@ -613,7 +613,7 @@ def generate_report_v2():
 
         ctx = {
             "hazard_label":      _HAZARD_LABEL.get(db_hazard, db_hazard),
-            "climate_label":     "Climate Change" if climate == "climate" else "Non-Climate (Baseline)",
+            "climate_label":     "Projection" if climate == "climate" else "Baseline",
             "scenario_label":    scenario.upper(),
             "generated_at":      datetime.now().strftime("%d %B %Y, %H:%M WIB"),
             "region":            region,

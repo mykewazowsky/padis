@@ -981,10 +981,10 @@ export default function DashboardPage() {
             </div>
 
             <div
-              className={`relative overflow-hidden rounded-[28px] border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] shadow-[var(--dashboard-shadow-lg)] ${
+              className={`relative overflow-hidden bg-[var(--dashboard-surface)] ${
                 isMapExpanded
-                  ? "md:fixed md:inset-4 md:z-[1300] md:flex md:flex-col md:bg-[var(--dashboard-surface)] md:shadow-[var(--dashboard-expanded-shadow)]"
-                  : ""
+                  ? "md:fixed md:inset-0 md:z-[1300] md:flex md:flex-col md:rounded-none md:border-0 md:shadow-none"
+                  : "rounded-[28px] border border-[var(--dashboard-border)] shadow-[var(--dashboard-shadow-lg)]"
               }`}
             >
               <div className="relative z-10 border-b border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-solid)] md:flex-shrink-0">

@@ -426,10 +426,15 @@ function createTooltipHtml(params: {
           : props?.mean_value;
 
   // Wilayah tanpa data — tampilkan tooltip ringkas dengan keterangan khusus.
-  // Kondisi: has_data = false, ATAU layer loss/aal dengan nilai 0 atau null.
-  const isNoDataTooltip =
-    !props?.has_data ||
-    ((activeLayers.loss || activeLayers.aal) && (tooltipValue == null || tooltipValue <= 0));
+  // Production tiles tidak punya properti has_data, jadi kondisinya berbeda:
+  //   - production : no-data hanya jika total_prod null/0
+  //   - layer lain : no-data jika has_data=false, ATAU loss/aal bernilai 0/null
+  const isNoDataTooltip = activeLayers.production
+    ? (tooltipValue == null || tooltipValue <= 0)
+    : (
+        !props?.has_data ||
+        ((activeLayers.loss || activeLayers.aal) && (tooltipValue == null || tooltipValue <= 0))
+      );
 
   if (isNoDataTooltip) {
     const noDataBg = isDarkTheme

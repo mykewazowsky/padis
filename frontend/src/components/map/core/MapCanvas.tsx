@@ -320,11 +320,12 @@ function getVtStyle(
   if (activeLayers.loss) value = props.loss as number | null | undefined;
   if (activeLayers.aal) value = props.aal as number | null | undefined;
 
-  // Tampilkan abu jika tidak ada data sama sekali, ATAU jika layer loss/aal
-  // bernilai 0 atau null (tidak ada kerugian karena tidak ada data hazard/produksi).
+  // Tampilkan abu jika tidak ada data sama sekali, ATAU jika layer analitik
+  // (hazard/loss/aal) bernilai 0 atau null.
   const isNoData =
     !props.has_data ||
-    ((activeLayers.loss || activeLayers.aal) && (value == null || value <= 0));
+    ((activeLayers.hazard || activeLayers.loss || activeLayers.aal) &&
+      (value == null || value <= 0));
 
   if (isNoData) {
     return {
@@ -426,14 +427,15 @@ function createTooltipHtml(params: {
           : props?.mean_value;
 
   // Wilayah tanpa data — tampilkan tooltip ringkas dengan keterangan khusus.
-  // Production tiles tidak punya properti has_data, jadi kondisinya berbeda:
-  //   - production : no-data hanya jika total_prod null/0
-  //   - layer lain : no-data jika has_data=false, ATAU loss/aal bernilai 0/null
+  // Setiap tipe layer punya kondisi no-data yang berbeda:
+  //   - production : no-data hanya jika total_prod null/0 (tiles tidak punya has_data)
+  //   - hazard/loss/aal : no-data jika has_data=false ATAU nilai 0/null
   const isNoDataTooltip = activeLayers.production
     ? (tooltipValue == null || tooltipValue <= 0)
     : (
         !props?.has_data ||
-        ((activeLayers.loss || activeLayers.aal) && (tooltipValue == null || tooltipValue <= 0))
+        ((activeLayers.hazard || activeLayers.loss || activeLayers.aal) &&
+          (tooltipValue == null || tooltipValue <= 0))
       );
 
   if (isNoDataTooltip) {

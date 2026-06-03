@@ -190,15 +190,19 @@ export default function ReportDocument({
 
     // Report preview mirrors the dashboard filter state but fetches only the
     // summary/value endpoints needed for the printable A4 document.
+    const regionParam = selectedRegion?.trim()
+      ? `&region=${encodeURIComponent(selectedRegion.trim())}`
+      : "";
+
     Promise.all([
       fetchJson(
-        `/api/top-regions?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`
+        `/api/top-regions?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}${regionParam}`
       ),
       fetchJson<AalSummary>(
-        `/api/aal-summary?hazard=${h}&run_id=${runId}`
+        `/api/aal-summary?hazard=${h}&run_id=${runId}${regionParam}`
       ),
       fetchJson<LossValuesResponse>(
-        `/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`
+        `/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}${regionParam}`
       ),
     ])
       .then(([topJson, aalJson, lossJson]) => {
@@ -212,7 +216,7 @@ export default function ReportDocument({
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [hazard, climate, scenario, runId]);
+  }, [hazard, climate, scenario, runId, selectedRegion]);
 
   if (loading) {
     return (
@@ -241,8 +245,8 @@ export default function ReportDocument({
   const aalC         = aalSummary?.total_aal_climate    ?? 0;
   const aalDelta     = aalNc > 0 ? ((aalC - aalNc) / aalNc) * 100 : null;
   const aalDeltaLbl  = aalDelta != null ? `${aalDelta >= 0 ? "+" : ""}${aalDelta.toFixed(1)}%` : "N/A";
-  const dataCount    = allRegions.length;
   const validCount   = allRegions.filter(r => (r.loss ?? 0) > 0).length;
+  const dataCount    = validCount; // hanya kabkota dengan loss > 0, konsisten dengan dashboard
   const top3Loss     = top3.reduce((s, r) => s + r.loss, 0);
   const top3Share    = totalLoss > 0 ? (top3Loss / totalLoss) * 100 : 0;
   const topLossShare = totalLoss > 0 && top3[0] ? (top3[0].loss / totalLoss) * 100 : 0;

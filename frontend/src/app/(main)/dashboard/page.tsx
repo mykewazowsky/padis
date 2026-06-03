@@ -657,6 +657,7 @@ export default function DashboardPage() {
   function handleDownloadCsv() {
     const params = new URLSearchParams({ hazard, scenario, climate });
     if (selectedRegion.trim()) params.set("region", selectedRegion.trim());
+    if (runId != null) params.set("run_id", String(runId));
 
     const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
 
@@ -669,6 +670,7 @@ export default function DashboardPage() {
   function handleGenerateReport() {
     const params = new URLSearchParams({ hazard, scenario, climate });
     if (selectedRegion.trim()) params.set("region", selectedRegion.trim());
+    if (runId != null) params.set("run_id", String(runId));
 
     const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
 

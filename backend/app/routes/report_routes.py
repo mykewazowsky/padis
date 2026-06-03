@@ -97,14 +97,25 @@ def _query_data(db, hazard_id, scenario_id, rp_id, run_id):
     }).fetchall()
 
 
-def _aal_total(db, hazard_id, scenario_id, run_id):
-    row = db.execute(text("""
-        SELECT COALESCE(SUM(aal), 0)::float AS total
-        FROM aal
-        WHERE hazard_id   = :hid
-          AND scenario_id = :sid
-          AND run_id      = :run_id
-    """), {"hid": hazard_id, "sid": scenario_id, "run_id": run_id}).fetchone()
+def _aal_total(db, hazard_id, scenario_id, run_id, region: str = ""):
+    if region:
+        row = db.execute(text("""
+            SELECT COALESCE(SUM(a.aal), 0)::float AS total
+            FROM aal a
+            JOIN regions_adm r ON a.id_kabkota = r.id_kabkota
+            WHERE a.hazard_id   = :hid
+              AND a.scenario_id = :sid
+              AND a.run_id      = :run_id
+              AND LOWER(TRIM(r.kab_kota)) = LOWER(TRIM(:region))
+        """), {"hid": hazard_id, "sid": scenario_id, "run_id": run_id, "region": region}).fetchone()
+    else:
+        row = db.execute(text("""
+            SELECT COALESCE(SUM(aal), 0)::float AS total
+            FROM aal
+            WHERE hazard_id   = :hid
+              AND scenario_id = :sid
+              AND run_id      = :run_id
+        """), {"hid": hazard_id, "sid": scenario_id, "run_id": run_id}).fetchone()
     return float(row.total) if row else 0.0
 
 
@@ -134,6 +145,7 @@ def download_csv():
     scenario = request.args.get("scenario", "rp25")
     climate  = request.args.get("climate",  "nonclimate")
     region   = request.args.get("region",   "").strip()
+    run_id_param = request.args.get("run_id", type=int)
 
     err = _validate(hazard, scenario, climate)
     if err:
@@ -143,7 +155,7 @@ def download_csv():
 
     db = SessionLocal()
     try:
-        run_id = _latest_run_id(db)
+        run_id = run_id_param or _latest_run_id(db)
         if not run_id:
             return jsonify({"error": "No runs found"}), 404
 
@@ -536,6 +548,7 @@ def generate_report_v2():
     scenario = request.args.get("scenario", "rp25")
     climate  = request.args.get("climate",  "nonclimate")
     region   = request.args.get("region",   "").strip()
+    run_id_param = request.args.get("run_id", type=int)
 
     err = _validate(hazard, scenario, climate)
     if err:
@@ -545,7 +558,7 @@ def generate_report_v2():
 
     db = SessionLocal()
     try:
-        run_id = _latest_run_id(db)
+        run_id = run_id_param or _latest_run_id(db)
         if not run_id:
             return jsonify({"error": "No runs found"}), 404
 
@@ -562,8 +575,8 @@ def generate_report_v2():
         total_loss  = sum(r.loss for r in valid)
         top_rows    = valid[:10]
 
-        aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"], run_id)
-        aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"],    run_id)
+        aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"], run_id, region)
+        aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"],    run_id, region)
         aal_delta = aal_cc - aal_nc
         aal_pct   = ((aal_delta / aal_nc) * 100.0) if aal_nc else 0.0
 

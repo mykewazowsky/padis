@@ -704,7 +704,8 @@ export default function DashboardPage() {
       (f: LayerFeature) =>
         f.properties?.loss !== null &&
         f.properties?.loss !== undefined &&
-        !Number.isNaN(Number(f.properties.loss))
+        !Number.isNaN(Number(f.properties.loss)) &&
+        Number(f.properties.loss) > 0
     );
 
     const totalLoss = validFeatures.reduce(
@@ -946,11 +947,14 @@ export default function DashboardPage() {
 
                 {/* Row 2 — secondary metrics */}
                 <div className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-[var(--dashboard-text-muted)]">
-                  <span>
+                  <span
+                    title="Jumlah kabupaten/kota yang memiliki kerugian > 0 pada filter aktif"
+                    className="cursor-default"
+                  >
                     <span className="font-semibold text-[var(--dashboard-text)]">
                       {loadingLayer ? "—" : layerSummary.dataCount}
                     </span>{" "}
-                    wilayah
+                    wilayah terdampak
                   </span>
                   <span className="select-none text-[var(--dashboard-text-soft)]" aria-hidden="true">·</span>
                   <span

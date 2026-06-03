@@ -31,16 +31,14 @@ def _select_files(hazard: str) -> list:
     return [f for f in FILES_ZONAL if hazard in str(f).lower()]
 
 
-def run(cur, run_id: int, hazard: str = "multi") -> None:
+def prepare_data(hazard: str) -> list[tuple]:
     """
-    Memuat data zonal aggregation ke dalam tabel zonal_kabupaten menggunakan
-    cursor yang diberikan. Tidak melakukan commit — tanggung jawab caller (run_all.py).
-    Raise exception jika gagal agar caller dapat melakukan rollback.
-    """
-    log.info("ZONAL-AGG", f"Memuat data zonal aggregation (hazard={hazard})...")
+    Baca GeoJSON dan kembalikan baris mentah:
+        (id_kabkota, hazard_name, scenario_name, rp, mean_value)
 
-    hazards, scenarios, rps = _get_lookup(cur)
-    data_map = {}
+    Tidak butuh koneksi DB.
+    """
+    rows: list[tuple] = []
 
     for path in _select_files(hazard):
         full_path = Path(path)
@@ -55,27 +53,43 @@ def run(cur, run_id: int, hazard: str = "multi") -> None:
             id_kab = str(row.get("id_kabkota", "")).strip()
             if not id_kab:
                 continue
-
             for col in gdf.columns:
                 if not col.startswith("mean_"):
                     continue
-
                 try:
                     hazard_col, scenario, rp = parse_zonal(col)
-
                     if hazard_col == "multi":
                         hazard_col = "multihazard"
-
-                    if hazard_col not in hazards or scenario not in scenarios or rp not in rps:
-                        continue
-
-                    key = (id_kab, hazards[hazard_col], scenarios[scenario], rps[rp], run_id)
-                    if key not in data_map:
-                        data_map[key] = []
-                    data_map[key].append(float(row[col]))
-
+                    rows.append((id_kab, hazard_col, scenario, rp, float(row[col])))
                 except Exception:
                     continue
+
+    log.info("ZONAL-AGG", f"Total baris disiapkan: {len(rows)}")
+    return rows
+
+
+def run(cur, run_id: int, hazard: str = "multi",
+        _prepared: list[tuple] | None = None) -> None:
+    """
+    Memuat data zonal aggregation ke tabel zonal_kabupaten menggunakan cursor.
+    Tidak melakukan commit — tanggung jawab caller (run_all.py).
+
+    _prepared — opsional: hasil prepare_data() yang sudah dibaca sebelumnya.
+    """
+    log.info("ZONAL-AGG", f"Memuat data zonal aggregation (hazard={hazard})...")
+
+    data_rows = _prepared if _prepared is not None else prepare_data(hazard)
+    hazards, scenarios, rps = _get_lookup(cur)
+
+    data_map: dict = {}
+
+    for id_kab, hazard_col, scenario, rp, val in data_rows:
+        if hazard_col not in hazards or scenario not in scenarios or rp not in rps:
+            continue
+        key = (id_kab, hazards[hazard_col], scenarios[scenario], rps[rp], run_id)
+        if key not in data_map:
+            data_map[key] = []
+        data_map[key].append(val)
 
     batch_data = [(*k, sum(v) / len(v)) for k, v in data_map.items()]
     log.info("ZONAL-AGG", f"Total baris: {len(batch_data)}")

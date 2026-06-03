@@ -6,9 +6,9 @@ from backend.scripts.config.paths import OUTPUT_ANALYSIS_DIR
 
 from backend.scripts.etl.load_regions_adm import run as load_regions
 from backend.scripts.etl.load_sawah import run as load_sawah
-from backend.scripts.etl.load_losses import run as load_losses
-from backend.scripts.etl.load_aal import run as load_aal
-from backend.scripts.etl.load_zonal_agg import run as load_zonal
+from backend.scripts.etl.load_losses import run as load_losses, prepare_data as prepare_losses
+from backend.scripts.etl.load_aal import run as load_aal, prepare_data as prepare_aal
+from backend.scripts.etl.load_zonal_agg import run as load_zonal, prepare_data as prepare_zonal
 from backend.scripts.etl.load_production import run as load_production
 
 
@@ -68,7 +68,19 @@ def run(hazard: str = "multi", run_id: int | None = None) -> None:
     log.info("ETL", "[3/6] Loading production...")
     load_production()
 
-    # Run-specific tables: one connection, one atomic transaction.
+    # ── Phase 1: baca semua file GeoJSON SEBELUM membuka koneksi ─────────────
+    # Pembacaan file bisa memakan waktu lama; koneksi yang dibuka terlalu
+    # awal akan di-drop Supabase karena idle timeout.
+    log.info("ETL", "[4/6] Membaca data losses dari file...")
+    losses_batch = prepare_losses(hazard)
+
+    log.info("ETL", "[5/6] Membaca data AAL dari file...")
+    aal_batch = prepare_aal(hazard)
+
+    log.info("ETL", "[6/6] Membaca data zonal dari file...")
+    zonal_batch = prepare_zonal(hazard)
+
+    # ── Phase 2: buka koneksi segar dan eksekusi semua SQL sekaligus ─────────
     conn = get_conn()
     cur = conn.cursor()
     own_run = run_id is None
@@ -85,19 +97,16 @@ def run(hazard: str = "multi", run_id: int | None = None) -> None:
             run_id = cur.fetchone()[0]
             log.info("ETL", f"Run ID: {run_id} (dibuat oleh ETL)  hazard={hazard}")
         else:
-            # Integrated: reuse the run row created by PipelineRunManager.
-            # Do NOT activate yet — activation happens only after a successful commit,
-            # so a failed ETL leaves the previous active run untouched.
             log.info("ETL", f"Run ID: {run_id} (dari pipeline)  hazard={hazard}")
 
-        log.info("ETL", "[4/6] Loading losses...")
-        load_losses(cur, run_id, hazard)
+        log.info("ETL", "Tulis losses ke DB...")
+        load_losses(cur, run_id, hazard, _prepared=losses_batch)
 
-        log.info("ETL", "[5/6] Loading AAL...")
-        load_aal(cur, run_id, hazard)
+        log.info("ETL", "Tulis AAL ke DB...")
+        load_aal(cur, run_id, hazard, _prepared=aal_batch)
 
-        log.info("ETL", "[6/6] Loading zonal aggregation...")
-        load_zonal(cur, run_id, hazard)
+        log.info("ETL", "Tulis zonal aggregation ke DB...")
+        load_zonal(cur, run_id, hazard, _prepared=zonal_batch)
 
         if own_run:
             cur.execute("UPDATE runs SET status = 'success' WHERE id = %s", (run_id,))

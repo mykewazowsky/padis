@@ -22,6 +22,8 @@ type Props = {
   onToggle: () => void;
   /** When true, shows a Top-5 amber indicator matching the map highlight. */
   showTop5Indicator?: boolean;
+  /** When true, shows a gray "Tidak ada data" entry at the bottom. */
+  showNoDataIndicator?: boolean;
   inline?: boolean;
 };
 
@@ -32,6 +34,7 @@ export default function MapLegendPanel({
   collapsed,
   onToggle,
   showTop5Indicator = false,
+  showNoDataIndicator = false,
   inline = false,
 }: Props) {
   return (
@@ -94,15 +97,25 @@ export default function MapLegendPanel({
             ))}
           </div>
 
-          {showTop5Indicator && (
-            <div className="mt-2.5 border-t border-[var(--dashboard-border-soft)] pt-2.5">
-              <div className="flex items-center gap-2">
-                {/* Amber border swatch matches the map highlight for top-5 regions */}
-                <div className="h-3 w-3 flex-shrink-0 rounded-sm border-2 border-amber-400 bg-[var(--dashboard-surface-solid)]" />
-                <span className="text-[11px] text-[var(--dashboard-text)]">
-                  Top 5 wilayah terdampak
-                </span>
-              </div>
+          {(showNoDataIndicator || showTop5Indicator) && (
+            <div className="mt-2.5 space-y-1.5 border-t border-[var(--dashboard-border-soft)] pt-2.5">
+              {showNoDataIndicator && (
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 flex-shrink-0 rounded-sm border border-[var(--dashboard-border-solid)] bg-[#d1d5db] dark:bg-[#4b5563]" />
+                  <span className="text-[11px] italic text-[var(--dashboard-text-muted)]">
+                    Tidak ada data
+                  </span>
+                </div>
+              )}
+              {showTop5Indicator && (
+                <div className="flex items-center gap-2">
+                  {/* Amber border swatch matches the map highlight for top-5 regions */}
+                  <div className="h-3 w-3 flex-shrink-0 rounded-sm border-2 border-amber-400 bg-[var(--dashboard-surface-solid)]" />
+                  <span className="text-[11px] text-[var(--dashboard-text)]">
+                    Top 5 wilayah terdampak
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </>

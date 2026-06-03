@@ -18,6 +18,7 @@ import {
   ArrowRightLeft,
   BarChart3,
   CloudSun,
+  Info,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -35,6 +36,9 @@ type AalAllHazardsItem = {
   hazard: string;
   total_aal_nonclimate: number;
   total_aal_climate: number;
+  region_count?: number;
+  spatial_scope?: string;
+  warning?: string;
 };
 
 type LossCompareClimateItem = {
@@ -334,6 +338,11 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
     );
   }, [aalChartData]);
 
+  const aalRegionCount = useMemo(
+    () => aalAllHazards[0]?.region_count ?? null,
+    [aalAllHazards]
+  );
+
   const topAalHazard = useMemo(() => {
     if (!aalAllHazards.length) {
       return {
@@ -450,6 +459,20 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                 Perbandingan AAL Baseline dan Projection untuk Banjir, Kekeringan,
                 dan Multi-hazard.
               </p>
+              {!loadingAAL && aalRegionCount != null && aalRegionCount > 0 && (
+                <div className="mt-2 flex items-start gap-1.5 rounded-md border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-muted)] px-2.5 py-1.5">
+                  <Info className="mt-0.5 h-3 w-3 shrink-0 text-[var(--dashboard-text-muted)]" />
+                  <p className="text-[11px] leading-snug text-[var(--dashboard-text-muted)]">
+                    Dihitung dari{" "}
+                    <span className="font-semibold text-[var(--dashboard-text)]">
+                      {aalRegionCount} kabupaten/kota
+                    </span>{" "}
+                    yang memiliki data banjir, kekeringan, <em>dan</em> multi-hazard
+                    sekaligus. Wilayah tanpa data salah satu hazard dikecualikan agar
+                    perbandingan antar hazard setara.
+                  </p>
+                </div>
+              )}
             </div>
 
             {!loadingAAL && !errorAAL && hasAALData ? (

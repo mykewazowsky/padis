@@ -311,7 +311,22 @@ function getVtStyle(
 
   const isDark = basemapKey === "dark" || basemapKey === "imagery";
 
-  if (!props.has_data) {
+  const isTopRegion = !isDimmed && normalizedTopRegionKeys.has(regionKey);
+
+  let value: number | null | undefined = props.mean_value as
+    | number
+    | null
+    | undefined;
+  if (activeLayers.loss) value = props.loss as number | null | undefined;
+  if (activeLayers.aal) value = props.aal as number | null | undefined;
+
+  // Tampilkan abu jika tidak ada data sama sekali, ATAU jika layer loss/aal
+  // bernilai 0 atau null (tidak ada kerugian karena tidak ada data hazard/produksi).
+  const isNoData =
+    !props.has_data ||
+    ((activeLayers.loss || activeLayers.aal) && (value == null || value <= 0));
+
+  if (isNoData) {
     return {
       fill: true,
       fillColor: isDark ? "#4b5563" : "#d1d5db",
@@ -321,15 +336,6 @@ function getVtStyle(
       opacity: isDimmed ? 0.3 : 1,
     };
   }
-
-  const isTopRegion = !isDimmed && normalizedTopRegionKeys.has(regionKey);
-
-  let value: number | null | undefined = props.mean_value as
-    | number
-    | null
-    | undefined;
-  if (activeLayers.loss) value = props.loss as number | null | undefined;
-  if (activeLayers.aal) value = props.aal as number | null | undefined;
 
   const fillOpacity = isDimmed ? Math.max(0.05, layerOpacity * 0.12) : layerOpacity;
 
@@ -408,6 +414,43 @@ function createTooltipHtml(params: {
   const safeProv = escapeHtml(props?.prov ?? "-");
   const regionKey = normalizeRegionKey(props?.kab_kota);
   const isTop5 = normalizedTopRegionKeys.has(regionKey);
+
+  const tooltipValue: number | null | undefined = activeLayers.hazard
+    ? props?.mean_value
+    : activeLayers.loss
+      ? props?.loss
+      : activeLayers.aal
+        ? props?.aal
+        : activeLayers.production
+          ? props?.total_prod
+          : props?.mean_value;
+
+  // Wilayah tanpa data — tampilkan tooltip ringkas dengan keterangan khusus.
+  // Kondisi: has_data = false, ATAU layer loss/aal dengan nilai 0 atau null.
+  const isNoDataTooltip =
+    !props?.has_data ||
+    ((activeLayers.loss || activeLayers.aal) && (tooltipValue == null || tooltipValue <= 0));
+
+  if (isNoDataTooltip) {
+    const noDataBg = isDarkTheme
+      ? "linear-gradient(135deg, #1e293b, rgba(17, 28, 49, 0.96))"
+      : "#f3f4f6";
+    const noDataBorder = isDarkTheme ? "#334155" : "#e5e7eb";
+    const noDataTitle = isDarkTheme ? "#f1f5f9" : "#374151";
+    const noDataSub = isDarkTheme ? "#94a3b8" : "#6b7280";
+    return `
+      <div style="min-width:150px;max-width:190px;font-family:Figtree,sans-serif;line-height:1.4;overflow:hidden;">
+        <div style="background:${noDataBg};margin:-8px -12px 8px -12px;padding:7px 12px 6px;border-bottom:1px solid ${noDataBorder};">
+          <div style="font-size:11.5px;font-weight:800;color:${noDataTitle};margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeKabKota}</div>
+          <div style="font-size:9.5px;color:${noDataSub};">${safeProv}</div>
+        </div>
+        <div style="padding:2px 2px 4px;display:flex;align-items:center;gap:6px;">
+          <div style="width:8px;height:8px;border-radius:2px;background:${isDarkTheme ? "#4b5563" : "#d1d5db"};flex-shrink:0;"></div>
+          <span style="font-size:11px;color:${noDataSub};font-style:italic;">Tidak ada data</span>
+        </div>
+      </div>
+    `;
+  }
   const valueLabel = getValueLabel(activeLayers);
   const headerBg = isDarkTheme
     ? `linear-gradient(135deg, ${accentColors.dark}38, rgba(17, 28, 49, 0.96))`
@@ -1273,6 +1316,7 @@ export default function MapCanvas({
             collapsed={legendCollapsed}
             onToggle={() => setLegendCollapsed((prev) => !prev)}
             showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+            showNoDataIndicator={hasAnalysisLayer}
             inline
           />
         </div>
@@ -1423,6 +1467,7 @@ export default function MapCanvas({
                       collapsed={legendCollapsed}
                       onToggle={() => setLegendCollapsed((prev) => !prev)}
                       showTop5Indicator={activeLayers.loss && topRegionKeys.size > 0}
+                      showNoDataIndicator={hasAnalysisLayer}
                       inline
                     />
                   </div>

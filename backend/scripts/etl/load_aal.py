@@ -27,18 +27,14 @@ def _select_files(hazard: str) -> dict:
     return FILES_ANALYSIS  # "multi" — all three
 
 
-def run(cur, run_id: int, hazard: str = "multi") -> None:
+def prepare_data(hazard: str) -> list[tuple]:
     """
-    Memuat data AAL ke dalam tabel aal menggunakan cursor yang diberikan.
-    Tidak melakukan commit — tanggung jawab caller (run_all.py).
-    Raise exception jika gagal agar caller dapat melakukan rollback.
-    """
-    # AAL is already integrated across return periods, so rows are keyed only
-    # by district, hazard, scenario, and run_id.
-    log.info("AAL", f"Memuat data AAL (hazard={hazard})...")
+    Baca GeoJSON dan kembalikan baris mentah:
+        (id_kabkota, hazard_name, scenario_name, aal_value)
 
-    hazards, scenarios = _get_lookup(cur)
-    data_map = {}
+    Tidak butuh koneksi DB.
+    """
+    rows: list[tuple] = []
 
     for key, path in _select_files(hazard).items():
         full_path = Path(path)
@@ -51,25 +47,41 @@ def run(cur, run_id: int, hazard: str = "multi") -> None:
 
         for _, row in gdf.iterrows():
             id_kab = str(row["id_kabkota"]).strip()
-
             for col in gdf.columns:
                 if not col.startswith("aal_"):
                     continue
-
                 try:
                     hazard_col, scenario = parse_aal(col)
-
                     if hazard_col == "multi":
                         hazard_col = "multihazard"
-
-                    if hazard_col not in hazards or scenario not in scenarios:
-                        continue
-
-                    data_key = (id_kab, hazards[hazard_col], scenarios[scenario], run_id)
-                    data_map[data_key] = float(row[col])
-
+                    rows.append((id_kab, hazard_col, scenario, float(row[col])))
                 except Exception as e:
                     log.warn("AAL", f"Lewati kolom {col}: {e}")
+
+    log.info("AAL", f"Total baris disiapkan: {len(rows)}")
+    return rows
+
+
+def run(cur, run_id: int, hazard: str = "multi",
+        _prepared: list[tuple] | None = None) -> None:
+    """
+    Memuat data AAL ke tabel aal menggunakan cursor yang diberikan.
+    Tidak melakukan commit — tanggung jawab caller (run_all.py).
+
+    _prepared — opsional: hasil prepare_data() yang sudah dibaca sebelumnya.
+    """
+    log.info("AAL", f"Memuat data AAL (hazard={hazard})...")
+
+    data_rows = _prepared if _prepared is not None else prepare_data(hazard)
+    hazards, scenarios = _get_lookup(cur)
+
+    data_map: dict = {}
+
+    for id_kab, hazard_col, scenario, val in data_rows:
+        if hazard_col not in hazards or scenario not in scenarios:
+            continue
+        key = (id_kab, hazards[hazard_col], scenarios[scenario], run_id)
+        data_map[key] = val
 
     batch_data = [(*k, v) for k, v in data_map.items()]
     log.info("AAL", f"Total baris: {len(batch_data)}")

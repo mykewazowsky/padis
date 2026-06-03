@@ -35,6 +35,7 @@ from backend.scripts.analysis.multihazard.aggregate import aggregate_multihazard
 from backend.scripts.config.paths import DATA_DIR, OUTPUT_ANALYSIS_DIR
 from backend.scripts.config.settings import GABAH_KERING_PANEN
 from backend.scripts.utils import log
+from backend.scripts.etl.load_production import format_id_kabkota
 
 EXPOSURE_PATH = os.path.join(
     DATA_DIR, "raw", "exposure", "totalproduksipadi.csv"
@@ -47,9 +48,13 @@ EXPOSURE_PATH = os.path.join(
 def _load_prod() -> pd.DataFrame:
     if not os.path.exists(EXPOSURE_PATH):
         raise FileNotFoundError(f"File produksi tidak ditemukan: {EXPOSURE_PATH}")
-    # dtype=str wajib: tanpanya pandas membaca "33.20" sebagai float 33.2
-    # lalu str(33.2)="33.2" yang tidak match "33.20" di gdf → total_prod=0
-    return pd.read_csv(EXPOSURE_PATH, dtype={"id_kabkota": str})
+    # dtype=str wajib agar "33.20" tidak di-truncate pandas menjadi "33.2".
+    # format_id_kabkota menormalisasi ke format XX.XX sehingga join ke GeoDataFrame
+    # yang berasal dari Supabase (sudah ternormalisasi) maupun dari file lokal
+    # (mungkin belum ternormalisasi) selalu konsisten.
+    df = pd.read_csv(EXPOSURE_PATH, dtype={"id_kabkota": str})
+    df["id_kabkota"] = df["id_kabkota"].apply(format_id_kabkota)
+    return df
 
 
 # ===============================

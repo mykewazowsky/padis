@@ -13,7 +13,7 @@ def flood_lop_function(x: float) -> float:
     if x is None or np.isnan(x) or x <= 0:
         return np.nan
 
-    y = 0.2885 * np.log(x) + 0.5148
+    y = 0.29 * np.log(x) + 0.52
 
     return max(0.0, y)
 

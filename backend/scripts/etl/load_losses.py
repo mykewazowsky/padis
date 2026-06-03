@@ -30,19 +30,15 @@ def _select_files(hazard: str) -> dict:
     return FILES_ANALYSIS  # "multi" — all three
 
 
-def run(cur, run_id: int, hazard: str = "multi") -> None:
+def prepare_data(hazard: str) -> list[tuple]:
     """
-    Memuat data losses ke dalam tabel losses menggunakan cursor yang diberikan.
-    Tidak melakukan commit — tanggung jawab caller (run_all.py).
-    Raise exception jika gagal agar caller dapat melakukan rollback.
-    """
-    # Flatten each loss_* column into normalized DB rows keyed by district,
-    # hazard, scenario, return period, and run_id.
-    log.info("LOSSES", f"Memuat data losses (hazard={hazard})...")
+    Baca GeoJSON dan kembalikan baris mentah sebagai list of tuple:
+        (id_kabkota, hazard_name, scenario_name, rp, loss_value)
 
-    hazards, scenarios, rps = _get_lookup(cur)
-    data_map = {}
-    skipped_unknown = 0
+    Tidak butuh koneksi DB — dipanggil sebelum koneksi dibuka agar
+    koneksi tidak idle selama pembacaan file besar.
+    """
+    rows: list[tuple] = []
 
     for key, path in _select_files(hazard).items():
         full_path = Path(path)
@@ -55,29 +51,46 @@ def run(cur, run_id: int, hazard: str = "multi") -> None:
 
         for _, row in gdf.iterrows():
             id_kab = str(row["id_kabkota"]).strip()
-
             for col in gdf.columns:
                 if not col.startswith("loss_"):
                     continue
-
                 try:
                     hazard_col, scenario, rp = parse_loss(col)
-
                     if hazard_col == "multi":
                         hazard_col = "multihazard"
-
-                    if hazard_col not in hazards:
-                        skipped_unknown += 1
-                        continue
-
-                    if scenario not in scenarios or rp not in rps:
-                        continue
-
-                    data_key = (id_kab, hazards[hazard_col], scenarios[scenario], rps[rp], run_id)
-                    data_map[data_key] = float(row[col])
-
+                    rows.append((id_kab, hazard_col, scenario, rp, float(row[col])))
                 except Exception as e:
                     log.warn("LOSSES", f"Lewati kolom {col}: {e}")
+
+    log.info("LOSSES", f"Total baris disiapkan: {len(rows)}")
+    return rows
+
+
+def run(cur, run_id: int, hazard: str = "multi",
+        _prepared: list[tuple] | None = None) -> None:
+    """
+    Memuat data losses ke tabel losses menggunakan cursor yang diberikan.
+    Tidak melakukan commit — tanggung jawab caller (run_all.py).
+
+    _prepared — opsional: hasil prepare_data() yang sudah dibaca sebelumnya.
+    Jika None, prepare_data() dipanggil di sini (mode lama, bisa timeout).
+    """
+    log.info("LOSSES", f"Memuat data losses (hazard={hazard})...")
+
+    data_rows = _prepared if _prepared is not None else prepare_data(hazard)
+    hazards, scenarios, rps = _get_lookup(cur)
+
+    data_map: dict = {}
+    skipped_unknown = 0
+
+    for id_kab, hazard_col, scenario, rp, val in data_rows:
+        if hazard_col not in hazards:
+            skipped_unknown += 1
+            continue
+        if scenario not in scenarios or rp not in rps:
+            continue
+        key = (id_kab, hazards[hazard_col], scenarios[scenario], rps[rp], run_id)
+        data_map[key] = val
 
     batch_data = [(*k, v) for k, v in data_map.items()]
 

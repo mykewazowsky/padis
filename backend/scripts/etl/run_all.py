@@ -43,7 +43,7 @@ def _ensure_final_files_ready() -> None:
         )
 
 
-def run(hazard: str = "multi", run_id: int | None = None) -> None:
+def run(hazard: str = "multi", run_id: int | None = None, operator_name: str = "etl") -> None:
     """
     Memuat data ke DB dalam satu transaksi atomik.
 
@@ -90,10 +90,12 @@ def run(hazard: str = "multi", run_id: int | None = None) -> None:
             # Standalone: create a new run row and activate it immediately.
             cur.execute("UPDATE runs SET is_active = FALSE")
             cur.execute("""
-                INSERT INTO runs (created_at, is_active, status, source)
-                VALUES (NOW(), TRUE, 'running', 'etl')
+                INSERT INTO runs
+                    (created_at, is_active, status, source, operator_name, step, progress, message)
+                VALUES
+                    (NOW(), TRUE, 'running', 'etl', %s, 'etl', 0, 'ETL dimulai')
                 RETURNING id
-            """)
+            """, (operator_name,))
             run_id = cur.fetchone()[0]
             log.info("ETL", f"Run ID: {run_id} (dibuat oleh ETL)  hazard={hazard}")
         else:
@@ -109,7 +111,12 @@ def run(hazard: str = "multi", run_id: int | None = None) -> None:
         load_zonal(cur, run_id, hazard, _prepared=zonal_batch)
 
         if own_run:
-            cur.execute("UPDATE runs SET status = 'success' WHERE id = %s", (run_id,))
+            cur.execute("""
+                UPDATE runs
+                SET status = 'success', progress = 100,
+                    step = 'etl', message = 'ETL selesai', finished_at = NOW()
+                WHERE id = %s
+            """, (run_id,))
         else:
             # Atomically deactivate all other runs and activate ours with the data.
             cur.execute("UPDATE runs SET is_active = FALSE")
@@ -123,6 +130,18 @@ def run(hazard: str = "multi", run_id: int | None = None) -> None:
 
     except Exception as e:
         conn.rollback()
+        if own_run and run_id is not None:
+            try:
+                cur2 = conn.cursor()
+                cur2.execute("""
+                    UPDATE runs
+                    SET status = 'failed', message = %s, finished_at = NOW()
+                    WHERE id = %s
+                """, (str(e)[:500], run_id))
+                conn.commit()
+                cur2.close()
+            except Exception:
+                pass
         log.error("ETL", f"Pipeline gagal — semua perubahan dibatalkan: {e}")
         raise
 

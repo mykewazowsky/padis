@@ -701,9 +701,14 @@ export default function DashboardPage() {
   function handleDownloadCsv() {
     const params = new URLSearchParams({ hazard, scenario, climate });
     if (selectedRegion.trim()) params.set("region", selectedRegion.trim());
+    else if (selectedProvince.trim()) params.set("province", selectedProvince.trim());
     if (runId != null) params.set("run_id", String(runId));
 
-    const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
+    const regionSlug = selectedRegion.trim()
+      ? toSlug(selectedRegion)
+      : selectedProvince.trim()
+        ? toSlug(selectedProvince)
+        : "indonesia";
 
     openProtectedDownload(
       `/api/download-csv?${params.toString()}`,
@@ -714,9 +719,14 @@ export default function DashboardPage() {
   function handleGenerateReport() {
     const params = new URLSearchParams({ hazard, scenario, climate });
     if (selectedRegion.trim()) params.set("region", selectedRegion.trim());
+    else if (selectedProvince.trim()) params.set("province", selectedProvince.trim());
     if (runId != null) params.set("run_id", String(runId));
 
-    const regionSlug = selectedRegion.trim() ? toSlug(selectedRegion) : "indonesia";
+    const regionSlug = selectedRegion.trim()
+      ? toSlug(selectedRegion)
+      : selectedProvince.trim()
+        ? toSlug(selectedProvince)
+        : "indonesia";
 
     openProtectedDownload(
       `/api/generate-report-v2?${params.toString()}`,
@@ -1205,6 +1215,7 @@ export default function DashboardPage() {
           scenario={scenario}
           runId={runId}
           selectedRegion={selectedRegion}
+          selectedProvince={selectedProvince}
           onClose={() => setShowReportPreview(false)}
           onDownloadExcel={handleGenerateReport}
           onRequireLogin={() => {

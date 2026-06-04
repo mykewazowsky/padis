@@ -38,6 +38,7 @@ export type ReportDocumentProps = {
   scenario: string;
   runId: number;
   selectedRegion?: string;
+  selectedProvince?: string;
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -172,7 +173,7 @@ function PageFooter({ page, total, runId }: { page: number; total: number; runId
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ReportDocument({
-  hazard, climate, scenario, runId, selectedRegion,
+  hazard, climate, scenario, runId, selectedRegion, selectedProvince,
 }: ReportDocumentProps) {
   const [topRegions, setTopRegions] = useState<TopRegion[]>([]);
   const [allRegions, setAllRegions] = useState<RegionRow[]>([]);
@@ -188,35 +189,44 @@ export default function ReportDocument({
     const s = scenario.toLowerCase();
     const c = climate.toLowerCase();
 
-    // Report preview mirrors the dashboard filter state but fetches only the
-    // summary/value endpoints needed for the printable A4 document.
-    const regionParam = selectedRegion?.trim()
-      ? `&region=${encodeURIComponent(selectedRegion.trim())}`
-      : "";
+    const region   = selectedRegion?.trim()   ?? "";
+    const province = selectedProvince?.trim() ?? "";
+
+    const scopeParam = region
+      ? `&region=${encodeURIComponent(region)}`
+      : province
+        ? `&province=${encodeURIComponent(province)}`
+        : "";
 
     Promise.all([
       fetchJson(
-        `/api/top-regions?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}${regionParam}`
+        `/api/top-regions?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}${scopeParam}`
       ),
       fetchJson<AalSummary>(
-        `/api/aal-summary?hazard=${h}&run_id=${runId}${regionParam}`
+        `/api/aal-summary?hazard=${h}&run_id=${runId}${scopeParam}`
       ),
       fetchJson<LossValuesResponse>(
-        `/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}${regionParam}`
+        `/api/layers/values/loss?hazard=${h}&scenario=${s}&climate=${c}&run_id=${runId}`
       ),
     ])
       .then(([topJson, aalJson, lossJson]) => {
         setTopRegions(topJson as TopRegion[]);
         setAalSummary(aalJson);
 
-        const rows = ((lossJson.data ?? []) as RegionRow[])
+        let rows = ((lossJson.data ?? []) as RegionRow[])
           .sort((a, b) => (b.loss ?? 0) - (a.loss ?? 0));
+
+        if (region) {
+          rows = rows.filter(r => r.kab_kota?.toLowerCase().trim() === region.toLowerCase().trim());
+        } else if (province) {
+          rows = rows.filter(r => r.prov?.toLowerCase().trim() === province.toLowerCase().trim());
+        }
 
         setAllRegions(rows);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [hazard, climate, scenario, runId, selectedRegion]);
+  }, [hazard, climate, scenario, runId, selectedRegion, selectedProvince]);
 
   if (loading) {
     return (
@@ -250,7 +260,7 @@ export default function ReportDocument({
   const top3Loss     = top3.reduce((s, r) => s + r.loss, 0);
   const top3Share    = totalLoss > 0 ? (top3Loss / totalLoss) * 100 : 0;
   const topLossShare = totalLoss > 0 && top3[0] ? (top3[0].loss / totalLoss) * 100 : 0;
-  const regionDisplay = selectedRegion?.trim() || "Seluruh Indonesia";
+  const regionDisplay = selectedRegion?.trim() || selectedProvince?.trim() || "Seluruh Indonesia";
 
   const aalCompareData = [
     { name: "Baseline",   value: aalNc },

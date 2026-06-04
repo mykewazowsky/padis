@@ -199,9 +199,10 @@ def _no_multihazard_warning(run_id: int) -> str:
 # ===============================
 @analytics_bp.route("/aal-summary")
 def get_aal_summary():
-    hazard = map_hazard(request.args.get("hazard", "multi"))
-    region = request.args.get("region", "").strip()
-    run_id = request.args.get("run_id", type=int)
+    hazard   = map_hazard(request.args.get("hazard",   "multi"))
+    region   = request.args.get("region",   "").strip()
+    province = request.args.get("province", "").strip()
+    run_id   = request.args.get("run_id", type=int)
 
     db = SessionLocal()
     try:
@@ -225,6 +226,21 @@ def get_aal_summary():
                 GROUP BY s.name
             """)
             params = {"hazard": hazard, "run_id": run_id, "region": region}
+        elif province:
+            sql = text("""
+                SELECT
+                    s.name AS scenario,
+                    COALESCE(SUM(a.aal), 0) AS total_aal
+                FROM aal a
+                JOIN hazards h   ON a.hazard_id   = h.id
+                JOIN scenarios s ON a.scenario_id = s.id
+                JOIN regions_adm r ON a.id_kabkota = r.id_kabkota
+                WHERE h.name = :hazard
+                  AND a.run_id = :run_id
+                  AND LOWER(TRIM(r.prov)) = LOWER(TRIM(:province))
+                GROUP BY s.name
+            """)
+            params = {"hazard": hazard, "run_id": run_id, "province": province}
         else:
             sql = text("""
                 SELECT
@@ -426,6 +442,8 @@ def get_top_regions():
     scenario = request.args.get("scenario", "rp25")
     climate  = request.args.get("climate",  "nonclimate")
     run_id   = request.args.get("run_id",   type=int)
+    region   = request.args.get("region",   "").strip()
+    province = request.args.get("province", "").strip()
 
     rp = int(scenario.replace("rp", ""))
 
@@ -436,7 +454,16 @@ def get_top_regions():
         if run_id is None:
             return jsonify({"error": "No runs found"}), 404
 
-        rows = db.execute(text("""
+        extra_where = ""
+        params: dict = {"hazard": hazard, "rp": rp, "climate": climate, "run_id": run_id}
+        if region:
+            extra_where = "AND LOWER(TRIM(r.kab_kota)) = LOWER(TRIM(:region))"
+            params["region"] = region
+        elif province:
+            extra_where = "AND LOWER(TRIM(r.prov)) = LOWER(TRIM(:province))"
+            params["province"] = province
+
+        rows = db.execute(text(f"""
             SELECT
                 r.kab_kota AS region_name,
                 SUM(l.loss) AS loss
@@ -449,10 +476,11 @@ def get_top_regions():
               AND rp.rp    = :rp
               AND s.name   = :climate
               AND l.run_id = :run_id
+              {extra_where}
             GROUP BY r.kab_kota
             ORDER BY loss DESC
             LIMIT 10
-        """), {"hazard": hazard, "rp": rp, "climate": climate, "run_id": run_id}).mappings().all()
+        """), params).mappings().all()
 
         return jsonify([
             {

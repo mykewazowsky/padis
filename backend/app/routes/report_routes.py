@@ -97,7 +97,7 @@ def _query_data(db, hazard_id, scenario_id, rp_id, run_id):
     }).fetchall()
 
 
-def _aal_total(db, hazard_id, scenario_id, run_id, region: str = ""):
+def _aal_total(db, hazard_id, scenario_id, run_id, region: str = "", province: str = ""):
     if region:
         row = db.execute(text("""
             SELECT COALESCE(SUM(a.aal), 0)::float AS total
@@ -108,6 +108,16 @@ def _aal_total(db, hazard_id, scenario_id, run_id, region: str = ""):
               AND a.run_id      = :run_id
               AND LOWER(TRIM(r.kab_kota)) = LOWER(TRIM(:region))
         """), {"hid": hazard_id, "sid": scenario_id, "run_id": run_id, "region": region}).fetchone()
+    elif province:
+        row = db.execute(text("""
+            SELECT COALESCE(SUM(a.aal), 0)::float AS total
+            FROM aal a
+            JOIN regions_adm r ON a.id_kabkota = r.id_kabkota
+            WHERE a.hazard_id   = :hid
+              AND a.scenario_id = :sid
+              AND a.run_id      = :run_id
+              AND LOWER(TRIM(r.prov)) = LOWER(TRIM(:province))
+        """), {"hid": hazard_id, "sid": scenario_id, "run_id": run_id, "province": province}).fetchone()
     else:
         row = db.execute(text("""
             SELECT COALESCE(SUM(aal), 0)::float AS total
@@ -145,6 +155,7 @@ def download_csv():
     scenario = request.args.get("scenario", "rp25")
     climate  = request.args.get("climate",  "nonclimate")
     region   = request.args.get("region",   "").strip()
+    province = request.args.get("province", "").strip()
     run_id_param = request.args.get("run_id", type=int)
 
     err = _validate(hazard, scenario, climate)
@@ -164,10 +175,12 @@ def download_csv():
         # Compute national total BEFORE filtering so share % reflects national context
         total_loss = sum(r.loss or 0 for r in all_rows)
 
-        rows = (
-            [r for r in all_rows if r.kab_kota.strip().lower() == region.lower()]
-            if region else all_rows
-        )
+        if region:
+            rows = [r for r in all_rows if r.kab_kota.strip().lower() == region.lower()]
+        elif province:
+            rows = [r for r in all_rows if r.prov.strip().lower() == province.lower()]
+        else:
+            rows = all_rows
 
         if not rows:
             return jsonify({"error": "Tidak ada data untuk filter yang dipilih."}), 404
@@ -199,7 +212,7 @@ def download_csv():
             ])
 
         buf = BytesIO(out.getvalue().encode("utf-8-sig"))  # UTF-8 BOM for Excel
-        region_slug = make_region_slug(region)
+        region_slug = make_region_slug(region or province)
         return send_file(
             buf,
             mimetype="text/csv",
@@ -548,6 +561,7 @@ def generate_report_v2():
     scenario = request.args.get("scenario", "rp25")
     climate  = request.args.get("climate",  "nonclimate")
     region   = request.args.get("region",   "").strip()
+    province = request.args.get("province", "").strip()
     run_id_param = request.args.get("run_id", type=int)
 
     err = _validate(hazard, scenario, climate)
@@ -565,8 +579,9 @@ def generate_report_v2():
         rows = _query_data(db, hazard_id, scenario_id, rp_id, run_id)
 
         if region:
-            rows = [r for r in rows
-                    if r.kab_kota.strip().lower() == region.lower()]
+            rows = [r for r in rows if r.kab_kota.strip().lower() == region.lower()]
+        elif province:
+            rows = [r for r in rows if r.prov.strip().lower() == province.lower()]
 
         # ── Statistics ────────────────────────────────────────────────────────
         valid       = [r for r in rows if r.loss > 0]
@@ -575,8 +590,8 @@ def generate_report_v2():
         total_loss  = sum(r.loss for r in valid)
         top_rows    = valid[:10]
 
-        aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"], run_id, region)
-        aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"],    run_id, region)
+        aal_nc    = _aal_total(db, hazard_id, _SCENARIO_ID["nonclimate"], run_id, region, province)
+        aal_cc    = _aal_total(db, hazard_id, _SCENARIO_ID["climate"],    run_id, region, province)
         aal_delta = aal_cc - aal_nc
         aal_pct   = ((aal_delta / aal_nc) * 100.0) if aal_nc else 0.0
 
@@ -629,8 +644,8 @@ def generate_report_v2():
             "climate_label":     "Projection" if climate == "climate" else "Baseline",
             "scenario_label":    scenario.upper(),
             "generated_at":      datetime.now().strftime("%d %B %Y, %H:%M WIB"),
-            "region":            region,
-            "is_regional":       bool(region),
+            "region":            region or province,
+            "is_regional":       bool(region or province),
             "run_id":            run_id,
 
             "data_count":        data_count,
@@ -658,7 +673,7 @@ def generate_report_v2():
     _build_xlsx(buf, ctx, rows)
     buf.seek(0)
 
-    region_slug = make_region_slug(region)
+    region_slug = make_region_slug(region or province)
     return send_file(
         buf,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -541,16 +541,18 @@ export default function DashboardPage() {
         preset.hazard === hazard &&
         preset.climate === climate &&
         preset.scenario === scenario &&
-        !selectedRegion
+        !selectedRegion &&
+        !selectedProvince
     );
     return match?.id ?? null;
-  }, [hazard, climate, scenario, selectedRegion]);
+  }, [hazard, climate, scenario, selectedRegion, selectedProvince]);
 
   const isDefaultFilter =
     hazard === "multi" &&
     climate === "nonclimate" &&
     scenario === "rp25" &&
-    !selectedRegion;
+    !selectedRegion &&
+    !selectedProvince;
 
   function handleToggleLayer(key: LayerKey) {
     setActiveLayers((prev) => ({

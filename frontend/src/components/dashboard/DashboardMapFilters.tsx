@@ -238,7 +238,7 @@ function FilterFields({
           formatGroupLabel={(group) => (
             <button
               type="button"
-              className="flex w-full items-center gap-1.5 text-left"
+              className="flex w-full cursor-pointer items-center gap-1.5 text-left"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

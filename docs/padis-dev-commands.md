@@ -262,6 +262,73 @@ Push:
 git push origin main
 ```
 
+## Pipeline dengan Raster di Luar `backend/data/`
+
+Jika raster sudah tersedia di folder eksternal (misal disk terpisah) dan tidak bisa dipindahkan karena kapasitas, gunakan script khusus:
+
+```powershell
+# Aktifkan venv terlebih dahulu
+.\backend\venv\Scripts\Activate.ps1
+
+# Step 1: Flood (termasuk re-generate intersection sawah jika perlu)
+python -m backend.scripts.tools.run_pipeline_external_raster `
+    --hazard flood `
+    --raster-dir "E:\CAPSTONE\data" `
+    --rerun-vector `
+    --operator nama_operator
+
+# Step 2: Drought
+python -m backend.scripts.tools.run_pipeline_external_raster `
+    --hazard drought `
+    --raster-dir "E:\CAPSTONE\data" `
+    --operator nama_operator
+
+# Step 3: Multihazard
+python -m backend.scripts.tools.run_pipeline_external_raster --hazard multi
+
+# Step 4: ETL
+python -m backend.scripts.tools.run_pipeline_external_raster --hazard etl
+```
+
+Flag tersedia:
+
+| Flag | Keterangan |
+|---|---|
+| `--hazard` | `flood` \| `drought` \| `multi` \| `etl` |
+| `--raster-dir` | Path folder raster eksternal. Wajib untuk `flood`/`drought`. |
+| `--rerun-vector` | Paksa regenerasi `sawah_admin_intersection.geojson` meski sudah ada. |
+| `--operator` | Nama operator untuk log. |
+
+Script ini tidak memindahkan atau menyalin file raster. Raster dibaca langsung dari lokasi aslinya.
+
+## Tools QC (Quality Control)
+
+Membandingkan hasil DB dengan perhitungan QGIS (XLSX):
+
+```powershell
+# Generate laporan CSV QC (flood, drought, multihazard)
+python backend\scripts\tools\generate_qc_report.py
+
+# Generate laporan HTML interaktif
+python backend\scripts\tools\generate_qc_html.py
+```
+
+Output tersimpan di:
+
+```text
+backend/data/output/QC/
+|-- QC_Flood_run49.csv
+|-- QC_Flood_summary_run49.csv
+|-- QC_Drought_run49.csv
+|-- QC_Drought_summary_run49.csv
+|-- QC_Multihazard_run49.csv
+|-- QC_Multihazard_summary_run49.csv
+```
+
+HTML report tersimpan di `C:\Users\...\Downloads\QC_Report_run49.html` dan dapat dibuka langsung di browser.
+
+Untuk mengubah `RUN_ID` atau path XLSX target, edit konstanta di baris awal masing-masing script.
+
 ## Troubleshooting Singkat
 
 ### Backend tidak start

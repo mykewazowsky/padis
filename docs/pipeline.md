@@ -73,6 +73,12 @@ backend/data/raw/administrasi/regions.gpkg
 backend/data/raw/exposure/sawah_selected.gpkg
 ```
 
+### Metode Intersection Sawah–Administrasi
+
+`intersect_sawah_admin()` di `vector_engine.py` menggunakan `gpd.overlay(how='intersection')` — identik dengan operasi **Clip** di QGIS. Setiap polygon sawah dipotong tepat di batas administrasi kabupaten/kota, kemudian di-dissolve per `id_kabkota`.
+
+Pendekatan ini menggantikan metode lama (sjoin largest-overlap) yang membiarkan geometri sawah meluber keluar batas admin. Akibat perubahan ini, area sawah per kabkota menjadi lebih kecil dan presisi, sesuai batas administrasi yang sebenarnya.
+
 ## Tahap 2 - Zonal Statistics
 
 File terkait:
@@ -93,6 +99,24 @@ backend/data/output/zonal/drought_stats.geojson
 ```
 
 Multi-hazard tidak punya raster sendiri, sehingga tidak punya file zonal tersendiri.
+
+### Metode Zonal Statistics
+
+`bulk_zonal_stats()` di `zonal_engine.py` menggunakan `rasterio.mask` per polygon — identik dengan Zonal Statistics QGIS. Raster dibuka sekali, setiap fitur sawah di-mask dan mean dihitung dari piksel valid menggunakan numpy.
+
+Metode ini menggantikan pendekatan lama yang membagi raster menjadi dua mode:
+
+- Mode centroid (raster kasar > 500 m): mengambil 1 piksel di titik tengah polygon. Mode ini menghasilkan error 3–29% vs QGIS dan menyebabkan 47% kabkota bernilai 0 karena centroid jatuh di area NoData.
+- Mode polygon (raster halus): menggunakan `rasterstats` yang gagal dengan error `width and height must be > 0` pada raster GEOGCS karena bug axis-order.
+
+Perilaku `all_touched` saat ini:
+
+| Kondisi polygon | Metode |
+|---|---|
+| Ada piksel dengan pusat di dalam polygon | `all_touched=False` (strict) — identik dengan QGIS default |
+| Tidak ada piksel yang masuk (polygon < resolusi raster) | Fallback `all_touched=True` — menangkap piksel yang disentuh boundary |
+
+Dengan metode ini, seluruh 444 kabkota mendapat nilai (tidak ada yang hilang), dan untuk kabkota besar hasilnya identik 0.000 vs QGIS.
 
 ## Tahap 3 - Analysis
 

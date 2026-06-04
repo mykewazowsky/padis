@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, type ReactNode } from "react";
+import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
 import type { Layer, Map as LeafletMap } from "leaflet";
 import MapCanvas from "./core/MapCanvas";
 import type { MobilePanel } from "@/components/dashboard/DashboardMapOverlay";
@@ -128,6 +128,33 @@ export default function MapViewClient({
   const mapRef = useRef<LeafletMap | null>(null);
   const featureLayersRef = useRef<Record<string, Layer>>({});
 
+  // Max global per hazard+run — hanya naik, reset saat hazard atau runId berubah.
+  // Dipakai sebagai label batas atas kelas terakhir di legenda agar konsisten
+  // lintas skenario dan periode ulang.
+  const [peakLossMax, setPeakLossMax] = useState(0);
+  const [peakAalMax,  setPeakAalMax]  = useState(0);
+
+  useEffect(() => {
+    setPeakLossMax(0);
+    setPeakAalMax(0);
+  }, [hazard, runId]);
+
+  useEffect(() => {
+    if (!layers?.loss?.features?.length) return;
+    const cur = Math.max(0, ...layers.loss.features.map(
+      (f: MapFeature) => Number(f?.properties?.loss ?? 0)
+    ));
+    setPeakLossMax((prev) => Math.max(prev, cur));
+  }, [layers?.loss]);
+
+  useEffect(() => {
+    if (!layers?.aal?.features?.length) return;
+    const cur = Math.max(0, ...layers.aal.features.map(
+      (f: MapFeature) => Number(f?.properties?.aal ?? 0)
+    ));
+    setPeakAalMax((prev) => Math.max(prev, cur));
+  }, [layers?.aal]);
+
   // Nilai per layer aktif, dipakai untuk skala warna yang akurat.
   const activeValues = useMemo(() => {
     if (activeLayers.hazard && layers?.hazard?.features?.length) {
@@ -190,6 +217,8 @@ export default function MapViewClient({
         featureLayersRef={featureLayersRef}
 
         jenksBreaks={breaks}
+        legendMaxLoss={peakLossMax}
+        legendMaxAal={peakAalMax}
         topRegionKeys={topRegionKeys}
 
         getColorFromBreaks={getColor}

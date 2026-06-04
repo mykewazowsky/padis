@@ -86,6 +86,10 @@ type MapCanvasProps = {
   onOpacityChange?: (value: number) => void;
   dataBounds?: DataBounds | null;
   regionCentroids?: Record<string, [number, number]>;
+  /** Nilai maksimum global loss untuk hazard aktif (akumulasi lintas skenario/RP). */
+  legendMaxLoss?: number;
+  /** Nilai maksimum global AAL untuk hazard aktif (akumulasi lintas skenario/RP). */
+  legendMaxAal?: number;
 };
 
 type RegionFeature = Feature<Geometry, FeatureProps>;
@@ -700,6 +704,8 @@ export default function MapCanvas({
   onToggleLayer,
   dataBounds,
   regionCentroids,
+  legendMaxLoss = 0,
+  legendMaxAal  = 0,
 }: MapCanvasProps) {
   const { theme } = useTheme();
   const isDarkTheme = theme === "dark";
@@ -1079,24 +1085,14 @@ export default function MapCanvas({
       return getFixedHazardLegendItems(hazard, effectiveBreaks, getColorFromBreaks);
     }
     const isNormMode = normalizeMode && (activeLayers.loss || activeLayers.aal);
-
-    // Nilai maksimum aktual dari data — dipakai sebagai label batas atas kelas terakhir
-    // menggantikan "Infinity" yang tidak informatif.
-    const dataMax = activeLayers.loss
-      ? Math.max(0, ...(layers?.loss?.features ?? []).map(
-          (f) => Number((f as { properties?: { loss?: number | null } })?.properties?.loss ?? 0)
-        ))
-      : activeLayers.aal
-      ? Math.max(0, ...(layers?.aal?.features ?? []).map(
-          (f) => Number((f as { properties?: { aal?: number | null } })?.properties?.aal ?? 0)
-        ))
-      : 0;
+    // Nilai maksimum global per hazard — sama untuk semua skenario/RP, reset saat hazard/run berganti.
+    const globalMax = activeLayers.loss ? legendMaxLoss : activeLayers.aal ? legendMaxAal : 0;
 
     return effectiveBreaks.map((upper, index) => {
       const lower = index === 0 ? 0 : (effectiveBreaks[index - 1] ?? 0);
       const isLastInfinity = upper === Number.POSITIVE_INFINITY;
       const sampleValue = isLastInfinity ? lower * 1.5 : upper;
-      const upperLabel = isLastInfinity ? dataMax : upper;
+      const upperLabel = isLastInfinity ? globalMax : upper;
       return {
         color: getColorFromBreaks(sampleValue, effectiveBreaks, hazard),
         label: isNormMode
@@ -1104,7 +1100,7 @@ export default function MapCanvas({
           : `${formatLayerValue(lower, activeLayers, formatCompactRupiah, hazard)} – ${formatLayerValue(upperLabel, activeLayers, formatCompactRupiah, hazard)}`,
       };
     });
-  }, [effectiveBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah, normalizeMode, layers?.loss, layers?.aal]);
+  }, [effectiveBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah, normalizeMode, legendMaxLoss, legendMaxAal]);
 
   const legendTitle = activeLayers.hazard
     ? getHazardLegendTitle(hazard)

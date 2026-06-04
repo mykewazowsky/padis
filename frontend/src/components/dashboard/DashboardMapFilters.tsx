@@ -228,7 +228,7 @@ function FilterFields({
       {/* Region — grouped per provinsi */}
       <div className={getFieldClassName("region")}>
         <FilterLabel icon={MapPin} inline={isInline}>
-          Provinsi / Kab./Kota
+          Wilayah
         </FilterLabel>
         <Select<OptionType, false, GroupBase<OptionType>>
           instanceId="region-select"
@@ -262,7 +262,7 @@ function FilterFields({
           isClearable
           isLoading={loadingRegions}
           isDisabled={loadingLayer}
-          placeholder={loadingRegions ? "Memuat wilayah..." : "Pilih Provinsi / Kab./Kota..."}
+          placeholder={loadingRegions ? "Memuat wilayah..." : "Semua wilayah"}
           noOptionsMessage={() =>
             errorRegions
               ? errorRegions

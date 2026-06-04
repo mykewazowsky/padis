@@ -502,7 +502,7 @@ export default function DashboardPage() {
       .map(([prov, kabs]) => ({
         label: prov,
         options: [...kabs].sort((a, b) => a.localeCompare(b, "id"))
-          .map((k) => ({ value: k, label: k })),
+          .map((k) => ({ value: k, label: k, prov })),
       }));
   }, [regions]);
 
@@ -561,7 +561,9 @@ export default function DashboardPage() {
 
   const handleRegionChange = useCallback((region: string | null) => {
     const nextRegion = region?.trim() ?? "";
-    if (nextRegion.toLowerCase() === _selectedRegionRef.current.toLowerCase().trim()) return;
+    // Skip only if setting the same non-empty kab/kota (avoid unnecessary re-renders).
+    // Never skip when clearing (nextRegion = "") — province selection also needs to be reset.
+    if (nextRegion && nextRegion.toLowerCase() === _selectedRegionRef.current.toLowerCase().trim()) return;
     setSelectedProvince("");
     setSelectedRegion(nextRegion);
     if (nextRegion) setIsMapTransitioning(true);

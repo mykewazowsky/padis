@@ -311,11 +311,15 @@ function getVtStyle(
   basemapKey: BasemapKey,
   normalizeMode: boolean,
   maxValue: number,
+  selectedProvince: string,
+  provinceRegionKeys: Set<string>,
 ): Record<string, unknown> {
   const regionKey = normalizeRegionKey(props.kab_kota as string | undefined);
-  const hasSelection = Boolean(selectedRegion);
+  const hasRegionSelection = Boolean(selectedRegion);
+  const hasProvinceSelection = Boolean(selectedProvince) && provinceRegionKeys.size > 0;
   const isDimmed =
-    hasSelection && regionKey !== normalizeRegionKey(selectedRegion);
+    (hasRegionSelection && regionKey !== normalizeRegionKey(selectedRegion)) ||
+    (!hasRegionSelection && hasProvinceSelection && !provinceRegionKeys.has(regionKey));
 
   const isDark = basemapKey === "dark" || basemapKey === "imagery";
 
@@ -748,6 +752,10 @@ export default function MapCanvas({
   // closed over a stale value — updated synchronously during render.
   const selectedRegionRef = useRef(selectedRegion);
   selectedRegionRef.current = selectedRegion;
+  const selectedProvinceRef = useRef(selectedProvince);
+  selectedProvinceRef.current = selectedProvince;
+  const provinceRegionKeysRef = useRef(provinceRegionKeys);
+  provinceRegionKeysRef.current = provinceRegionKeys;
 
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_ZOOM);
@@ -905,6 +913,8 @@ export default function MapCanvas({
               basemapKey,
               normalizeMode,
               maxValue,
+              selectedProvinceRef.current,
+              provinceRegionKeysRef.current,
             ),
         },
         interactive: true,
@@ -1109,7 +1119,7 @@ export default function MapCanvas({
     type Redrawable = L.Layer & { redraw(): void };
     (vtLayersRef.current.thematic as Redrawable | undefined)?.redraw();
     (vtLayersRef.current.production as Redrawable | undefined)?.redraw();
-  }, [selectedRegion, normalizedTopRegionKeys, isMapReady]);
+  }, [selectedRegion, selectedProvince, provinceRegionKeys, normalizedTopRegionKeys, isMapReady]);
 
   const legendItems = useMemo(() => {
     if (!effectiveBreaks.length) return [];

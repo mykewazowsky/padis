@@ -8,6 +8,7 @@ import { ShieldAlert, Cloud, RefreshCw, MapPin } from "lucide-react";
 type OptionType = {
   value: string;
   label: string;
+  prov?: string; // untuk filterOption mencocokkan nama provinsi
 };
 
 type SelectStyles = StylesConfig<OptionType, false>;
@@ -250,6 +251,14 @@ function FilterFields({
               </span>
             </button>
           )}
+          filterOption={(option, inputValue) => {
+            if (!inputValue) return true;
+            const q = inputValue.toLowerCase();
+            return (
+              option.label.toLowerCase().includes(q) ||
+              (option.data.prov?.toLowerCase().includes(q) ?? false)
+            );
+          }}
           isClearable
           isLoading={loadingRegions}
           isDisabled={loadingLayer}

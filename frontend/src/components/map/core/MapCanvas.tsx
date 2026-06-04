@@ -1079,17 +1079,32 @@ export default function MapCanvas({
       return getFixedHazardLegendItems(hazard, effectiveBreaks, getColorFromBreaks);
     }
     const isNormMode = normalizeMode && (activeLayers.loss || activeLayers.aal);
+
+    // Nilai maksimum aktual dari data — dipakai sebagai label batas atas kelas terakhir
+    // menggantikan "Infinity" yang tidak informatif.
+    const dataMax = activeLayers.loss
+      ? Math.max(0, ...(layers?.loss?.features ?? []).map(
+          (f) => Number((f as { properties?: { loss?: number | null } })?.properties?.loss ?? 0)
+        ))
+      : activeLayers.aal
+      ? Math.max(0, ...(layers?.aal?.features ?? []).map(
+          (f) => Number((f as { properties?: { aal?: number | null } })?.properties?.aal ?? 0)
+        ))
+      : 0;
+
     return effectiveBreaks.map((upper, index) => {
       const lower = index === 0 ? 0 : (effectiveBreaks[index - 1] ?? 0);
-      const sampleValue = upper === Number.POSITIVE_INFINITY ? lower * 1.5 : upper;
+      const isLastInfinity = upper === Number.POSITIVE_INFINITY;
+      const sampleValue = isLastInfinity ? lower * 1.5 : upper;
+      const upperLabel = isLastInfinity ? dataMax : upper;
       return {
         color: getColorFromBreaks(sampleValue, effectiveBreaks, hazard),
         label: isNormMode
-          ? `${lower.toFixed(2)} – ${upper === Number.POSITIVE_INFINITY ? "max" : upper.toFixed(2)}`
-          : `${formatLayerValue(lower, activeLayers, formatCompactRupiah, hazard)} – ${formatLayerValue(upper, activeLayers, formatCompactRupiah, hazard)}`,
+          ? `${lower.toFixed(2)} – ${isLastInfinity ? "max" : upper.toFixed(2)}`
+          : `${formatLayerValue(lower, activeLayers, formatCompactRupiah, hazard)} – ${formatLayerValue(upperLabel, activeLayers, formatCompactRupiah, hazard)}`,
       };
     });
-  }, [effectiveBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah, normalizeMode]);
+  }, [effectiveBreaks, hazard, activeLayers, getColorFromBreaks, formatCompactRupiah, normalizeMode, layers?.loss, layers?.aal]);
 
   const legendTitle = activeLayers.hazard
     ? getHazardLegendTitle(hazard)

@@ -85,14 +85,21 @@ def get_raster_info(raster_path: str):
 
         is_geo = src.crs.is_geographic if src.crs else True
         pixel_m = pixel_deg * 111320.0 if is_geo else pixel_deg
+        is_coarse = pixel_m > 500
+
+        # Baca data ke memori HANYA untuk raster kasar (centroid mode).
+        # Raster resolusi tinggi (pixel_m <= 500) menggunakan bulk_zonal_stats
+        # yang membaca per-chunk — tidak perlu load seluruh array ke RAM.
+        data = src.read(1) if is_coarse else None
 
         return {
             "pixel_m": pixel_m,
-            "is_coarse": pixel_m > 500,
+            "is_coarse": is_coarse,
             "transform": src.transform,
             "crs": src.crs,
             "nodata": src.nodata,
-            "data": src.read(1),
+            "data": data,
+            "path": raster_path,   # disimpan agar centroid_point_query bisa load on-demand
             "width": src.width,
             "height": src.height,
         }
@@ -109,7 +116,12 @@ def centroid_point_query(gdf, raster_info, stats):
     Sampling at each feature centroid keeps the extraction simple and avoids
     tiny polygon/raster overlap artifacts.
     """
+    # data bisa None jika raster tidak di-load saat is_coarse=False
     data = raster_info["data"]
+    if data is None:
+        with rasterio.open(raster_info["path"]) as _src:
+            data = _src.read(1)
+
     transform = raster_info["transform"]
     nodata = raster_info["nodata"] or RASTER_NODATA
 

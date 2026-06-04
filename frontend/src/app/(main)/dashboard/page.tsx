@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "../../../lib/useDebounce";
 import dynamic from "next/dynamic";
 import type { StylesConfig } from "react-select";
-import { ShieldAlert, X } from "lucide-react";
+import { Loader2, ShieldAlert, X } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
 import { fetchAllLayers, fetchLatestRunId, type LayerItem } from "../../../services/fetchLayers";
@@ -290,6 +290,7 @@ export default function DashboardPage() {
 
   const [showReportPreview, setShowReportPreview] = useState(false);
   const [isMapTransitioning, setIsMapTransitioning] = useState(false);
+  const [isProvinceSwitching, setIsProvinceSwitching] = useState(false);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const prevLoadingRegionAAL = useRef(false);
   const regionsInitialized = useRef(false);
@@ -575,6 +576,10 @@ export default function DashboardPage() {
     setSelectedRegion("");
     setIsMapTransitioning(false);
     setSelectedProvince(prov);
+    if (prov) {
+      setIsProvinceSwitching(true);
+      setTimeout(() => setIsProvinceSwitching(false), 500);
+    }
   }, []);
 
   function handleResetView() {
@@ -1089,7 +1094,7 @@ export default function DashboardPage() {
                     onResetView={handleResetView}
                     onDownloadCsv={handleDownloadCsv}
                     onGenerateReport={handlePreviewReport}
-                    isMapTransitioning={isMapTransitioning}
+                    isMapTransitioning={isMapTransitioning || isProvinceSwitching}
                     isMapExpanded={isMapExpanded}
                     onToggleMapExpanded={() => setIsMapExpanded((prev) => !prev)}
                     onFocusFilters={handleFocusFilters}
@@ -1129,10 +1134,14 @@ export default function DashboardPage() {
                 )}
 
                 {loadingLayer && (
-                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[var(--dashboard-map-overlay)] backdrop-blur-sm">
-                    <div className="rounded-xl bg-[var(--dashboard-surface-solid)] px-4 py-3 text-sm text-[var(--dashboard-text-muted)] shadow">
+                  <div
+                    className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 backdrop-blur-md"
+                    style={{ backgroundColor: "rgba(13, 33, 55, 0.52)" }}
+                  >
+                    <Loader2 className="h-9 w-9 animate-spin text-white drop-shadow-lg" />
+                    <p className="text-sm font-semibold tracking-wide text-white drop-shadow-lg">
                       Memuat peta...
-                    </div>
+                    </p>
                   </div>
                 )}
 

@@ -35,6 +35,8 @@ type Props = {
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
   regionCentroids?: Record<string, [number, number]>;
+  selectedProvince?: string;
+  provinceRegionKeys?: Set<string>;
 };
 
 type MapFeature = {
@@ -124,6 +126,8 @@ export default function MapViewClient({
   activeLayers,
   onToggleLayer,
   regionCentroids,
+  selectedProvince = "",
+  provinceRegionKeys,
 }: Props) {
   const mapRef = useRef<LeafletMap | null>(null);
   const featureLayersRef = useRef<Record<string, Layer>>({});
@@ -237,6 +241,8 @@ export default function MapViewClient({
         layerOpacity={1}
         onOpacityChange={() => {}}
         regionCentroids={regionCentroids}
+        selectedProvince={selectedProvince}
+        provinceRegionKeys={provinceRegionKeys}
       />
     </div>
   );

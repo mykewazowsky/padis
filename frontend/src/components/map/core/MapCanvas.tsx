@@ -90,6 +90,10 @@ type MapCanvasProps = {
   legendMaxLoss?: number;
   /** Nilai maksimum global AAL untuk hazard aktif (akumulasi lintas skenario/RP). */
   legendMaxAal?: number;
+  /** Provinsi yang dipilih dari dropdown — zoom ke batas provinsi tanpa dimming. */
+  selectedProvince?: string;
+  /** Set kab/kota (normalized) dalam provinsi terpilih. */
+  provinceRegionKeys?: Set<string>;
 };
 
 type RegionFeature = Feature<Geometry, FeatureProps>;
@@ -652,6 +656,32 @@ function LabelZoomWatcher({
   return null;
 }
 
+function ZoomToProvince({
+  selectedProvince,
+  provinceRegionKeys,
+  regionCentroids,
+}: {
+  selectedProvince: string;
+  provinceRegionKeys: Set<string>;
+  regionCentroids?: Record<string, [number, number]>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedProvince || !provinceRegionKeys.size || !regionCentroids) return;
+    const coords = Array.from(provinceRegionKeys)
+      .map((k) => regionCentroids[k])
+      .filter((c): c is [number, number] => Boolean(c));
+    if (!coords.length) return;
+    map.flyToBounds(L.latLngBounds(coords), {
+      padding: FIT_BOUNDS_PADDING,
+      duration: CLICK_FLY_DURATION,
+    });
+  }, [selectedProvince, provinceRegionKeys, regionCentroids, map]);
+
+  return null;
+}
+
 // Zoom dari dropdown saja — klik peta langsung flyTo sendiri.
 function ZoomToRegion({
   selectedRegion,
@@ -706,6 +736,8 @@ export default function MapCanvas({
   regionCentroids,
   legendMaxLoss = 0,
   legendMaxAal  = 0,
+  selectedProvince = "",
+  provinceRegionKeys = new Set<string>(),
 }: MapCanvasProps) {
   const { theme } = useTheme();
   const isDarkTheme = theme === "dark";
@@ -1276,6 +1308,11 @@ export default function MapCanvas({
           selectedRegion={selectedRegion}
           regionCentroids={regionCentroids}
           zoomSourceRef={zoomSourceRef}
+        />
+        <ZoomToProvince
+          selectedProvince={selectedProvince}
+          provinceRegionKeys={provinceRegionKeys}
+          regionCentroids={regionCentroids}
         />
       </MapContainer>
 

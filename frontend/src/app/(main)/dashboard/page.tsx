@@ -261,6 +261,7 @@ export default function DashboardPage() {
   const [hazard, setHazard] = useState("multi");
   const [climate, setClimate] = useState("nonclimate");
   const [selectedRegion, setSelectedRegion] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState("");
   const _selectedRegionRef = useRef("");
   _selectedRegionRef.current = selectedRegion;
   const [regions, setRegions] = useState<RegionItem[]>([]);
@@ -490,12 +491,29 @@ export default function DashboardPage() {
     return () => { aborted = true; };
   }, [dHazard, dScenario, dClimate, runId, aalLayerActive, hazardLayerActive]);
 
-  const regionOptions = useMemo<OptionType[]>(() => {
-    return regions.map((region) => ({
-      value: region.kab_kota,
-      label: `${region.kab_kota} - ${region.prov}`,
-    }));
+  const groupedRegionOptions = useMemo(() => {
+    const byProv = new Map<string, string[]>();
+    for (const r of regions) {
+      if (!byProv.has(r.prov)) byProv.set(r.prov, []);
+      byProv.get(r.prov)!.push(r.kab_kota);
+    }
+    return Array.from(byProv.entries())
+      .sort(([a], [b]) => a.localeCompare(b, "id"))
+      .map(([prov, kabs]) => ({
+        label: prov,
+        options: [...kabs].sort((a, b) => a.localeCompare(b, "id"))
+          .map((k) => ({ value: k, label: k })),
+      }));
   }, [regions]);
+
+  const provinceRegionKeys = useMemo(() => {
+    if (!selectedProvince) return new Set<string>();
+    return new Set(
+      regions
+        .filter((r) => r.prov === selectedProvince)
+        .map((r) => r.kab_kota.toLowerCase().trim())
+    );
+  }, [selectedProvince, regions]);
 
   const selectedHazardOption =
     hazardOptions.find((opt) => opt.value === hazard) ?? null;
@@ -506,8 +524,15 @@ export default function DashboardPage() {
   const selectedScenarioOption =
     scenarioOptions.find((opt) => opt.value === scenario) ?? null;
 
-  const selectedRegionOption =
-    regionOptions.find((opt) => opt.value === selectedRegion) ?? null;
+  const selectedRegionOption = useMemo<OptionType | null>(() => {
+    if (selectedProvince) return { value: selectedProvince, label: selectedProvince };
+    if (!selectedRegion) return null;
+    for (const group of groupedRegionOptions) {
+      const found = group.options.find((o) => o.value === selectedRegion);
+      if (found) return found;
+    }
+    return null;
+  }, [selectedProvince, selectedRegion, groupedRegionOptions]);
 
 
   const activePresetId = useMemo(() => {
@@ -537,12 +562,20 @@ export default function DashboardPage() {
   const handleRegionChange = useCallback((region: string | null) => {
     const nextRegion = region?.trim() ?? "";
     if (nextRegion.toLowerCase() === _selectedRegionRef.current.toLowerCase().trim()) return;
+    setSelectedProvince("");
     setSelectedRegion(nextRegion);
     if (nextRegion) setIsMapTransitioning(true);
   }, []); // stable — reads selectedRegion via ref
 
+  const handleProvinceChange = useCallback((prov: string) => {
+    setSelectedRegion("");
+    setIsMapTransitioning(false);
+    setSelectedProvince(prov);
+  }, []);
+
   function handleResetView() {
     setSelectedRegion("");
+    setSelectedProvince("");
     setResetSignal((prev) => prev + 1);
   }
 
@@ -551,6 +584,7 @@ export default function DashboardPage() {
     setClimate("nonclimate");
     setScenario("rp25");
     setSelectedRegion("");
+    setSelectedProvince("");
 
     setActiveLayers({
       regions: false,
@@ -566,6 +600,7 @@ export default function DashboardPage() {
     setClimate(preset.climate);
     setScenario(preset.scenario);
     setSelectedRegion("");
+    setSelectedProvince("");
     setActiveLayers((prev) => ({
       ...prev,
       loss: true,
@@ -1013,7 +1048,7 @@ export default function DashboardPage() {
                     hazardOptions={hazardOptions}
                     climateOptions={climateOptions}
                     scenarioOptions={scenarioOptions}
-                    regionOptions={regionOptions}
+                    regionOptions={groupedRegionOptions}
                     selectedHazardOption={selectedHazardOption}
                     selectedClimateOption={selectedClimateOption}
                     selectedScenarioOption={selectedScenarioOption}
@@ -1025,6 +1060,7 @@ export default function DashboardPage() {
                     onClimateChange={(value) => setClimate(value)}
                     onScenarioChange={(value) => setScenario(value)}
                     onRegionChange={(value) => handleRegionChange(value)}
+                    onProvinceChange={handleProvinceChange}
                     selectStyles={selectStyles}
                     selectPortalStyles={selectPortalStyles}
                   />
@@ -1058,7 +1094,7 @@ export default function DashboardPage() {
                         hazardOptions={hazardOptions}
                         climateOptions={climateOptions}
                         scenarioOptions={scenarioOptions}
-                        regionOptions={regionOptions}
+                        regionOptions={groupedRegionOptions}
                         selectedHazardOption={selectedHazardOption}
                         selectedClimateOption={selectedClimateOption}
                         selectedScenarioOption={selectedScenarioOption}
@@ -1070,6 +1106,7 @@ export default function DashboardPage() {
                         onClimateChange={(value) => setClimate(value)}
                         onScenarioChange={(value) => setScenario(value)}
                         onRegionChange={(value) => handleRegionChange(value)}
+                        onProvinceChange={handleProvinceChange}
                         selectStyles={selectStyles}
                         selectPortalStyles={selectPortalStyles}
                         variant="inline"
@@ -1082,6 +1119,8 @@ export default function DashboardPage() {
                     activeLayers={activeLayers}
                     onToggleLayer={handleToggleLayer}
                     regionCentroids={regionCentroids}
+                    selectedProvince={selectedProvince}
+                    provinceRegionKeys={provinceRegionKeys}
                   />
                 )}
 

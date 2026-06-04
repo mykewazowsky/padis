@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Select from "react-select";
-import type { StylesConfig } from "react-select";
+import type { StylesConfig, GroupBase } from "react-select";
 import { ShieldAlert, Cloud, RefreshCw, MapPin } from "lucide-react";
 
 type OptionType = {
@@ -16,7 +16,7 @@ type Props = {
   hazardOptions: OptionType[];
   climateOptions: OptionType[];
   scenarioOptions: OptionType[];
-  regionOptions: OptionType[];
+  regionOptions: GroupBase<OptionType>[];
   selectedHazardOption: OptionType | null;
   selectedClimateOption: OptionType | null;
   selectedScenarioOption: OptionType | null;
@@ -28,6 +28,7 @@ type Props = {
   onClimateChange: (value: string) => void;
   onScenarioChange: (value: string) => void;
   onRegionChange: (value: string) => void;
+  onProvinceChange: (value: string) => void;
   selectStyles: SelectStyles;
   selectPortalStyles: SelectStyles;
   variant?: "card" | "inline";
@@ -89,6 +90,7 @@ function FilterFields({
   onClimateChange,
   onScenarioChange,
   onRegionChange,
+  onProvinceChange,
   selectStyles,
   selectPortalStyles,
   variant = "card",
@@ -222,20 +224,36 @@ function FilterFields({
         />
       </div>
 
-      {/* Region */}
+      {/* Region — grouped per provinsi */}
       <div className={getFieldClassName("region")}>
         <FilterLabel icon={MapPin} inline={isInline}>
-          Kabupaten/Kota
+          Provinsi / Kab./Kota
         </FilterLabel>
-        <Select
+        <Select<OptionType, false, GroupBase<OptionType>>
           instanceId="region-select"
           options={regionOptions}
           value={selectedRegionOption}
           onChange={(option) => onRegionChange(option?.value ?? "")}
+          formatGroupLabel={(group) => (
+            <button
+              type="button"
+              className="flex w-full items-center gap-1.5 text-left"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (group.label) onProvinceChange(group.label);
+              }}
+            >
+              <MapPin size={10} strokeWidth={2.5} className="shrink-0 text-[var(--color-primary)]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)] hover:opacity-75">
+                {group.label}
+              </span>
+            </button>
+          )}
           isClearable
           isLoading={loadingRegions}
           isDisabled={loadingLayer}
-          placeholder={loadingRegions ? "Memuat wilayah..." : "Pilih Kabupaten/Kota..."}
+          placeholder={loadingRegions ? "Memuat wilayah..." : "Pilih Provinsi / Kab./Kota..."}
           noOptionsMessage={() =>
             errorRegions
               ? errorRegions

@@ -49,6 +49,8 @@ type Props = {
   activeLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
   regionCentroids?: Record<string, [number, number]>;
+  selectedProvince?: string;
+  provinceRegionKeys?: Set<string>;
 };
 
 export default function MapView({
@@ -71,6 +73,8 @@ export default function MapView({
   activeLayers,
   onToggleLayer,
   regionCentroids,
+  selectedProvince,
+  provinceRegionKeys,
 }: Props) {
   const [mobileSheetTab, setMobileSheetTab] = useState<MobilePanel>(null);
 
@@ -224,6 +228,8 @@ export default function MapView({
         activeLayers={activeLayers}
         onToggleLayer={onToggleLayer}
         regionCentroids={regionCentroids}
+        selectedProvince={selectedProvince}
+        provinceRegionKeys={provinceRegionKeys}
       />
 
       {/* OVERLAY */}

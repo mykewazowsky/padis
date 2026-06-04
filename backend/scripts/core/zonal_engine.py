@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio
+import rasterio.mask
 from rasterio.transform import rowcol
 from shapely.geometry import box
-from rasterstats import zonal_stats
 
 from backend.scripts.config.settings import (
     ZONAL_CHUNK_SIZE,
@@ -85,21 +85,13 @@ def get_raster_info(raster_path: str):
 
         is_geo = src.crs.is_geographic if src.crs else True
         pixel_m = pixel_deg * 111320.0 if is_geo else pixel_deg
-        is_coarse = pixel_m > 500
-
-        # Baca data ke memori HANYA untuk raster kasar (centroid mode).
-        # Raster resolusi tinggi (pixel_m <= 500) menggunakan bulk_zonal_stats
-        # yang membaca per-chunk — tidak perlu load seluruh array ke RAM.
-        data = src.read(1) if is_coarse else None
 
         return {
             "pixel_m": pixel_m,
-            "is_coarse": is_coarse,
             "transform": src.transform,
             "crs": src.crs,
             "nodata": src.nodata,
-            "data": data,
-            "path": raster_path,   # disimpan agar centroid_point_query bisa load on-demand
+            "path": raster_path,
             "width": src.width,
             "height": src.height,
         }
@@ -161,42 +153,75 @@ def centroid_point_query(gdf, raster_info, stats):
 # ===============================
 # ZONAL STATS
 # ===============================
+def _stat_from_array(arr: np.ndarray, stat: str):
+    valid = arr[~np.isnan(arr)]
+    if len(valid) == 0:
+        return None if stat != "count" else 0
+    if stat == "mean":  return float(np.mean(valid))
+    if stat == "count": return int(len(valid))
+    if stat == "std":   return float(np.std(valid))
+    if stat == "min":   return float(np.min(valid))
+    if stat == "max":   return float(np.max(valid))
+    if stat == "sum":   return float(np.sum(valid))
+    return None
+
+
 def bulk_zonal_stats(gdf, raster_path, chunk_size, stats):
     """
-    Polygon zonal statistics for finer rasters.
+    Polygon zonal statistics via rasterio.mask — identik dengan QGIS.
 
-    The chunk loop limits memory use when many sawah/admin overlay polygons
-    are evaluated against each raster.
+    Menggantikan rasterstats yang punya bug axis-order pada raster GEOGCS
+    (lat/lon), menyebabkan 'width and height must be > 0'.
+    Raster dibuka sekali; setiap fitur di-mask lalu dihitung dengan numpy.
     """
     results = {s: [] for s in stats}
-
     total = len(gdf)
     total_chunks = (total + chunk_size - 1) // chunk_size
 
-    for i, start in enumerate(range(0, total, chunk_size), 1):
-        end = min(start + chunk_size, total)
-        chunk = gdf.iloc[start:end]
+    with rasterio.open(raster_path) as src:
+        src_nodata = src.nodata
 
-        if VERBOSE:
-            log.progress(i, total_chunks, f"chunk {start+1}-{end}")
+        for i, start in enumerate(range(0, total, chunk_size), 1):
+            end = min(start + chunk_size, total)
+            chunk = gdf.iloc[start:end]
 
-        try:
-            zs = zonal_stats(
-                vectors=chunk,
-                raster=raster_path,
-                stats=stats,
-                nodata=RASTER_NODATA,
-                all_touched=False
-            )
-        except Exception as e:
-            print(f"⚠️ Zonal error: {e}")
-            zs = [{s: None for s in stats} for _ in range(len(chunk))]
+            if VERBOSE:
+                log.progress(i, total_chunks, f"chunk {start+1}-{end}")
 
-        for s in stats:
-            results[s].extend([z.get(s) for z in zs])
+            for geom in chunk.geometry:
+                try:
+                    # __geo_interface__ menghasilkan GeoJSON lon/lat standar;
+                    # rasterio.mask menangani axis-order raster secara internal.
+                    def _mask_arr(touched):
+                        o, _ = rasterio.mask.mask(
+                            src, [geom.__geo_interface__],
+                            crop=True, nodata=np.nan, filled=True,
+                            all_touched=touched,
+                        )
+                        a = o[0].astype(float)
+                        if src_nodata is not None:
+                            try:
+                                nd = float(src_nodata)
+                                if not np.isnan(nd):
+                                    a[a == nd] = np.nan
+                            except (ValueError, TypeError):
+                                pass
+                        return a
 
-        del chunk, zs
-        gc.collect()
+                    arr = _mask_arr(False)
+                    # Fallback all_touched=True hanya jika semua piksel NoData
+                    if np.all(np.isnan(arr)):
+                        arr = _mask_arr(True)
+
+                    for s in stats:
+                        results[s].append(_stat_from_array(arr, s))
+
+                except Exception as e:
+                    print(f"⚠️ Zonal error: {e}")
+                    for s in stats:
+                        results[s].append(None)
+
+            gc.collect()
 
     return results
 
@@ -248,17 +273,7 @@ def run_zonal(
         if gdf_filtered.empty:
             continue
 
-        # ===============================
-        # MODE SELECTION
-        # ===============================
-        # Coarse drought-like grids use centroid sampling; finer rasters use
-        # polygon zonal statistics. This is a methodological choice, not UI.
-        if raster_info["is_coarse"]:
-            print(f"[MODE] COARSE → centroid")
-            stat_res = centroid_point_query(gdf_filtered, raster_info, stats)
-        else:
-            print(f"[MODE] FINE → zonal stats")
-            stat_res = bulk_zonal_stats(gdf_filtered, raster_path, chunk_size, stats)
+        stat_res = bulk_zonal_stats(gdf_filtered, raster_path, chunk_size, stats)
 
         # ===============================
         # SAVE (FIX NUMERIC)

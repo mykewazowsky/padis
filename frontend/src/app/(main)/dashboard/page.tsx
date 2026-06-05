@@ -300,6 +300,7 @@ export default function DashboardPage() {
     "Silakan login terlebih dahulu."
   );
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const lastDownloadRef = useRef<{ path: string; filename: string } | null>(null);
 
   const [activeLayers, setActiveLayers] = useState<Record<LayerKey, boolean>>({
     regions: false,
@@ -627,6 +628,7 @@ export default function DashboardPage() {
     if (downloadingRef.current) return;
     downloadingRef.current = true;
 
+    lastDownloadRef.current = { path, filename: fallbackFilename };
     const token = getToken();
     setDownloadError(null);
 
@@ -1274,14 +1276,30 @@ export default function DashboardPage() {
       {downloadError && (
         <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-[var(--dashboard-toast-danger-border)] bg-[var(--dashboard-toast-danger-bg)] px-4 py-3 shadow-lg backdrop-blur">
           <p className="text-sm text-[var(--dashboard-toast-danger-text)]">{downloadError}</p>
-          <button
-            type="button"
-            onClick={() => setDownloadError(null)}
-            className="flex-shrink-0 text-[var(--dashboard-status-danger-text)]/75 hover:text-[var(--dashboard-status-danger-text)]"
-            aria-label="Tutup"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            {lastDownloadRef.current && (
+              <button
+                type="button"
+                onClick={() => {
+                  const last = lastDownloadRef.current;
+                  if (!last) return;
+                  setDownloadError(null);
+                  openProtectedDownload(last.path, last.filename);
+                }}
+                className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[var(--dashboard-toast-danger-text)] ring-1 ring-[var(--dashboard-toast-danger-border)] hover:bg-[var(--dashboard-status-danger-bg)]"
+              >
+                Coba lagi
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setDownloadError(null)}
+              className="text-[var(--dashboard-status-danger-text)]/75 hover:text-[var(--dashboard-status-danger-text)]"
+              aria-label="Tutup"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>

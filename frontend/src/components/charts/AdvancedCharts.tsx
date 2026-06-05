@@ -123,13 +123,13 @@ function FilterChip({ children }: { children: React.ReactNode }) {
   );
 }
 
-function shortenRegionName(name: string) {
+function shortenRegionName(name: string, maxLen = 18) {
   if (!name) return "-";
   const cleaned = name
     .replace(/^kabupaten\s+/i, "Kab. ")
     .replace(/^kota\s+/i, "Kota ")
     .trim();
-  return cleaned.length > 18 ? `${cleaned.slice(0, 18)}…` : cleaned;
+  return cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}…` : cleaned;
 }
 
 function formatIdNum(v: number, decimals = 2) {
@@ -357,6 +357,16 @@ export default function AdvancedCharts({
   const [errorDist, setErrorDist] = useState<string | null>(null);
 
   const chartTheme = useChartTheme();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   function getHazardLabel(h: string) {
     if (h === "flood") return t("charts.flood");
@@ -508,13 +518,14 @@ export default function AdvancedCharts({
   }, [hazard, scenario, climate, runId, activeDistMetric, metricConfig.endpoint, metricConfig.valueKey, preloadedLossItems]);
 
   const chartTopRegions = useMemo(() => {
+    const maxLen = isMobile ? 13 : 18;
     return topRegions.map((item, index) => {
       const isSelected =
         !!selectedRegion &&
         item.name.toLowerCase().trim() === selectedRegion.toLowerCase().trim();
       return {
         ...item,
-        shortName: shortenRegionName(item.name),
+        shortName: shortenRegionName(item.name, maxLen),
         rank: index + 1,
         fill: isSelected
           ? chartTheme.selectedFill
@@ -523,7 +534,7 @@ export default function AdvancedCharts({
             : "#93c5fd",
       };
     });
-  }, [topRegions, selectedRegion, chartTheme.selectedFill]);
+  }, [topRegions, selectedRegion, chartTheme.selectedFill, isMobile]);
 
   const topRegionSummary = useMemo(() => {
     if (!topRegions.length) return { name: "-", value: 0 };
@@ -656,7 +667,7 @@ export default function AdvancedCharts({
       {/* ── Left: Top 10 Kabupaten/Kota ─────────────────────────────────── */}
       <div className={CHART_CARD_CLASS}>
         <div className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-2 sm:gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <div className={PRIMARY_ICON_CLASS}>
@@ -772,7 +783,7 @@ export default function AdvancedCharts({
                 <BarChart
                   data={chartTopRegions}
                   layout="vertical"
-                  margin={{ top: 5, right: 12, left: 4, bottom: 5 }}
+                  margin={{ top: 5, right: isMobile ? 6 : 12, left: isMobile ? 0 : 4, bottom: 5 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -782,14 +793,14 @@ export default function AdvancedCharts({
                   <XAxis
                     type="number"
                     tickFormatter={(value) => formatCompact(safeNumber(value))}
-                    tick={{ fill: chartTheme.axis, fontSize: 11 }}
+                    tick={{ fill: chartTheme.axis, fontSize: isMobile ? 10 : 11 }}
                   />
                   <YAxis
                     type="category"
                     dataKey="shortName"
-                    width={118}
+                    width={isMobile ? 88 : 118}
                     tickMargin={4}
-                    tick={{ fill: chartTheme.axis, fontSize: 11 }}
+                    tick={{ fill: chartTheme.axis, fontSize: isMobile ? 10 : 11 }}
                   />
                   <Tooltip
                     content={
@@ -857,7 +868,7 @@ export default function AdvancedCharts({
       {/* ── Right: Distribusi (switchable metric) ───────────────────────── */}
       <div className={CHART_CARD_CLASS}>
         <div className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <div className={WARNING_ICON_CLASS}>
@@ -910,8 +921,8 @@ export default function AdvancedCharts({
             </div>
           </div>
 
-          {/* Stats: mean · median · min · max — 4-column grid */}
-          <div className="grid grid-cols-4 gap-x-3 gap-y-1 border-y border-[var(--dashboard-border-soft)] py-2.5">
+          {/* Stats: mean · median · min · max */}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-y border-[var(--dashboard-border-soft)] py-2.5 sm:grid-cols-4 sm:gap-y-1">
             {STAT_ITEMS.map(({ key, label }) => (
               <div key={key} className="min-w-0">
                 <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
@@ -986,7 +997,7 @@ export default function AdvancedCharts({
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={histogramData.buckets}
-                      margin={{ top: 22, right: 8, left: 0, bottom: 48 }}
+                      margin={{ top: 22, right: 8, left: 0, bottom: isMobile ? 64 : 48 }}
                       barCategoryGap="10%"
                     >
                       <CartesianGrid
@@ -996,18 +1007,18 @@ export default function AdvancedCharts({
                       />
                       <XAxis
                         dataKey="shortLabel"
-                        tick={{ fill: chartTheme.axis, fontSize: 10 }}
+                        tick={{ fill: chartTheme.axis, fontSize: isMobile ? 9 : 10 }}
                         tickLine={false}
-                        angle={-30}
+                        angle={isMobile ? -50 : -30}
                         textAnchor="end"
                         interval={0}
                       />
                       <YAxis
                         allowDecimals={false}
-                        tick={{ fill: chartTheme.axis, fontSize: 11 }}
+                        tick={{ fill: chartTheme.axis, fontSize: isMobile ? 10 : 11 }}
                         tickLine={false}
                         axisLine={false}
-                        width={28}
+                        width={isMobile ? 24 : 28}
                       />
                       <Tooltip
                         content={(props) => (

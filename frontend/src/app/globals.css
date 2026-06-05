@@ -1187,6 +1187,17 @@ body {
   );
 }
 
+.content-theme .btn-outline {
+  background-color: var(--content-surface);
+  color: var(--content-text);
+  border-color: var(--content-border);
+}
+
+.content-theme .btn-outline:hover {
+  background-color: var(--content-surface-muted);
+  border-color: var(--color-primary);
+}
+
 .dashboard-theme {
   --color-text: var(--dashboard-text);
   --color-gray: var(--dashboard-text-muted);

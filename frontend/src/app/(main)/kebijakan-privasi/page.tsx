@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Globe2, Mail, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Privasi | PADIS",
+  title: "Kebijakan Privasi",
   description:
     "Kebijakan privasi PADIS terkait akun, autentikasi, reset password, layanan pihak ketiga, dan hak pengguna.",
 };

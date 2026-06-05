@@ -15,7 +15,7 @@ import {
 import AnimatedPipelineSteps from "@/components/cara-kerja/AnimatedPipelineSteps";
 
 export const metadata: Metadata = {
-  title: "Cara Kerja PADIS | Analisis Risiko Padi",
+  title: "Cara Kerja",
   description:
     "Pelajari cara PADIS mengolah data hazard banjir dan kekeringan menjadi estimasi kerugian ekonomi, Average Annual Loss (AAL), dan luaran spasial untuk analisis risiko wilayah padi.",
 };

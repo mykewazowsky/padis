@@ -8,8 +8,11 @@ import { PADIS_THEME_STORAGE_KEY } from "@/lib/theme";
 const figtree = Figtree({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "PADIS - Paddy Disaster Information System",
-  description: "Paddy Disaster Information System",
+  title: {
+    default: "PADIS",
+    template: "%s | PADIS",
+  },
+  description: "Paddy Disaster Information System — analisis risiko bencana lahan sawah berbasis WebGIS.",
   icons: {
     icon: "/logo/padis.svg",
     apple: "/logo/padis.svg",

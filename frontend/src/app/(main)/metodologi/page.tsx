@@ -68,12 +68,12 @@ const metadataRules = [
   },
   {
     name: "Pemodelan Genangan Banjir",
-    source: "HEC-RAS 2D Analysis",
+    source: "ITB-BPDLH Project, 2025",
     icon: Droplets,
     iconColor: "text-cyan-500",
     badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
     description:
-      "Layer raster hasil simulasi hidrodinamika 2D yang berisi nilai ketinggian genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
+      "Layer raster hasil simulasi hidrodinamika 2D menggunakan HEC-RAS 2D Analysis yang berisi nilai ketinggian genangan (inundation depth) dalam satuan meter untuk diintegrasikan dengan kurva kerentanan.",
     specs: [
       { label: "Tipe Data", value: "Raster (.TIFF)" },
       { label: "Resolusi Spasial", value: "30 meter" },
@@ -83,7 +83,7 @@ const metadataRules = [
   },
   {
     name: "Indeks Kekeringan",
-    source: "Standardized Precipitation Index (SPI)",
+    source: "ITB-BPDLH Project, 2025",
     icon: Leaf,
     iconColor: "text-orange-500",
     badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",

@@ -407,6 +407,11 @@ html[data-theme="dark"] {
   --auth-google-text: #e5edf7;
   --auth-google-hover-bg: #16233d;
   --auth-google-hover-border: #466284;
+
+  /* COMPONENT TINTS — dark-mode override agar badge/pill tidak terang */
+  --color-primary-soft: rgba(30, 99, 181, 0.18);
+  --color-secondary-soft: rgba(244, 194, 31, 0.14);
+  --color-accent-soft: rgba(22, 163, 74, 0.18);
 }
 
 /* =========================
@@ -1291,6 +1296,29 @@ body {
 .auth-theme .badge-secondary {
   background-color: var(--auth-hero-badge-bg);
   color: var(--auth-hero-badge-text);
+}
+
+/* =========================
+   DARK MODE — COMPONENT FIXES
+   (teks & border elemen yang warnanya hardcoded)
+========================= */
+html[data-theme="dark"] .badge-primary { color: #bfdbfe; }
+html[data-theme="dark"] .badge-secondary { color: #fde68a; }
+html[data-theme="dark"] .badge-success { color: #86efac; }
+
+html[data-theme="dark"] .pill-soft {
+  color: #bfdbfe;
+  border-color: rgba(30, 99, 181, 0.3);
+}
+
+html[data-theme="dark"] .alert-success {
+  border-color: rgba(74, 222, 128, 0.34);
+  color: #86efac;
+}
+
+html[data-theme="dark"] .map-shell {
+  background-color: var(--theme-shell-surface);
+  border-color: var(--theme-shell-border);
 }
 
 .leaflet-container {

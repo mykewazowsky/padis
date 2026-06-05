@@ -335,13 +335,14 @@ function getVtStyle(
       (value == null || value <= 0));
 
   if (isNoData) {
-    // Di basemap gelap/satelit: hilangkan fill agar basemap terlihat 100%.
-    // Di basemap terang: fill tipis seperti semula.
-    const showFill = !isDark || isDimmed;
+    // fill: true selalu agar hit-detection tooltip tetap bekerja di semua basemap.
+    // Di basemap gelap/satelit: fillOpacity 0 (transparan penuh, basemap terlihat 100%).
+    // Di basemap terang: fillOpacity tipis 0.22 seperti semula.
+    const noDataFillOpacity = isDimmed ? 0.06 : isDark ? 0 : 0.22;
     return {
-      fill: showFill,
+      fill: true,
       fillColor: "#d1d5db",
-      fillOpacity: isDimmed ? 0.06 : 0.22,
+      fillOpacity: noDataFillOpacity,
       color: isDark ? "#6b7280" : "#9ca3af",
       weight: isDimmed ? 0.3 : 0.5,
       opacity: isDimmed ? 0.3 : 1,

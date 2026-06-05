@@ -459,7 +459,7 @@ export default function MetodologiPage() {
                           <div className="surface-white mt-4 px-4 py-3">
                             <p className="section-eyebrow text-[11px]">Bobot Akhir</p>
                             <p className="mt-1 text-lg font-bold text-heading">
-                              0.6776836021
+                              0.68
                             </p>
                           </div>
 
@@ -488,7 +488,7 @@ export default function MetodologiPage() {
                           <div className="surface-white mt-4 px-4 py-3">
                             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">Bobot Akhir</p>
                             <p className="mt-1 text-lg font-bold text-heading">
-                              0.3223163979
+                              0.32
                             </p>
                           </div>
 

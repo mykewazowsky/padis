@@ -8,16 +8,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import idTranslations from "@/locales/id.json";
 
 export type Locale = "id" | "en";
 
 const STORAGE_KEY = "padis-locale";
 
-// Lazy-load translation files
-const translations: Record<Locale, Record<string, unknown>> = {
-  id: require("@/locales/id.json"),
-  en: require("@/locales/en.json"),
-};
+type TranslationMap = Record<string, unknown>;
+type TranslationCache = Partial<Record<Locale, TranslationMap>>;
 
 function resolve(obj: unknown, keys: string[]): string | undefined {
   let cur: unknown = obj;
@@ -26,6 +24,11 @@ function resolve(obj: unknown, keys: string[]): string | undefined {
     cur = (cur as Record<string, unknown>)[k];
   }
   return typeof cur === "string" ? cur : undefined;
+}
+
+async function loadEnTranslations(): Promise<TranslationMap> {
+  const mod = await import("@/locales/en.json");
+  return mod.default as TranslationMap;
 }
 
 type LanguageContextValue = {
@@ -38,14 +41,25 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("id");
+  const [cache, setCache] = useState<TranslationCache>({
+    id: idTranslations as TranslationMap,
+  });
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored === "en" || stored === "id") setLocaleState(stored);
+      if (stored === "en") {
+        setLocaleState("en");
+        if (!cache.en) {
+          loadEnTranslations().then((data) =>
+            setCache((prev) => ({ ...prev, en: data }))
+          );
+        }
+      }
     } catch {
       // ignore
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo<LanguageContextValue>(
@@ -54,18 +68,25 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLocale: (next: Locale) => {
         setLocaleState(next);
         try { window.localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
+        if (next === "en" && !cache.en) {
+          loadEnTranslations().then((data) =>
+            setCache((prev) => ({ ...prev, en: data }))
+          );
+        }
       },
       t: (key: string): string => {
         const keys = key.split(".");
-        // Try current locale
-        const result = resolve(translations[locale], keys);
+        const localeData = cache[locale] ?? cache.id;
+        const result = resolve(localeData, keys);
         if (result !== undefined) return result;
-        // Fallback to id
-        const fallback = resolve(translations["id"], keys);
-        return fallback ?? key;
+        if (locale !== "id") {
+          const fallback = resolve(cache.id, keys);
+          return fallback ?? key;
+        }
+        return key;
       },
     }),
-    [locale]
+    [locale, cache]
   );
 
   return (

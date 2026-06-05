@@ -1,4 +1,3 @@
-import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { Metadata } from "next";
 import { Figtree } from "next/font/google";

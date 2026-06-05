@@ -38,7 +38,7 @@ interface HistoricalRecord {
 const metadataRules = [
   {
     name: "Batas Administrasi",
-    source: "Badan Informasi Geospasial (BIG)",
+    source: "Badan Informasi Geospasial (BIG), 2020",
     icon: MapIcon,
     iconColor: "text-blue-500",
     badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
@@ -53,7 +53,7 @@ const metadataRules = [
   },
   {
     name: "Penutupan Lahan Sawah",
-    source: "Kementerian LHK",
+    source: "Kementerian LHK, 2022",
     icon: Layers,
     iconColor: "text-emerald-500",
     badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",

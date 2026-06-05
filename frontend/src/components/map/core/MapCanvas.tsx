@@ -335,10 +335,19 @@ function getVtStyle(
       (value == null || value <= 0));
 
   if (isNoData) {
+    // Imagery basemap: fill sangat tipis agar detail satelit tetap terlihat.
+    // Dark basemap: fill sedang agar area no-data masih bisa dibedakan.
+    // Light basemap: seperti semula.
+    const noDataFillOpacity =
+      isDimmed ? 0.06
+      : basemapKey === "imagery" ? 0.12
+      : basemapKey === "dark"    ? 0.28
+      : 0.22;
+
     return {
       fill: true,
       fillColor: isDark ? "#4b5563" : "#d1d5db",
-      fillOpacity: isDimmed ? 0.06 : isDark ? 0.55 : 0.22,
+      fillOpacity: noDataFillOpacity,
       color: isDark ? "#6b7280" : "#9ca3af",
       weight: isDimmed ? 0.3 : 0.5,
       opacity: isDimmed ? 0.3 : 1,
@@ -967,15 +976,24 @@ export default function MapCanvas({
     // Batas administrasi — outline only, non-interactive.
     if (activeLayers.regions) {
       const regionUrl = `${BASE_URL}/api/tiles/regions/{z}/{x}/{y}`;
+      const isDarkBasemap = basemapKey === "dark" || basemapKey === "imagery";
+      const regionBorderColor =
+        basemapKey === "imagery" ? "#ffffff"
+        : basemapKey === "dark"  ? "#94a3b8"
+        : "#9ca3af";
+      const regionBorderOpacity =
+        basemapKey === "imagery" ? 0.55
+        : basemapKey === "dark"  ? 0.80
+        : 0.6;
 
       const regionLayer = LVG.vectorGrid.protobuf(regionUrl, {
         vectorTileLayerStyles: {
           regions: () => ({
             fill: false,
             fillOpacity: 0,
-            color: "#9ca3af",
-            weight: 1,
-            opacity: 0.6,
+            color: regionBorderColor,
+            weight: isDarkBasemap ? 1.2 : 1,
+            opacity: regionBorderOpacity,
           }),
         },
         interactive: false,

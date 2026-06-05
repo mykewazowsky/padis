@@ -254,6 +254,7 @@ function DashboardSectionHeader({
 export default function DashboardPage() {
   const filterPanelRef = useRef<HTMLDivElement | null>(null);
   const chartsRef = useRef<HTMLDivElement | null>(null);
+  const downloadingRef = useRef(false);
   const [chartsReady, setChartsReady] = useState(false);
   const [runId, setRunId] = useState<number | null>(null);
   const [dataYear, setDataYear] = useState<number | null>(null);
@@ -357,13 +358,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setRunId(null);
+    setErrorLayer(null);
     fetchLatestRunId(hazard)
       .then(({ runId, dataYear }) => {
         setRunId(runId);
         setDataYear(dataYear);
       })
-      .catch((err) => {
-        console.error("Failed to fetch latest run_id:", err);
+      .catch(() => {
+        setErrorLayer("Gagal terhubung ke server analisis. Coba muat ulang halaman.");
       });
   }, [hazard]);
 
@@ -622,10 +624,14 @@ export default function DashboardPage() {
   }
 
   async function openProtectedDownload(path: string, fallbackFilename: string) {
+    if (downloadingRef.current) return;
+    downloadingRef.current = true;
+
     const token = getToken();
     setDownloadError(null);
 
     if (!token) {
+      downloadingRef.current = false;
       setLoginNoticeMessage(
         "Silakan login dulu untuk mengunduh CSV atau generate report."
       );
@@ -685,8 +691,9 @@ export default function DashboardPage() {
 
       window.URL.revokeObjectURL(objectUrl);
     } catch (err: unknown) {
-      console.error(err);
       setDownloadError(getErrorMessage(err, "Gagal download file."));
+    } finally {
+      downloadingRef.current = false;
     }
   }
 

@@ -40,7 +40,6 @@ export default function AuthCallbackPage() {
         }
 
         const { access_token } = data.session;
-        console.info("[PADIS OAuth] Session obtained.");
 
         try {
           const token = await exchangeForPadisToken(access_token);
@@ -60,7 +59,6 @@ export default function AuthCallbackPage() {
         }
 
         const { access_token } = session;
-        console.info("[PADIS OAuth] Session obtained via fallback.");
 
         try {
           const token = await exchangeForPadisToken(access_token);

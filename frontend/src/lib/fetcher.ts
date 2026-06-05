@@ -22,17 +22,14 @@ export async function fetchJson<T = unknown>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    console.error("❌ FETCH ERROR:", res.status, text);
-
     throw new Error(
-      `Request failed: ${res.status} ${res.statusText}`
+      `Request failed: ${res.status} ${res.statusText}${text ? ` — ${text}` : ""}`
     );
   }
 
   try {
     return (await res.json()) as T;
-  } catch (err) {
-    console.error("❌ JSON PARSE ERROR:", err);
+  } catch {
     throw new Error("Invalid JSON response");
   }
 }

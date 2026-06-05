@@ -335,19 +335,13 @@ function getVtStyle(
       (value == null || value <= 0));
 
   if (isNoData) {
-    // Imagery basemap: fill sangat tipis agar detail satelit tetap terlihat.
-    // Dark basemap: fill sedang agar area no-data masih bisa dibedakan.
-    // Light basemap: seperti semula.
-    const noDataFillOpacity =
-      isDimmed ? 0.06
-      : basemapKey === "imagery" ? 0.12
-      : basemapKey === "dark"    ? 0.28
-      : 0.22;
-
+    // Di basemap gelap/satelit: hilangkan fill agar basemap terlihat 100%.
+    // Di basemap terang: fill tipis seperti semula.
+    const showFill = !isDark || isDimmed;
     return {
-      fill: true,
-      fillColor: isDark ? "#4b5563" : "#d1d5db",
-      fillOpacity: noDataFillOpacity,
+      fill: showFill,
+      fillColor: "#d1d5db",
+      fillOpacity: isDimmed ? 0.06 : 0.22,
       color: isDark ? "#6b7280" : "#9ca3af",
       weight: isDimmed ? 0.3 : 0.5,
       opacity: isDimmed ? 0.3 : 1,

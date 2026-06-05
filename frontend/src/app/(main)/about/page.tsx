@@ -49,9 +49,18 @@ const developers = [
 ];
 
 const supervisors = [
-  "Dr. Riantini Virtriana, S.T., M.T.",
-  "Prof. Dr. Irwan Meilano, S.T., M.Sc.",
-  "Dr. Ir. Irwan Gumilar, S.T., M.Si.",
+  {
+    name: "Dr. Riantini Virtriana, S.T., M.T.",
+    itbUrl: "https://itb.ac.id/staf/profil/4507/riantini-virtriana",
+  },
+  {
+    name: "Prof. Dr. Irwan Meilano, S.T., M.Sc.",
+    itbUrl: "https://itb.ac.id/staf/profil/irwan-meilano",
+  },
+  {
+    name: "Dr. Ir. Irwan Gumilar, S.T., M.Si.",
+    itbUrl: "https://itb.ac.id/staf/profil/3672/irwan-gumilar",
+  },
 ];
 
 const partnerCards = [
@@ -475,15 +484,25 @@ export default function AboutPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {supervisors.map((name) => (
+                {supervisors.map((sup) => (
                   <div
-                    key={name}
+                    key={sup.name}
                     className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-5 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
                   >
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-secondary-soft)] text-sm font-bold text-[var(--color-secondary-dark)]">
-                      {getInitials(name)}
+                      {getInitials(sup.name)}
                     </div>
-                    <p className="text-sm font-medium leading-snug text-heading">{name}</p>
+                    <p className="text-sm font-medium leading-snug text-heading">{sup.name}</p>
+                    <a
+                      href={sup.itbUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Profil ITB ${sup.name}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-muted transition hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+                    >
+                      <img src="/itb/itb.png" alt="ITB" className="h-3.5 w-auto flex-shrink-0" />
+                      Profil ITB
+                    </a>
                   </div>
                 ))}
               </div>

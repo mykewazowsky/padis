@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   BarChart,
   Bar,
@@ -131,6 +132,7 @@ function KpiCard({ label, value, sub, accent = GOLD }: {
 }
 
 function SectionHead({ num, title }: { num: string; title: string }) {
+  const { t } = useLanguage();
   return (
     <div className="mb-3 flex items-center gap-3">
       <div
@@ -141,7 +143,7 @@ function SectionHead({ num, title }: { num: string; title: string }) {
       </div>
       <div className="flex-1">
         <p className="text-[8px] font-semibold uppercase tracking-[0.2em]" style={{ color: GOLD }}>
-          Bagian {num}
+          {t("report.section")} {num}
         </p>
         <p className="text-[11px] font-bold uppercase tracking-wide text-gray-900 leading-tight">
           {title}
@@ -175,6 +177,7 @@ function PageFooter({ page, total, runId }: { page: number; total: number; runId
 export default function ReportDocument({
   hazard, climate, scenario, runId, selectedRegion, selectedProvince,
 }: ReportDocumentProps) {
+  const { t } = useLanguage();
   const [topRegions, setTopRegions] = useState<TopRegion[]>([]);
   const [allRegions, setAllRegions] = useState<RegionRow[]>([]);
   const [aalSummary, setAalSummary] = useState<AalSummary | null>(null);
@@ -233,7 +236,7 @@ export default function ReportDocument({
       <div className="flex h-80 w-[210mm] mx-auto items-center justify-center bg-white shadow-lg">
         <div className="text-center">
           <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-200" style={{ borderTopColor: BLUE }} />
-          <p className="text-xs text-gray-500">Memuat data laporan...</p>
+          <p className="text-xs text-gray-500">{t("report.loading")}</p>
         </div>
       </div>
     );
@@ -242,7 +245,7 @@ export default function ReportDocument({
   if (error) {
     return (
       <div className="flex h-80 w-[210mm] mx-auto items-center justify-center bg-white shadow-lg">
-        <p className="text-sm text-red-600">Gagal memuat data: {error}</p>
+        <p className="text-sm text-red-600">{t("report.failedLoad")} {error}</p>
       </div>
     );
   }
@@ -342,7 +345,7 @@ export default function ReportDocument({
             className="shrink-0 rounded px-3 py-1.5 text-[8px] font-bold uppercase tracking-widest"
             style={{ border: `1.5px solid ${GOLD}`, color: GOLD }}
           >
-            Dokumen Resmi
+            {t("report.officialDoc")}
           </div>
         </div>
 
@@ -352,13 +355,13 @@ export default function ReportDocument({
         {/* Sub-header bar */}
         <div className="flex items-center justify-between bg-gray-50 px-10 py-2 border-b border-gray-200">
           <p className="text-[8px] text-gray-500">
-            No. Laporan: <span className="font-semibold text-gray-800">{runTag(runId)}</span>
+            {t("report.reportNo")} <span className="font-semibold text-gray-800">{runTag(runId)}</span>
           </p>
           <p className="text-[8px] text-gray-500">
-            Tanggal: <span className="font-semibold text-gray-800">{nowFormatted()}</span>
+            {t("report.date")} <span className="font-semibold text-gray-800">{nowFormatted()}</span>
           </p>
           <p className="text-[8px] text-gray-500">
-            Run ID: <span className="font-mono font-semibold text-gray-800">#{runId}</span>
+            {t("report.runId")} <span className="font-mono font-semibold text-gray-800">#{runId}</span>
           </p>
         </div>
 
@@ -370,7 +373,7 @@ export default function ReportDocument({
             <div className="mb-2 flex items-center gap-2">
               <div className="h-[2px] w-5 rounded" style={{ backgroundColor: GOLD }} />
               <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-gray-600">
-                Identitas Laporan
+                {t("report.reportIdentity")}
               </p>
             </div>
             <div
@@ -378,12 +381,12 @@ export default function ReportDocument({
               style={{ backgroundColor: "#d1d5db", border: "1px solid #d1d5db" }}
             >
               {([
-                ["Jenis Bahaya",          hazardLabel(hazard)],
-                ["Skenario",              climateLabel(climate)],
-                ["Periode Ulang",         scenarioLabel(scenario)],
-                ["Wilayah Analisis",      regionDisplay],
-                ["Jumlah Kabupaten/Kota", `${validCount} terdampak · ${dataCount} total`],
-                ["Sumber Analisis",       "Pipeline Spasial PADIS"],
+                [t("report.hazardType"),       hazardLabel(hazard)],
+                [t("report.scenario"),         climateLabel(climate)],
+                [t("report.returnPeriod"),     scenarioLabel(scenario)],
+                [t("report.analysisRegion"),   regionDisplay],
+                [t("report.affectedDistricts"), `${validCount} ${t("report.affected")} · ${dataCount} ${t("report.total")}`],
+                [t("report.analysisSource"),   t("report.spatialPipeline")],
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k} className="bg-white px-4 py-2.5">
                   <p className="text-[7.5px] font-semibold uppercase tracking-wider text-gray-400">{k}</p>
@@ -395,32 +398,32 @@ export default function ReportDocument({
 
           {/* ── Section I: Executive Summary ── */}
           <div className="avoid-break">
-            <SectionHead num="I" title="Ringkasan Eksekutif" />
+            <SectionHead num="I" title={t("report.executiveSummary")} />
 
             {/* KPI row */}
             <div className="grid grid-cols-4 gap-2.5 mb-4 print:mb-2">
               <KpiCard
-                label="Total Kerugian"
+                label={t("report.totalLoss")}
                 value={fmtCompact(totalLoss)}
-                sub={`${validCount} terdampak · ${dataCount} total`}
+                sub={`${validCount} ${t("report.affected")} · ${dataCount} ${t("report.total")}`}
                 accent={NAVY}
               />
               <KpiCard
-                label="AAL Baseline"
+                label={t("report.aalBaseline")}
                 value={fmtCompact(aalNc)}
-                sub="Kerugian tahunan baseline"
+                sub={t("report.aalBaseline")}
                 accent={BLUE}
               />
               <KpiCard
-                label="AAL Projection"
+                label={t("report.aalProjection")}
                 value={fmtCompact(aalC)}
-                sub="Projection"
+                sub={t("report.aalProjection")}
                 accent={AMBER}
               />
               <KpiCard
-                label="Perubahan Risiko"
+                label={t("report.riskChange")}
                 value={aalDeltaLbl}
-                sub={aalDelta != null ? (aalDelta >= 0 ? "Risiko meningkat" : "Risiko menurun") : "Data tidak tersedia"}
+                sub={aalDelta != null ? (aalDelta >= 0 ? t("report.riskIncreasing") : t("report.riskDecreasing")) : t("report.dataNA")}
                 accent={aalDelta != null && aalDelta >= 0 ? "#dc2626" : "#16a34a"}
               />
             </div>
@@ -429,7 +432,7 @@ export default function ReportDocument({
             {top3.length > 0 && (
               <div className="mb-3 print:mb-1">
                 <p className="mb-2 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
-                  Tiga Wilayah Prioritas Risiko Tertinggi
+                  {t("report.topRegions")}
                 </p>
                 <div className="space-y-1.5">
                   {top3.map((r, i) => (
@@ -447,14 +450,14 @@ export default function ReportDocument({
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-bold text-gray-900 truncate">{r.name}</p>
                         <p className="text-[8px] text-gray-500">
-                          Kerugian tertinggi · {hazardLabel(hazard)} · {scenarioLabel(scenario)}
+                          {t("report.highestLoss")} · {hazardLabel(hazard)} · {scenarioLabel(scenario)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-[12px] font-bold text-gray-900">{fmtCompact(r.loss)}</p>
                         {totalLoss > 0 && (
                           <p className="text-[8px] text-gray-400">
-                            {((r.loss / totalLoss) * 100).toFixed(1)}% dari total
+                            {((r.loss / totalLoss) * 100).toFixed(1)}% {t("report.percentOfTotal")}
                           </p>
                         )}
                       </div>
@@ -490,13 +493,13 @@ export default function ReportDocument({
 
           {/* ── Section II: Charts ── */}
           <div className="avoid-break">
-            <SectionHead num="II" title="Visualisasi Data Analisis" />
+            <SectionHead num="II" title={t("report.dataVisualization")} />
 
             <div className="grid grid-cols-2 gap-4">
               {/* Chart A — Top 10 by loss */}
               <div>
                 <p className="mb-1.5 text-[8px] font-semibold uppercase tracking-widest text-gray-500">
-                  A. 10 Wilayah Kerugian Tertinggi
+                  {t("report.top10Title")}
                 </p>
                 <div className="chart-wrapper" style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height={160}>
@@ -626,13 +629,13 @@ export default function ReportDocument({
 
           {/* ── Section III: Top 10 table ── */}
           <div className="avoid-break">
-            <SectionHead num="III" title="10 Wilayah Terdampak Tertinggi" />
+            <SectionHead num="III" title={t("report.affectedTable")} />
 
             <div className="overflow-hidden rounded-sm" style={{ border: `1px solid #e5e7eb` }}>
               <table className="w-full border-collapse" style={{ fontSize: 8 }}>
                 <thead>
                   <tr style={{ backgroundColor: NAVY }}>
-                    {["No.", "Wilayah", "Kerugian (Rp)", "Share (%)"].map((col) => (
+                    {[t("report.noCol"), t("report.regionCol"), t("report.lossCol"), t("report.shareCol")].map((col) => (
                       <th
                         key={col}
                         className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-white"
@@ -677,7 +680,7 @@ export default function ReportDocument({
                           className="px-3 py-2 font-bold uppercase tracking-wider text-gray-700"
                           style={{ fontSize: 7 }}
                         >
-                          Total (Top 10)
+                          {t("report.totalTop10")}
                         </td>
                         <td className="px-3 py-2 text-right font-bold text-gray-900">{fmtFull(top10Loss)}</td>
                         <td className="px-3 py-2 text-right font-bold text-gray-900">
@@ -691,29 +694,29 @@ export default function ReportDocument({
             </div>
 
             <p className="mt-2 text-[8px] italic text-gray-500">
-              Catatan: Rincian data seluruh wilayah dapat dilihat melalui lampiran dokumen Excel (.xlsx).
+              {t("report.allDetailsNote")}
             </p>
           </div>
 
           {/* ── Section IV: Methodology ── */}
           <div className="avoid-break">
-            <SectionHead num="IV" title="Catatan Metodologi dan Sumber Data" />
+            <SectionHead num="IV" title={t("report.methodologyTitle")} />
 
             <div className="grid grid-cols-2 gap-4 text-[8.5px] leading-relaxed text-gray-600">
               <div>
                 <p className="mb-1.5 text-[8px] font-bold uppercase tracking-wider text-gray-700">
-                  Definisi Istilah
+                  {t("report.termDefinitions")}
                 </p>
                 <dl className="space-y-1">
-                  {[
-                    ["Kerugian (Loss)", "Estimasi kerugian produksi padi akibat bencana pada periode ulang tertentu, dinyatakan dalam Rupiah."],
-                    ["AAL (Average Annual Loss)", "Rata-rata kerugian tahunan yang diharapkan, dihitung dari integral kurva probabilitas bahaya × kurva kerentanan."],
-                    ["Indeks Bahaya", "Nilai normalisasi (0–1) intensitas bahaya spasial per wilayah berdasarkan data raster."],
-                    ["Periode Ulang (RP)", "Periode ulang rata-rata — kemungkinan bencana dengan intensitas tersebut atau lebih besar terjadi sekali dalam RP tahun."],
-                  ].map(([t, d]) => (
-                    <div key={t}>
-                      <dt className="font-semibold text-gray-800">{t}</dt>
-                      <dd className="text-gray-600">{d}</dd>
+                  {([
+                    [t("map.legendLoss"),    t("report.lossDefinition")],
+                    ["AAL (Average Annual Loss)", t("report.aalDefinition")],
+                    [t("map.hazardIndex"),   t("report.hazardIndexDef")],
+                    [t("report.returnPeriod"), t("report.returnPeriodDef")],
+                  ] as [string, string][]).map(([term, def]) => (
+                    <div key={term}>
+                      <dt className="font-semibold text-gray-800">{term}</dt>
+                      <dd className="text-gray-600">{def}</dd>
                     </div>
                   ))}
                 </dl>
@@ -721,18 +724,18 @@ export default function ReportDocument({
 
               <div>
                 <p className="mb-1.5 text-[8px] font-bold uppercase tracking-wider text-gray-700">
-                  Metodologi dan Sumber
+                  {t("report.methodologySource")}
                 </p>
                 <dl className="space-y-1">
-                  {[
-                    ["Data Bahaya", "Raster hazard resolusi spasial tinggi dari model hidrologis (banjir) dan model klimatologis (kekeringan)."],
-                    ["Data Eksposur", "Produksi sawah kabupaten/kota (BPS) dan batas administrasi level kabupaten."],
-                    ["Kerentanan", "Kurva loss function berdasarkan referensi ilmiah dan validasi historis kejadian bencana."],
-                    ["Integrasi Spasial", "Zonal statistics via overlay raster–vektor menggunakan GIS pipeline Python (geopandas/rasterio)."],
-                  ].map(([t, d]) => (
-                    <div key={t}>
-                      <dt className="font-semibold text-gray-800">{t}</dt>
-                      <dd className="text-gray-600">{d}</dd>
+                  {([
+                    [t("report.hazardData"),         t("report.hazardDataDesc")],
+                    [t("report.exposureData"),        t("report.exposureDataDesc")],
+                    [t("report.vulnerability"),       t("report.vulnerabilityDesc")],
+                    [t("report.spatialIntegration"),  t("report.spatialIntegrationDesc")],
+                  ] as [string, string][]).map(([term, def]) => (
+                    <div key={term}>
+                      <dt className="font-semibold text-gray-800">{term}</dt>
+                      <dd className="text-gray-600">{def}</dd>
                     </div>
                   ))}
                 </dl>
@@ -756,9 +759,9 @@ export default function ReportDocument({
               style={{ border: `1px solid #e5e7eb` }}
             >
               <div className="text-[8.5px] text-gray-600">
-                <p className="font-bold text-gray-800">Dihasilkan secara otomatis oleh:</p>
-                <p className="mt-0.5">Paddy Disaster Information System (PADIS)</p>
-                <p className="text-gray-400">Sistem Analisis Risiko Bencana Pertanian Berbasis GIS</p>
+                <p className="font-bold text-gray-800">{t("report.generatedBy")}</p>
+                <p className="mt-0.5">{t("report.systemName")}</p>
+                <p className="text-gray-400">{t("report.systemDesc")}</p>
                 <p className="mt-2 font-mono text-[7.5px] text-gray-400">
                   run_id: {runId} · generated: {new Date().toISOString()}
                 </p>
@@ -772,7 +775,7 @@ export default function ReportDocument({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/logo/padis.svg" alt="" className="h-10 w-10 object-contain opacity-25" />
                 </div>
-                <p className="text-center">Stempel Digital</p>
+                <p className="text-center">{t("report.digitalStamp")}</p>
                 <p className="text-center">PADIS System</p>
               </div>
             </div>

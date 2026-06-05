@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Palette } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type LegendItem = {
   color: string;
@@ -29,7 +30,7 @@ type Props = {
 
 export default function MapLegendPanel({
   title,
-  subtitle = "Distribusi kelas data",
+  subtitle,
   items,
   collapsed,
   onToggle,
@@ -37,6 +38,9 @@ export default function MapLegendPanel({
   showNoDataIndicator = false,
   inline = false,
 }: Props) {
+  const { t } = useLanguage();
+  const resolvedSubtitle = subtitle ?? t("map.legendDistribution");
+
   return (
     <div
       className={
@@ -57,7 +61,7 @@ export default function MapLegendPanel({
               {title}
             </h3>
             <p className="text-[10px] text-[var(--dashboard-text-muted)]">
-              {subtitle}
+              {resolvedSubtitle}
             </p>
           </div>
         </div>
@@ -103,7 +107,7 @@ export default function MapLegendPanel({
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 flex-shrink-0 rounded-sm border border-[var(--dashboard-border-solid)] bg-[#d1d5db] dark:bg-[#4b5563]" />
                   <span className="text-[11px] italic text-[var(--dashboard-text-muted)]">
-                    Tidak ada data
+                    {t("map.noDataIndicator")}
                   </span>
                 </div>
               )}
@@ -112,7 +116,7 @@ export default function MapLegendPanel({
                   {/* Amber border swatch matches the map highlight for top-5 regions */}
                   <div className="h-3 w-3 flex-shrink-0 rounded-sm border-2 border-amber-400 bg-[var(--dashboard-surface-solid)]" />
                   <span className="text-[11px] text-[var(--dashboard-text)]">
-                    Top 5 wilayah terdampak
+                    {t("map.top5Regions")}
                   </span>
                 </div>
               )}

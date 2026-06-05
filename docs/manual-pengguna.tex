@@ -1,705 +1,712 @@
-% ============================================================
-%  PADIS — Manual Pengguna
-%  Compiler : XeLaTeX (Overleaf)
-% ============================================================
-\documentclass[12pt, a4paper]{article}
+  % ============================================================
+  %  PADIS — Manual Pengguna
+  %  Compiler : XeLaTeX (Overleaf)
+  % ============================================================
+  \documentclass[12pt, a4paper]{article}
 
-% ── Encoding & Bahasa ────────────────────────────────────────
-\usepackage{polyglossia}
-\setdefaultlanguage{indonesian}
+  % ── Encoding & Bahasa ────────────────────────────────────────
+  \usepackage{polyglossia}
+  \setdefaultlanguage{indonesian}
 
-% ── Font ─────────────────────────────────────────────────────
-\usepackage{fontspec}
-\setmainfont{TeX Gyre Pagella}
-\setsansfont{TeX Gyre Heros}
-\setmonofont{TeX Gyre Cursor}
+  % ── Font ─────────────────────────────────────────────────────
+  \usepackage{fontspec}
+  \setmainfont{TeX Gyre Pagella}
+  \setsansfont{TeX Gyre Heros}
+  \setmonofont{TeX Gyre Cursor}
 
-% ── Layout ───────────────────────────────────────────────────
-\usepackage[
-  a4paper,
-  top    = 2.5cm,
-  bottom = 2.5cm,
-  left   = 2.8cm,
-  right  = 2.8cm,
-  headheight = 14pt,
-]{geometry}
+  % ── Layout ───────────────────────────────────────────────────
+  \usepackage[
+    a4paper,
+    top    = 2.5cm,
+    bottom = 2.5cm,
+    left   = 2.8cm,
+    right  = 2.8cm,
+    headheight = 14pt,
+  ]{geometry}
 
-% ── Warna ────────────────────────────────────────────────────
-\usepackage[dvipsnames, svgnames, table]{xcolor}
-\definecolor{padisblue}{HTML}{1E63B5}
-\definecolor{padisdark}{HTML}{0D2137}
-\definecolor{padismid}{HTML}{3B5A8A}
-\definecolor{padislight}{HTML}{EFF6FF}
-\definecolor{padisborder}{HTML}{BFDBFE}
-\definecolor{padisaccent}{HTML}{C9A227}
-\definecolor{padismuted}{HTML}{6B7280}
-\definecolor{sectiongray}{HTML}{F3F4F6}
+  % ── Warna ────────────────────────────────────────────────────
+  \usepackage[dvipsnames, svgnames, table]{xcolor}
+  \definecolor{padisblue}{HTML}{1E63B5}
+  \definecolor{padisdark}{HTML}{0D2137}
+  \definecolor{padismid}{HTML}{3B5A8A}
+  \definecolor{padislight}{HTML}{EFF6FF}
+  \definecolor{padisborder}{HTML}{BFDBFE}
+  \definecolor{padisaccent}{HTML}{C9A227}
+  \definecolor{padismuted}{HTML}{6B7280}
+  \definecolor{sectiongray}{HTML}{F3F4F6}
 
-% ── Grafik & Float ───────────────────────────────────────────
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage{caption}
-\captionsetup{
-  font      = {small, sf},
-  labelfont = {bf, color=padismid},
-  format    = plain,
-  skip      = 6pt,
-}
-
-% ── Tabel ────────────────────────────────────────────────────
-\usepackage{booktabs}
-\usepackage{tabularx}
-\usepackage{array}
-
-% ── Kotak Keterangan ─────────────────────────────────────────
-\usepackage[most]{tcolorbox}
-
-\tcbset{
-  base/.style={
-    arc         = 6pt,
-    boxrule     = 0.6pt,
-    left        = 10pt,
-    right       = 10pt,
-    top         = 8pt,
-    bottom      = 8pt,
-    fontupper   = \sffamily\small,
+  % ── Grafik & Float ───────────────────────────────────────────
+  \usepackage{graphicx}
+  \usepackage{float}
+  \usepackage{caption}
+  \captionsetup{
+    font      = {small, sf},
+    labelfont = {bf, color=padismid},
+    format    = plain,
+    skip      = 6pt,
   }
-}
 
-\newtcolorbox{notebox}{
-  base,
-  colback     = padislight,
-  colframe    = padisborder,
-  title       = {\sffamily\bfseries\footnotesize\color{padisblue} CATATAN},
-  attach boxed title to top left = {yshift=-2mm, xshift=8pt},
-  boxed title style = {
-    colback   = padisblue,
-    colframe  = padisblue,
-    arc       = 4pt,
-    boxrule   = 0pt,
-  },
-}
+  % ── Tabel ────────────────────────────────────────────────────
+  \usepackage{booktabs}
+  \usepackage{tabularx}
+  \usepackage{array}
 
-\newtcolorbox{tipbox}{
-  base,
-  colback     = {green!5!white},
-  colframe    = {green!40!black!40},
-  title       = {\sffamily\bfseries\footnotesize\color{green!40!black} TIP},
-  attach boxed title to top left = {yshift=-2mm, xshift=8pt},
-  boxed title style = {
-    colback   = {green!50!black},
-    colframe  = {green!50!black},
-    arc       = 4pt,
-    boxrule   = 0pt,
-  },
-}
+  % ── Kotak Keterangan ─────────────────────────────────────────
+  \usepackage[most]{tcolorbox}
 
-\newtcolorbox{warnbox}{
-  base,
-  colback     = {orange!8!white},
-  colframe    = {orange!60!black!50},
-  title       = {\sffamily\bfseries\footnotesize\color{orange!70!black} PERHATIAN},
-  attach boxed title to top left = {yshift=-2mm, xshift=8pt},
-  boxed title style = {
-    colback   = {orange!70!black},
-    colframe  = {orange!70!black},
-    arc       = 4pt,
-    boxrule   = 0pt,
-  },
-}
-
-% Kotak placeholder screenshot
-\newcommand{\screenshot}[1]{%
-  \begin{center}
-    \begin{tcolorbox}[
-      enhanced,
-      colback  = sectiongray,
-      colframe = padisborder,
-      arc      = 6pt,
-      boxrule  = 0.6pt,
-      height   = 5.5cm,
-      valign   = center,
-      halign   = center,
-      fontupper = \sffamily\small\color{padismuted},
-    ]
-      \textit{[Screenshot: #1]}
-    \end{tcolorbox}
-  \end{center}%
-}
-
-% ── Header & Footer ──────────────────────────────────────────
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\sffamily\footnotesize\color{padismuted} Manual Pengguna PADIS}
-\fancyhead[R]{\sffamily\footnotesize\color{padismuted} \leftmark}
-\fancyfoot[C]{\sffamily\footnotesize\color{padismuted} \thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{padisborder}\leaders\hrule\hfil}}
-
-% ── Judul Bab & Subbab ───────────────────────────────────────
-\usepackage{titlesec}
-
-\titleformat{\section}
-  {\sffamily\bfseries\Large\color{padisdark}}
-  {}
-  {0pt}
-  {\colorbox{padisblue}{\makebox[1.2em]{\color{white}\thesection}}\hspace{8pt}}
-  [\vspace{2pt}\color{padisborder}\titlerule]
-
-\titleformat{\subsection}
-  {\sffamily\bfseries\normalsize\color{padisblue}}
-  {\thesubsection}
-  {8pt}
-  {}
-
-\titleformat{\subsubsection}
-  {\sffamily\bfseries\small\color{padismid}}
-  {\thesubsubsection}
-  {8pt}
-  {}
-
-\titlespacing{\section}      {0pt}{20pt}{10pt}
-\titlespacing{\subsection}   {0pt}{14pt}{6pt}
-\titlespacing{\subsubsection}{0pt}{10pt}{4pt}
-
-% ── Daftar ───────────────────────────────────────────────────
-\usepackage{enumitem}
-\setlist[itemize]{
-  leftmargin = 1.6em,
-  itemsep    = 3pt,
-  topsep     = 4pt,
-}
-\setlist[enumerate]{
-  leftmargin = 1.8em,
-  itemsep    = 3pt,
-  topsep     = 4pt,
-}
-
-% ── Hyperref ─────────────────────────────────────────────────
-\usepackage{hyperref}
-\hypersetup{
-  colorlinks   = true,
-  linkcolor    = padisblue,
-  urlcolor     = padisblue,
-  citecolor    = padisblue,
-  pdfauthor    = {Tim PADIS — ITB},
-  pdftitle     = {Manual Pengguna PADIS},
-  pdfsubject   = {Paddy Disaster Information System},
-  pdfkeywords  = {PADIS, manual, GIS, bencana, pertanian},
-}
-
-% ── Spasi Paragraf ───────────────────────────────────────────
-\usepackage{parskip}
-\setlength{\parskip}{6pt}
-\setlength{\parindent}{0pt}
-
-% ── Ornamen Nomor Bab di TOC ─────────────────────────────────
-\usepackage{titletoc}
-\titlecontents{section}[1.5em]
-  {\addvspace{4pt}\sffamily\bfseries\small}
-  {\contentslabel{1.5em}}
-  {\hspace*{-1.5em}}
-  {\titlerule*[6pt]{.}\contentspage}
-
-\titlecontents{subsection}[3.5em]
-  {\addvspace{2pt}\sffamily\small}
-  {\contentslabel{2em}}
-  {}
-  {\titlerule*[6pt]{.}\contentspage}
-
-% ── Utility ──────────────────────────────────────────────────
-\usepackage{microtype}
-\usepackage{setspace}
-\onehalfspacing
-
-% ============================================================
-\begin{document}
-% ============================================================
-
-% ── HALAMAN SAMPUL ───────────────────────────────────────────
-\begin{titlepage}
-  \pagecolor{padisdark}
-  \color{white}
-  \vspace*{2cm}
-
-  \begin{center}
-    {\sffamily\bfseries\Huge\color{white} PADIS}\\[6pt]
-    {\sffamily\large\color{padisaccent} Paddy Disaster Information System}
-
-    \vspace{1.2cm}
-    {\color{padisaccent}\rule{6cm}{1pt}}
-    \vspace{1.2cm}
-
-    {\sffamily\bfseries\LARGE\color{white} Manual Pengguna}\\[8pt]
-    {\sffamily\normalsize\color{white!70!padisdark}
-      Panduan lengkap penggunaan dashboard analisis\\
-      risiko bencana pada lahan sawah berbasis GIS
+  \tcbset{
+    base/.style={
+      arc         = 6pt,
+      boxrule     = 0.6pt,
+      left        = 10pt,
+      right       = 10pt,
+      top         = 8pt,
+      bottom      = 8pt,
+      fontupper   = \sffamily\small,
     }
+  }
 
-    \vspace{2cm}
+  \newtcolorbox{notebox}{
+    base,
+    colback     = padislight,
+    colframe    = padisborder,
+    title       = {\sffamily\bfseries\footnotesize\color{padisblue} CATATAN},
+    attach boxed title to top left = {yshift=-2mm, xshift=8pt},
+    boxed title style = {
+      colback   = padisblue,
+      colframe  = padisblue,
+      arc       = 4pt,
+      boxrule   = 0pt,
+    },
+  }
 
-    \begin{tcolorbox}[
-      enhanced,
-      colback  = white!10!padisdark,
-      colframe = white!20!padisdark,
-      arc      = 8pt,
-      width    = 0.72\textwidth,
-      halign   = center,
-      fontupper = \sffamily\small\color{white!80!padisdark},
-    ]
-      Versi 1.0 \quad·\quad Mei 2026\\[4pt]
-      Teknik Geodesi dan Geomatika\\
-      Institut Teknologi Bandung
-    \end{tcolorbox}
+  \newtcolorbox{tipbox}{
+    base,
+    colback     = {green!5!white},
+    colframe    = {green!40!black!40},
+    title       = {\sffamily\bfseries\footnotesize\color{green!40!black} TIP},
+    attach boxed title to top left = {yshift=-2mm, xshift=8pt},
+    boxed title style = {
+      colback   = {green!50!black},
+      colframe  = {green!50!black},
+      arc       = 4pt,
+      boxrule   = 0pt,
+    },
+  }
+
+  \newtcolorbox{warnbox}{
+    base,
+    colback     = {orange!8!white},
+    colframe    = {orange!60!black!50},
+    title       = {\sffamily\bfseries\footnotesize\color{orange!70!black} PERHATIAN},
+    attach boxed title to top left = {yshift=-2mm, xshift=8pt},
+    boxed title style = {
+      colback   = {orange!70!black},
+      colframe  = {orange!70!black},
+      arc       = 4pt,
+      boxrule   = 0pt,
+    },
+  }
+
+  % Kotak placeholder screenshot
+  \newcommand{\screenshot}[1]{%
+    \begin{center}
+      \begin{tcolorbox}[
+        enhanced,
+        colback  = sectiongray,
+        colframe = padisborder,
+        arc      = 6pt,
+        boxrule  = 0.6pt,
+        height   = 5.5cm,
+        valign   = center,
+        halign   = center,
+        fontupper = \sffamily\small\color{padismuted},
+      ]
+        \textit{[Screenshot: #1]}
+      \end{tcolorbox}
+    \end{center}%
+  }
+
+  % ── Header & Footer ──────────────────────────────────────────
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[L]{\sffamily\footnotesize\color{padismuted} Manual Pengguna PADIS}
+  \fancyhead[R]{\sffamily\footnotesize\color{padismuted} \leftmark}
+  \fancyfoot[C]{\sffamily\footnotesize\color{padismuted} \thepage}
+  \renewcommand{\headrulewidth}{0.4pt}
+  \renewcommand{\headrule}{\hbox to\headwidth{\color{padisborder}\leaders\hrule\hfil}}
+
+  % ── Judul Bab & Subbab ───────────────────────────────────────
+  \usepackage{titlesec}
+
+  \titleformat{\section}
+    {\sffamily\bfseries\Large\color{padisdark}}
+    {}
+    {0pt}
+    {\colorbox{padisblue}{\makebox[1.2em]{\color{white}\thesection}}\hspace{8pt}}
+    [\vspace{2pt}\color{padisborder}\titlerule]
+
+  \titleformat{\subsection}
+    {\sffamily\bfseries\normalsize\color{padisblue}}
+    {\thesubsection}
+    {8pt}
+    {}
+
+  \titleformat{\subsubsection}
+    {\sffamily\bfseries\small\color{padismid}}
+    {\thesubsubsection}
+    {8pt}
+    {}
+
+  \titlespacing{\section}      {0pt}{20pt}{10pt}
+  \titlespacing{\subsection}   {0pt}{14pt}{6pt}
+  \titlespacing{\subsubsection}{0pt}{10pt}{4pt}
+
+  % ── Daftar ───────────────────────────────────────────────────
+  \usepackage{enumitem}
+  \setlist[itemize]{
+    leftmargin = 1.6em,
+    itemsep    = 3pt,
+    topsep     = 4pt,
+  }
+  \setlist[enumerate]{
+    leftmargin = 1.8em,
+    itemsep    = 3pt,
+    topsep     = 4pt,
+  }
+
+  % ── Hyperref ─────────────────────────────────────────────────
+  \usepackage{hyperref}
+  \hypersetup{
+    colorlinks   = true,
+    linkcolor    = padisblue,
+    urlcolor     = padisblue,
+    citecolor    = padisblue,
+    pdfauthor    = {Tim PADIS — ITB},
+    pdftitle     = {Manual Pengguna PADIS},
+    pdfsubject   = {Paddy Disaster Information System},
+    pdfkeywords  = {PADIS, manual, GIS, bencana, pertanian},
+  }
+
+  % ── Spasi Paragraf ───────────────────────────────────────────
+  \usepackage{parskip}
+  \setlength{\parskip}{6pt}
+  \setlength{\parindent}{0pt}
+
+  % ── Ornamen Nomor Bab di TOC ─────────────────────────────────
+  \usepackage{titletoc}
+  \titlecontents{section}[1.5em]
+    {\addvspace{4pt}\sffamily\bfseries\small}
+    {\contentslabel{1.5em}}
+    {\hspace*{-1.5em}}
+    {\titlerule*[6pt]{.}\contentspage}
+
+  \titlecontents{subsection}[3.5em]
+    {\addvspace{2pt}\sffamily\small}
+    {\contentslabel{2em}}
+    {}
+    {\titlerule*[6pt]{.}\contentspage}
+
+  % ── Utility ──────────────────────────────────────────────────
+  \usepackage{microtype}
+  \usepackage{setspace}
+  \onehalfspacing
+
+  % ============================================================
+  \begin{document}
+  % ============================================================
+
+  % ── HALAMAN SAMPUL ───────────────────────────────────────────
+  \begin{titlepage}
+    \vspace*{1.8cm}
+
+    \begin{center}
+      % Logo — letakkan file padis.png (atau padis.pdf) di folder yang sama
+      \IfFileExists{padis.png}{%
+        \includegraphics[width=3.2cm]{padis.png}
+      }{%
+        \IfFileExists{padis.pdf}{%
+          \includegraphics[width=3.2cm]{padis.pdf}
+        }{}%
+      }
+
+      \vspace{1cm}
+
+      {\sffamily\bfseries\Huge\color{padisdark} PADIS}\\[6pt]
+      {\sffamily\large\color{padismid} Paddy Disaster Information System}
+
+      \vspace{1.2cm}
+      {\color{padisblue}\rule{6cm}{1pt}}
+      \vspace{1.2cm}
+
+      {\sffamily\bfseries\LARGE\color{padisdark} Manual Pengguna}\\[8pt]
+      {\sffamily\normalsize\color{padismuted}
+        Panduan lengkap penggunaan dashboard analisis\\
+        risiko bencana pada lahan sawah berbasis GIS
+      }
+
+      \vspace{2cm}
+
+      \begin{tcolorbox}[
+        enhanced,
+        colback  = padislight,
+        colframe = padisborder,
+        arc      = 8pt,
+        width    = 0.72\textwidth,
+        halign   = center,
+        fontupper = \sffamily\small\color{padismid},
+      ]
+        Versi 1.0 \quad·\quad Mei 2026\\[4pt]
+        Teknik Geodesi dan Geomatika\\
+        Institut Teknologi Bandung
+      \end{tcolorbox}
+    \end{center}
+
+    \vfill
+    {\sffamily\footnotesize\color{padismuted}
+      Dokumen ini ditujukan untuk pengguna akhir sistem PADIS.\\
+      Untuk panduan administrator, lihat halaman Admin Guide di dalam aplikasi.
+    }
+  \end{titlepage}
+  \newpage
+
+  % ── DAFTAR ISI ───────────────────────────────────────────────
+  \tableofcontents
+  \newpage
+
+  % ============================================================
+  \section{Pengantar}
+  % ============================================================
+
+  \subsection{Tentang PADIS}
+
+  \textbf{PADIS} (\textit{Paddy Disaster Information System}) adalah sistem informasi
+  berbasis web GIS untuk analisis dan visualisasi risiko bencana pada lahan sawah di
+  Indonesia. Sistem ini dikembangkan sebagai proyek Capstone di Teknik Geodesi dan
+  Geomatika, Institut Teknologi Bandung.
+
+  PADIS menyajikan estimasi kerugian langsung akibat banjir dan kekeringan pada skala
+  kabupaten/kota, dihitung menggunakan pendekatan \textit{risk assessment} yang mengintegrasikan
+  data bahaya (\textit{hazard}), kerentanan (\textit{vulnerability}), dan paparan (\textit{exposure}).
+
+  \subsection{Fitur Utama}
+
+  \begin{itemize}
+    \item Peta risiko interaktif dengan filter hazard, return period, dan skenario analisis
+    \item Perbandingan skenario Baseline dan Projection
+    \item Estimasi kerugian langsung dan \textit{Annual Average Loss} (AAL) per kabupaten/kota
+    \item Grafik perbandingan dan distribusi kerugian
+    \item Unduhan data CSV dan laporan XLSX
+    \item Akses wilayah spesifik melalui pencarian atau klik peta
+  \end{itemize}
+
+  \subsection{Siapa Pengguna PADIS?}
+
+  PADIS ditujukan untuk:
+  \begin{itemize}
+    \item Peneliti dan akademisi yang mengkaji risiko bencana pertanian
+    \item Perencana wilayah dan pemangku kebijakan sektor pertanian
+    \item Mahasiswa yang mempelajari analisis risiko berbasis spasial
+  \end{itemize}
+
+  \begin{notebox}
+    PADIS adalah proyek akademik, bukan sistem operasional pemerintah. Hasil analisis
+    merupakan estimasi berbasis model dan sebaiknya digunakan sebagai referensi awal,
+    bukan keputusan tunggal kebijakan.
+  \end{notebox}
+
+  \newpage
+
+  % ============================================================
+  \section{Akses dan Autentikasi}
+  % ============================================================
+
+  \subsection{Membuka Aplikasi}
+
+  PADIS dapat diakses melalui browser modern (Chrome, Firefox, Edge) di alamat yang
+  disediakan. Tidak diperlukan instalasi perangkat lunak tambahan.
+
+  \screenshot{Halaman beranda PADIS}
+
+  \subsection{Registrasi Akun}
+
+  Untuk mengakses fitur unduhan data dan laporan, pengguna perlu memiliki akun terdaftar.
+
+  \begin{enumerate}
+    \item Klik tombol \textbf{Daftar} atau \textbf{Login} di pojok kanan atas halaman
+    \item Pilih \textbf{Buat akun baru}
+    \item Isi formulir: nama lengkap, alamat email, dan password (minimal 8 karakter)
+    \item Klik \textbf{Daftar} — akun langsung aktif
+  \end{enumerate}
+
+  \screenshot{Formulir registrasi akun}
+
+  \begin{notebox}
+    Fitur peta dan visualisasi dapat diakses tanpa login. Login hanya diperlukan untuk
+    mengunduh CSV atau generate laporan.
+  \end{notebox}
+
+  \subsection{Login}
+
+  \begin{enumerate}
+    \item Klik \textbf{Login} di pojok kanan atas
+    \item Masukkan email dan password yang terdaftar
+    \item Atau klik \textbf{Masuk dengan Google} untuk login via akun Google
+    \item Klik \textbf{Masuk}
+  \end{enumerate}
+
+  \screenshot{Halaman login}
+
+  \subsection{Reset Password}
+
+  Jika lupa password:
+  \begin{enumerate}
+    \item Klik \textbf{Lupa password?} di halaman login
+    \item Masukkan alamat email terdaftar
+    \item Cek email masuk untuk tautan reset (berlaku 30 menit)
+    \item Buka tautan dan masukkan password baru
+  \end{enumerate}
+
+  \subsection{Keluar dari Sesi}
+
+  Klik nama pengguna di pojok kanan atas, lalu pilih \textbf{Keluar}.
+
+  \newpage
+
+  % ============================================================
+  \section{Dashboard — Peta Risiko}
+  % ============================================================
+
+  \subsection{Gambaran Umum Dashboard}
+
+  Dashboard adalah halaman utama PADIS. Terdiri dari dua bagian utama:
+  \begin{itemize}
+    \item \textbf{Bagian atas:} peta interaktif dengan filter dan ringkasan cepat
+    \item \textbf{Bagian bawah:} grafik perbandingan dan analisis lanjutan
+  \end{itemize}
+
+  \screenshot{Tampilan keseluruhan dashboard}
+
+  \subsection{Ringkasan Cepat}
+
+  Di atas peta terdapat panel ringkasan yang menampilkan tiga indikator utama:
+
+  \begin{center}
+  \begin{tabularx}{0.9\textwidth}{@{} l X @{}}
+    \toprule
+    \textbf{Indikator}      & \textbf{Keterangan} \\
+    \midrule
+    Total Kerugian Langsung & Agregat nilai kerugian produksi padi dari seluruh wilayah terpilih \\
+    Perubahan AAL           & Persentase perubahan risiko tahunan rata-rata antara Baseline dan Projection \\
+    Prioritas               & Nama kabupaten/kota dengan nilai kerugian tertinggi \\
+    \bottomrule
+  \end{tabularx}
   \end{center}
 
-  \vfill
-  {\sffamily\footnotesize\color{white!40!padisdark}
-    Dokumen ini ditujukan untuk pengguna akhir sistem PADIS.\\
-    Untuk panduan administrator, lihat halaman Admin Guide di dalam aplikasi.
-  }
-\end{titlepage}
-
-\nopagecolor   % kembalikan latar ke putih
-\newpage
+  \newpage
+
+  % ============================================================
+  \section{Filter Analisis}
+  % ============================================================
+
+  Filter menentukan data apa yang ditampilkan di peta dan grafik. Terdapat empat parameter
+  yang dapat dikombinasikan secara bebas.
+
+  \screenshot{Panel filter analisis}
+
+  \subsection{Jenis Hazard}
+
+  \begin{itemize}
+    \item \textbf{Multi-hazard} — gabungan dampak banjir dan kekeringan (\textit{default})
+    \item \textbf{Banjir} — risiko akibat genangan air pada lahan sawah
+    \item \textbf{Kekeringan} — risiko akibat defisit curah hujan
+  \end{itemize}
+
+  \subsection{Return Period}
 
-% ── DAFTAR ISI ───────────────────────────────────────────────
-\tableofcontents
-\newpage
+  Return period (periode ulang) mencerminkan frekuensi kejadian ekstrem:
+
+  \begin{center}
+  \begin{tabularx}{0.75\textwidth}{@{} c X @{}}
+    \toprule
+    \textbf{Kode} & \textbf{Interpretasi} \\
+    \midrule
+    RP25  & Kejadian 1 kali dalam 25 tahun (lebih sering, intensitas lebih rendah) \\
+    RP50  & Kejadian 1 kali dalam 50 tahun \\
+    RP100 & Kejadian 1 kali dalam 100 tahun \\
+    RP250 & Kejadian 1 kali dalam 250 tahun (lebih jarang, intensitas lebih tinggi) \\
+    \bottomrule
+  \end{tabularx}
+  \end{center}
 
-% ============================================================
-\section{Pengantar}
-% ============================================================
+  \begin{tipbox}
+    Untuk keperluan perencanaan umum, RP100 sering digunakan sebagai acuan standar
+    dalam analisis risiko bencana.
+  \end{tipbox}
 
-\subsection{Tentang PADIS}
+  \subsection{Skenario: Baseline dan Projection}
 
-\textbf{PADIS} (\textit{Paddy Disaster Information System}) adalah sistem informasi
-berbasis web GIS untuk analisis dan visualisasi risiko bencana pada lahan sawah di
-Indonesia. Sistem ini dikembangkan sebagai proyek Capstone di Teknik Geodesi dan
-Geomatika, Institut Teknologi Bandung.
+  PADIS menyediakan dua skenario pembentukan raster hazard:
 
-PADIS menyajikan estimasi kerugian langsung akibat banjir dan kekeringan pada skala
-kabupaten/kota, dihitung menggunakan pendekatan \textit{risk assessment} yang mengintegrasikan
-data bahaya (\textit{hazard}), kerentanan (\textit{vulnerability}), dan paparan (\textit{exposure}).
+  \begin{itemize}
+    \item \textbf{Baseline} — kondisi hazard yang dibangun menggunakan parameter-parameter
+      standar pemodelan seperti data fisik wilayah, karakteristik spasial, dan kondisi
+      hidrologis. Skenario ini tidak dikaitkan dengan proyeksi masa depan seperti RCP maupun SSP.
 
-\subsection{Fitur Utama}
+    \item \textbf{Projection} — kondisi hazard yang dipengaruhi oleh skenario masa depan.
+      Dapat menggunakan dua pendekatan:
+      \begin{itemize}
+        \item \textbf{RCP} (\textit{Representative Concentration Pathways}) — berbasis proyeksi
+          iklim seperti perubahan curah hujan, suhu, dan evapotranspirasi
+        \item \textbf{SSP} (\textit{Shared Socioeconomic Pathways}) — berbasis proyeksi
+          sosial-ekonomi seperti perubahan tata guna lahan dan pertumbuhan penduduk
+      \end{itemize}
+  \end{itemize}
 
-\begin{itemize}
-  \item Peta risiko interaktif dengan filter hazard, return period, dan skenario analisis
-  \item Perbandingan skenario Baseline dan Projection
-  \item Estimasi kerugian langsung dan \textit{Annual Average Loss} (AAL) per kabupaten/kota
-  \item Grafik perbandingan dan distribusi kerugian
-  \item Unduhan data CSV dan laporan XLSX
-  \item Akses wilayah spesifik melalui pencarian atau klik peta
-\end{itemize}
+  \begin{notebox}
+    Kedua skenario diproses melalui alur perhitungan risiko yang sama: ekstraksi nilai hazard,
+    penerapan kurva kerentanan, estimasi kerugian langsung, dan agregasi ke nilai AAL
+    tingkat kabupaten/kota.
+  \end{notebox}
 
-\subsection{Siapa Pengguna PADIS?}
+  \subsection{Pilih Wilayah}
 
-PADIS ditujukan untuk:
-\begin{itemize}
-  \item Peneliti dan akademisi yang mengkaji risiko bencana pertanian
-  \item Perencana wilayah dan pemangku kebijakan sektor pertanian
-  \item Mahasiswa yang mempelajari analisis risiko berbasis spasial
-\end{itemize}
+  Untuk melihat detail satu kabupaten/kota:
+  \begin{itemize}
+    \item \textbf{Klik langsung} area di peta, atau
+    \item Gunakan \textbf{dropdown wilayah} pada panel filter dan ketik nama kabupaten/kota
+  \end{itemize}
 
-\begin{notebox}
-  PADIS adalah proyek akademik, bukan sistem operasional pemerintah. Hasil analisis
-  merupakan estimasi berbasis model dan sebaiknya digunakan sebagai referensi awal,
-  bukan keputusan tunggal kebijakan.
-\end{notebox}
+  Setelah wilayah dipilih, panel ringkasan akan memperbarui nilai untuk wilayah tersebut.
 
-\newpage
+  \screenshot{Peta setelah wilayah dipilih}
 
-% ============================================================
-\section{Akses dan Autentikasi}
-% ============================================================
+  \newpage
 
-\subsection{Membuka Aplikasi}
+  % ============================================================
+  \section{Membaca dan Menjelajahi Peta}
+  % ============================================================
 
-PADIS dapat diakses melalui browser modern (Chrome, Firefox, Edge) di alamat yang
-disediakan. Tidak diperlukan instalasi perangkat lunak tambahan.
+  \subsection{Layer Peta}
 
-\screenshot{Halaman beranda PADIS}
+  Peta mendukung beberapa layer yang dapat diaktifkan atau dinonaktifkan:
 
-\subsection{Registrasi Akun}
+  \begin{center}
+  \begin{tabularx}{\textwidth}{@{} l l X @{}}
+    \toprule
+    \textbf{Layer}  & \textbf{Default} & \textbf{Keterangan} \\
+    \midrule
+    Loss            & Aktif    & Kerugian langsung per kabupaten/kota (skala warna) \\
+    AAL             & Nonaktif & Annual Average Loss per kabupaten/kota \\
+    Hazard Index    & Nonaktif & Indeks bahaya rata-rata dari zonal statistics \\
+    Produksi        & Nonaktif & Total produksi padi (ton) per kabupaten/kota \\
+    Batas Wilayah   & Nonaktif & Batas administrasi kabupaten/kota \\
+    \bottomrule
+  \end{tabularx}
+  \end{center}
 
-Untuk mengakses fitur unduhan data dan laporan, pengguna perlu memiliki akun terdaftar.
+  \screenshot{Kontrol layer peta}
 
-\begin{enumerate}
-  \item Klik tombol \textbf{Daftar} atau \textbf{Login} di pojok kanan atas halaman
-  \item Pilih \textbf{Buat akun baru}
-  \item Isi formulir: nama lengkap, alamat email, dan password (minimal 8 karakter)
-  \item Klik \textbf{Daftar} — akun langsung aktif
-\end{enumerate}
+  \subsection{Navigasi Peta}
 
-\screenshot{Formulir registrasi akun}
+  \begin{itemize}
+    \item \textbf{Zoom in/out} — scroll mouse atau tombol +/− di peta
+    \item \textbf{Geser} — klik dan seret peta
+    \item \textbf{Reset tampilan} — klik tombol reset untuk kembali ke tampilan Indonesia penuh
+    \item \textbf{Fullscreen} — klik ikon perluas di pojok kanan atas peta untuk mode layar penuh
+  \end{itemize}
 
-\begin{notebox}
-  Fitur peta dan visualisasi dapat diakses tanpa login. Login hanya diperlukan untuk
-  mengunduh CSV atau generate laporan.
-\end{notebox}
+  \subsection{Tooltip Wilayah}
 
-\subsection{Login}
+  Arahkan kursor ke area pada peta untuk melihat informasi singkat: nama wilayah, provinsi,
+  dan nilai indikator aktif. Klik area untuk memilih wilayah dan memperbarui ringkasan.
 
-\begin{enumerate}
-  \item Klik \textbf{Login} di pojok kanan atas
-  \item Masukkan email dan password yang terdaftar
-  \item Atau klik \textbf{Masuk dengan Google} untuk login via akun Google
-  \item Klik \textbf{Masuk}
-\end{enumerate}
+  \subsection{Mode Fullscreen}
 
-\screenshot{Halaman login}
+  Klik tombol \textbf{Perluas} di header peta untuk menampilkan peta dalam mode layar penuh.
+  Tekan tombol yang sama atau \texttt{Esc} untuk kembali ke tampilan normal.
 
-\subsection{Reset Password}
+  \screenshot{Peta dalam mode fullscreen}
 
-Jika lupa password:
-\begin{enumerate}
-  \item Klik \textbf{Lupa password?} di halaman login
-  \item Masukkan alamat email terdaftar
-  \item Cek email masuk untuk tautan reset (berlaku 30 menit)
-  \item Buka tautan dan masukkan password baru
-\end{enumerate}
-
-\subsection{Keluar dari Sesi}
-
-Klik nama pengguna di pojok kanan atas, lalu pilih \textbf{Keluar}.
-
-\newpage
-
-% ============================================================
-\section{Dashboard — Peta Risiko}
-% ============================================================
-
-\subsection{Gambaran Umum Dashboard}
-
-Dashboard adalah halaman utama PADIS. Terdiri dari dua bagian utama:
-\begin{itemize}
-  \item \textbf{Bagian atas:} peta interaktif dengan filter dan ringkasan cepat
-  \item \textbf{Bagian bawah:} grafik perbandingan dan analisis lanjutan
-\end{itemize}
+  \newpage
 
-\screenshot{Tampilan keseluruhan dashboard}
-
-\subsection{Ringkasan Cepat}
+  % ============================================================
+  \section{Grafik dan Analisis Lanjutan}
+  % ============================================================
 
-Di atas peta terdapat panel ringkasan yang menampilkan tiga indikator utama:
+  Bagian bawah dashboard menampilkan grafik statistik yang dimuat secara otomatis saat
+  pengguna menggulir ke bagian tersebut.
 
-\begin{center}
-\begin{tabularx}{0.9\textwidth}{@{} l X @{}}
-  \toprule
-  \textbf{Indikator}      & \textbf{Keterangan} \\
-  \midrule
-  Total Kerugian Langsung & Agregat nilai kerugian produksi padi dari seluruh wilayah terpilih \\
-  Perubahan AAL           & Persentase perubahan risiko tahunan rata-rata antara Baseline dan Projection \\
-  Prioritas               & Nama kabupaten/kota dengan nilai kerugian tertinggi \\
-  \bottomrule
-\end{tabularx}
-\end{center}
-
-\newpage
-
-% ============================================================
-\section{Filter Analisis}
-% ============================================================
-
-Filter menentukan data apa yang ditampilkan di peta dan grafik. Terdapat empat parameter
-yang dapat dikombinasikan secara bebas.
-
-\screenshot{Panel filter analisis}
-
-\subsection{Jenis Hazard}
-
-\begin{itemize}
-  \item \textbf{Multi-hazard} — gabungan dampak banjir dan kekeringan (\textit{default})
-  \item \textbf{Banjir} — risiko akibat genangan air pada lahan sawah
-  \item \textbf{Kekeringan} — risiko akibat defisit curah hujan
-\end{itemize}
-
-\subsection{Return Period}
+  \subsection{Grafik Perbandingan AAL}
 
-Return period (periode ulang) mencerminkan frekuensi kejadian ekstrem:
-
-\begin{center}
-\begin{tabularx}{0.75\textwidth}{@{} c X @{}}
-  \toprule
-  \textbf{Kode} & \textbf{Interpretasi} \\
-  \midrule
-  RP25  & Kejadian 1 kali dalam 25 tahun (lebih sering, intensitas lebih rendah) \\
-  RP50  & Kejadian 1 kali dalam 50 tahun \\
-  RP100 & Kejadian 1 kali dalam 100 tahun \\
-  RP250 & Kejadian 1 kali dalam 250 tahun (lebih jarang, intensitas lebih tinggi) \\
-  \bottomrule
-\end{tabularx}
-\end{center}
+  Menampilkan perbandingan nilai AAL antara skenario Baseline dan Projection untuk
+  ketiga jenis hazard (Banjir, Kekeringan, Multi-hazard).
 
-\begin{tipbox}
-  Untuk keperluan perencanaan umum, RP100 sering digunakan sebagai acuan standar
-  dalam analisis risiko bencana.
-\end{tipbox}
+  \screenshot{Grafik perbandingan AAL antar hazard}
 
-\subsection{Skenario: Baseline dan Projection}
+  Gunakan grafik ini untuk:
+  \begin{itemize}
+    \item Melihat besaran risiko tahunan rata-rata per jenis bencana
+    \item Membandingkan dampak perubahan iklim (Projection vs Baseline)
+  \end{itemize}
 
-PADIS menyediakan dua skenario pembentukan raster hazard:
+  \subsection{Grafik Total Kerugian per Skenario}
 
-\begin{itemize}
-  \item \textbf{Baseline} — kondisi hazard yang dibangun menggunakan parameter-parameter
-    standar pemodelan seperti data fisik wilayah, karakteristik spasial, dan kondisi
-    hidrologis. Skenario ini tidak dikaitkan dengan proyeksi masa depan seperti RCP maupun SSP.
+  Menampilkan total kerugian langsung untuk semua kombinasi return period pada hazard
+  yang sedang aktif, dibedakan antara Baseline dan Projection.
 
-  \item \textbf{Projection} — kondisi hazard yang dipengaruhi oleh skenario masa depan.
-    Dapat menggunakan dua pendekatan:
-    \begin{itemize}
-      \item \textbf{RCP} (\textit{Representative Concentration Pathways}) — berbasis proyeksi
-        iklim seperti perubahan curah hujan, suhu, dan evapotranspirasi
-      \item \textbf{SSP} (\textit{Shared Socioeconomic Pathways}) — berbasis proyeksi
-        sosial-ekonomi seperti perubahan tata guna lahan dan pertumbuhan penduduk
-    \end{itemize}
-\end{itemize}
+  \screenshot{Grafik total kerugian per skenario}
 
-\begin{notebox}
-  Kedua skenario diproses melalui alur perhitungan risiko yang sama: ekstraksi nilai hazard,
-  penerapan kurva kerentanan, estimasi kerugian langsung, dan agregasi ke nilai AAL
-  tingkat kabupaten/kota.
-\end{notebox}
+  \subsection{Distribusi Kerugian Wilayah}
 
-\subsection{Pilih Wilayah}
+  Menampilkan sebaran nilai kerugian seluruh kabupaten/kota dalam bentuk histogram atau
+  bar chart, membantu mengidentifikasi wilayah yang paling terdampak.
 
-Untuk melihat detail satu kabupaten/kota:
-\begin{itemize}
-  \item \textbf{Klik langsung} area di peta, atau
-  \item Gunakan \textbf{dropdown wilayah} pada panel filter dan ketik nama kabupaten/kota
-\end{itemize}
+  \screenshot{Grafik distribusi kerugian wilayah}
 
-Setelah wilayah dipilih, panel ringkasan akan memperbarui nilai untuk wilayah tersebut.
+  \newpage
 
-\screenshot{Peta setelah wilayah dipilih}
+  % ============================================================
+  \section{Unduhan Data}
+  % ============================================================
 
-\newpage
+  \begin{warnbox}
+    Fitur unduhan memerlukan akun terdaftar. Pastikan Anda sudah login sebelum menggunakan
+    fitur ini.
+  \end{warnbox}
 
-% ============================================================
-\section{Membaca dan Menjelajahi Peta}
-% ============================================================
+  \subsection{Unduh CSV}
 
-\subsection{Layer Peta}
+  CSV berisi data tabel seluruh wilayah sesuai filter aktif, mencakup:
+  nilai kerugian langsung, AAL, hazard index, total produksi, dan persentase kontribusi.
 
-Peta mendukung beberapa layer yang dapat diaktifkan atau dinonaktifkan:
+  \begin{enumerate}
+    \item Atur filter sesuai kebutuhan (hazard, return period, skenario, wilayah)
+    \item Klik tombol \textbf{Unduh CSV} di panel peta
+    \item File akan otomatis terunduh ke komputer
+  \end{enumerate}
 
-\begin{center}
-\begin{tabularx}{\textwidth}{@{} l l X @{}}
-  \toprule
-  \textbf{Layer}  & \textbf{Default} & \textbf{Keterangan} \\
-  \midrule
-  Loss            & Aktif    & Kerugian langsung per kabupaten/kota (skala warna) \\
-  AAL             & Nonaktif & Annual Average Loss per kabupaten/kota \\
-  Hazard Index    & Nonaktif & Indeks bahaya rata-rata dari zonal statistics \\
-  Produksi        & Nonaktif & Total produksi padi (ton) per kabupaten/kota \\
-  Batas Wilayah   & Nonaktif & Batas administrasi kabupaten/kota \\
-  \bottomrule
-\end{tabularx}
-\end{center}
+  \screenshot{Tombol unduh CSV dan contoh nama file}
 
-\screenshot{Kontrol layer peta}
+  Nama file mengikuti format: \texttt{padis\_\{hazard\}\_\{skenario\}\_\{rp\}\_\{wilayah\}.csv}
 
-\subsection{Navigasi Peta}
+  \subsection{Generate Laporan XLSX}
 
-\begin{itemize}
-  \item \textbf{Zoom in/out} — scroll mouse atau tombol +/− di peta
-  \item \textbf{Geser} — klik dan seret peta
-  \item \textbf{Reset tampilan} — klik tombol reset untuk kembali ke tampilan Indonesia penuh
-  \item \textbf{Fullscreen} — klik ikon perluas di pojok kanan atas peta untuk mode layar penuh
-\end{itemize}
+  Laporan XLSX berisi tiga sheet: Ringkasan (KPI dan narasi analisis), 10 Wilayah Teratas,
+  dan Semua Data Wilayah.
 
-\subsection{Tooltip Wilayah}
+  \begin{enumerate}
+    \item Atur filter sesuai kebutuhan
+    \item Klik tombol \textbf{Laporan} atau \textbf{Generate Report}
+    \item Pilih \textbf{Unduh Excel (.xlsx)}
+    \item File akan otomatis terunduh
+  \end{enumerate}
+
+  \screenshot{Modal generate laporan}
 
-Arahkan kursor ke area pada peta untuk melihat informasi singkat: nama wilayah, provinsi,
-dan nilai indikator aktif. Klik area untuk memilih wilayah dan memperbarui ringkasan.
-
-\subsection{Mode Fullscreen}
-
-Klik tombol \textbf{Perluas} di header peta untuk menampilkan peta dalam mode layar penuh.
-Tekan tombol yang sama atau \texttt{Esc} untuk kembali ke tampilan normal.
-
-\screenshot{Peta dalam mode fullscreen}
-
-\newpage
-
-% ============================================================
-\section{Grafik dan Analisis Lanjutan}
-% ============================================================
-
-Bagian bawah dashboard menampilkan grafik statistik yang dimuat secara otomatis saat
-pengguna menggulir ke bagian tersebut.
-
-\subsection{Grafik Perbandingan AAL}
-
-Menampilkan perbandingan nilai AAL antara skenario Baseline dan Projection untuk
-ketiga jenis hazard (Banjir, Kekeringan, Multi-hazard).
-
-\screenshot{Grafik perbandingan AAL antar hazard}
-
-Gunakan grafik ini untuk:
-\begin{itemize}
-  \item Melihat besaran risiko tahunan rata-rata per jenis bencana
-  \item Membandingkan dampak perubahan iklim (Projection vs Baseline)
-\end{itemize}
-
-\subsection{Grafik Total Kerugian per Skenario}
-
-Menampilkan total kerugian langsung untuk semua kombinasi return period pada hazard
-yang sedang aktif, dibedakan antara Baseline dan Projection.
-
-\screenshot{Grafik total kerugian per skenario}
-
-\subsection{Distribusi Kerugian Wilayah}
-
-Menampilkan sebaran nilai kerugian seluruh kabupaten/kota dalam bentuk histogram atau
-bar chart, membantu mengidentifikasi wilayah yang paling terdampak.
-
-\screenshot{Grafik distribusi kerugian wilayah}
-
-\newpage
-
-% ============================================================
-\section{Unduhan Data}
-% ============================================================
-
-\begin{warnbox}
-  Fitur unduhan memerlukan akun terdaftar. Pastikan Anda sudah login sebelum menggunakan
-  fitur ini.
-\end{warnbox}
-
-\subsection{Unduh CSV}
-
-CSV berisi data tabel seluruh wilayah sesuai filter aktif, mencakup:
-nilai kerugian langsung, AAL, hazard index, total produksi, dan persentase kontribusi.
-
-\begin{enumerate}
-  \item Atur filter sesuai kebutuhan (hazard, return period, skenario, wilayah)
-  \item Klik tombol \textbf{Unduh CSV} di panel peta
-  \item File akan otomatis terunduh ke komputer
-\end{enumerate}
-
-\screenshot{Tombol unduh CSV dan contoh nama file}
-
-Nama file mengikuti format: \texttt{padis\_\{hazard\}\_\{skenario\}\_\{rp\}\_\{wilayah\}.csv}
-
-\subsection{Generate Laporan XLSX}
-
-Laporan XLSX berisi tiga sheet: Ringkasan (KPI dan narasi analisis), 10 Wilayah Teratas,
-dan Semua Data Wilayah.
-
-\begin{enumerate}
-  \item Atur filter sesuai kebutuhan
-  \item Klik tombol \textbf{Laporan} atau \textbf{Generate Report}
-  \item Pilih \textbf{Unduh Excel (.xlsx)}
-  \item File akan otomatis terunduh
-\end{enumerate}
-
-\screenshot{Modal generate laporan}
-
-\begin{tipbox}
-  Gunakan filter wilayah untuk menghasilkan laporan spesifik satu kabupaten/kota,
-  atau biarkan kosong untuk laporan tingkat nasional.
-\end{tipbox}
-
-\newpage
-
-% ============================================================
-\section{Referensi Istilah}
-% ============================================================
-
-\begin{center}
-\begin{tabularx}{\textwidth}{@{} l X @{}}
-  \toprule
-  \textbf{Istilah}        & \textbf{Penjelasan} \\
-  \midrule
-  \textbf{Hazard}         & Bahaya fisik yang berpotensi menyebabkan kerusakan —
-                            dalam PADIS: banjir dan kekeringan \\[4pt]
-  \textbf{Loss}           & Estimasi kerugian langsung pada produksi padi akibat
-                            suatu kejadian bencana dengan return period tertentu (Rupiah) \\[4pt]
-  \textbf{AAL}            & \textit{Annual Average Loss} — rata-rata kerugian tahunan yang
-                            dihitung dengan mengintegrasikan kurva probabilitas kejadian \\[4pt]
-  \textbf{Return Period}  & Periode ulang kejadian; RP100 berarti kejadian tersebut
-                            memiliki probabilitas 1\% terjadi dalam satu tahun \\[4pt]
-  \textbf{Baseline}       & Skenario menggunakan parameter standar pemodelan hazard
-                            tanpa proyeksi masa depan \\[4pt]
-  \textbf{Projection}     & Skenario menggunakan proyeksi masa depan berbasis RCP
-                            (iklim) atau SSP (sosial-ekonomi) \\[4pt]
-  \textbf{RCP}            & \textit{Representative Concentration Pathways} — skenario
-                            konsentrasi gas rumah kaca untuk proyeksi iklim \\[4pt]
-  \textbf{SSP}            & \textit{Shared Socioeconomic Pathways} — skenario
-                            lintasan sosial-ekonomi masa depan \\[4pt]
-  \textbf{SPI}            & \textit{Standardized Precipitation Index} — indeks standar
-                            untuk mengukur tingkat kekeringan berbasis curah hujan \\[4pt]
-  \textbf{Hazard Index}   & Nilai rata-rata zonal statistics raster hazard untuk
-                            setiap kabupaten/kota \\[4pt]
-  \textbf{Kurva Kerentanan} & Fungsi yang mengubah intensitas bahaya menjadi
-                            tingkat kerusakan relatif pada aset yang terpapar \\
-  \bottomrule
-\end{tabularx}
-\end{center}
-
-\newpage
-
-% ============================================================
-\section{Pertanyaan Umum (FAQ)}
-% ============================================================
-
-\textbf{Apakah saya harus login untuk menggunakan peta?}\\
-Tidak. Peta dan grafik dapat diakses tanpa login. Login diperlukan hanya untuk
-mengunduh CSV atau generate laporan XLSX.
-
-\medskip
-\textbf{Mengapa nilai loss berbeda ketika saya mengubah return period?}\\
-Setiap return period mencerminkan intensitas kejadian yang berbeda. Return period
-lebih tinggi (RP250) merepresentasikan kejadian yang lebih ekstrem sehingga nilai
-kerugian cenderung lebih besar.
-
-\medskip
-\textbf{Apa perbedaan Loss dan AAL?}\\
-\textit{Loss} adalah kerugian untuk satu skenario kejadian tertentu (misalnya banjir RP100).
-\textit{AAL} adalah rata-rata kerugian tahunan yang sudah mempertimbangkan probabilitas
-berbagai tingkat kejadian — lebih representatif untuk perencanaan jangka panjang.
-
-\medskip
-\textbf{Mengapa saya tidak bisa mengunduh file?}\\
-Pastikan Anda sudah login. Jika sudah login tetapi masih gagal, coba refresh halaman
-dan login kembali. Jika masih bermasalah, hubungi tim pengembang melalui halaman
-\textit{Tentang Kami}.
-
-\medskip
-\textbf{Data tahun berapa yang digunakan?}\\
-Tahun data ditampilkan di badge \textit{Model Data [tahun]} pada panel peta dashboard.
-
-\medskip
-\textbf{Apakah data PADIS dapat digunakan untuk kebijakan resmi?}\\
-PADIS adalah proyek akademik dengan data berbasis model. Hasilnya dapat digunakan
-sebagai referensi awal dan bahan kajian, namun tidak menggantikan data resmi dari
-instansi berwenang seperti BNPB atau Kementan.
-
-\newpage
-
-% ── HALAMAN PENUTUP ──────────────────────────────────────────
-\vspace*{3cm}
-\begin{center}
-  {\color{padisaccent}\rule{4cm}{0.8pt}}
-
-  \vspace{1cm}
-  {\sffamily\bfseries\large\color{padisdark} PADIS}\\[6pt]
-  {\sffamily\small\color{padismuted} Paddy Disaster Information System}
-
-  \vspace{0.8cm}
-  {\sffamily\footnotesize\color{padismuted}
-    Teknik Geodesi dan Geomatika\\
-    Institut Teknologi Bandung\\[8pt]
-    Versi 1.0 · Mei 2026
-  }
-
-  \vspace{1cm}
-  {\color{padisaccent}\rule{4cm}{0.8pt}}
-\end{center}
-
-% ============================================================
-\end{document}
-% ============================================================
+  \begin{tipbox}
+    Gunakan filter wilayah untuk menghasilkan laporan spesifik satu kabupaten/kota,
+    atau biarkan kosong untuk laporan tingkat nasional.
+  \end{tipbox}
+
+  \newpage
+
+  % ============================================================
+  \section{Referensi Istilah}
+  % ============================================================
+
+  \begin{center}
+  \begin{tabularx}{\textwidth}{@{} l X @{}}
+    \toprule
+    \textbf{Istilah}        & \textbf{Penjelasan} \\
+    \midrule
+    \textbf{Hazard}         & Bahaya fisik yang berpotensi menyebabkan kerusakan —
+                              dalam PADIS: banjir dan kekeringan \\[4pt]
+    \textbf{Loss}           & Estimasi kerugian langsung pada produksi padi akibat
+                              suatu kejadian bencana dengan return period tertentu (Rupiah) \\[4pt]
+    \textbf{AAL}            & \textit{Annual Average Loss} — rata-rata kerugian tahunan yang
+                              dihitung dengan mengintegrasikan kurva probabilitas kejadian \\[4pt]
+    \textbf{Return Period}  & Periode ulang kejadian; RP100 berarti kejadian tersebut
+                              memiliki probabilitas 1\% terjadi dalam satu tahun \\[4pt]
+    \textbf{Baseline}       & Skenario menggunakan parameter standar pemodelan hazard
+                              tanpa proyeksi masa depan \\[4pt]
+    \textbf{Projection}     & Skenario menggunakan proyeksi masa depan berbasis RCP
+                              (iklim) atau SSP (sosial-ekonomi) \\[4pt]
+    \textbf{RCP}            & \textit{Representative Concentration Pathways} — skenario
+                              konsentrasi gas rumah kaca untuk proyeksi iklim \\[4pt]
+    \textbf{SSP}            & \textit{Shared Socioeconomic Pathways} — skenario
+                              lintasan sosial-ekonomi masa depan \\[4pt]
+    \textbf{SPI}            & \textit{Standardized Precipitation Index} — indeks standar
+                              untuk mengukur tingkat kekeringan berbasis curah hujan \\[4pt]
+    \textbf{Hazard Index}   & Nilai rata-rata zonal statistics raster hazard untuk
+                              setiap kabupaten/kota \\[4pt]
+    \textbf{Kurva Kerentanan} & Fungsi yang mengubah intensitas bahaya menjadi
+                              tingkat kerusakan relatif pada aset yang terpapar \\
+    \bottomrule
+  \end{tabularx}
+  \end{center}
+
+  \newpage
+
+  % ============================================================
+  \section{Pertanyaan Umum (FAQ)}
+  % ============================================================
+
+  \textbf{Apakah saya harus login untuk menggunakan peta?}\\
+  Tidak. Peta dan grafik dapat diakses tanpa login. Login diperlukan hanya untuk
+  mengunduh CSV atau generate laporan XLSX.
+
+  \medskip
+  \textbf{Mengapa nilai loss berbeda ketika saya mengubah return period?}\\
+  Setiap return period mencerminkan intensitas kejadian yang berbeda. Return period
+  lebih tinggi (RP250) merepresentasikan kejadian yang lebih ekstrem sehingga nilai
+  kerugian cenderung lebih besar.
+
+  \medskip
+  \textbf{Apa perbedaan Loss dan AAL?}\\
+  \textit{Loss} adalah kerugian untuk satu skenario kejadian tertentu (misalnya banjir RP100).
+  \textit{AAL} adalah rata-rata kerugian tahunan yang sudah mempertimbangkan probabilitas
+  berbagai tingkat kejadian — lebih representatif untuk perencanaan jangka panjang.
+
+  \medskip
+  \textbf{Mengapa saya tidak bisa mengunduh file?}\\
+  Pastikan Anda sudah login. Jika sudah login tetapi masih gagal, coba refresh halaman
+  dan login kembali. Jika masih bermasalah, hubungi tim pengembang melalui halaman
+  \textit{Tentang Kami}.
+
+  \medskip
+  \textbf{Data tahun berapa yang digunakan?}\\
+  Tahun data ditampilkan di badge \textit{Model Data [tahun]} pada panel peta dashboard.
+
+  \medskip
+  \textbf{Apakah data PADIS dapat digunakan untuk kebijakan resmi?}\\
+  PADIS adalah proyek akademik dengan data berbasis model. Hasilnya dapat digunakan
+  sebagai referensi awal dan bahan kajian, namun tidak menggantikan data resmi dari
+  instansi berwenang seperti BNPB atau Kementan.
+
+  \newpage
+
+  % ── HALAMAN PENUTUP ──────────────────────────────────────────
+  \vspace*{3cm}
+  \begin{center}
+    {\color{padisaccent}\rule{4cm}{0.8pt}}
+
+    \vspace{1cm}
+    {\sffamily\bfseries\large\color{padisdark} PADIS}\\[6pt]
+    {\sffamily\small\color{padismuted} Paddy Disaster Information System}
+
+    \vspace{0.8cm}
+    {\sffamily\footnotesize\color{padismuted}
+      Teknik Geodesi dan Geomatika\\
+      Institut Teknologi Bandung\\[8pt]
+      Versi 1.0 · Mei 2026
+    }
+
+    \vspace{1cm}
+    {\color{padisaccent}\rule{4cm}{0.8pt}}
+  \end{center}
+
+  % ============================================================
+  \end{document}
+  % ============================================================

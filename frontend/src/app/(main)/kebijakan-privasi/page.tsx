@@ -1,71 +1,7 @@
-import type { Metadata } from "next";
+"use client";
 import Link from "next/link";
 import { Globe2, Mail, ShieldCheck } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Kebijakan Privasi",
-  description:
-    "Kebijakan privasi PADIS terkait akun, autentikasi, reset password, layanan pihak ketiga, dan hak pengguna.",
-};
-
-const dataItems = [
-  {
-    term: "Identitas akun",
-    desc: "Nama, alamat email, peran akun, status akun, serta waktu login terakhir untuk menjalankan akses pengguna dan administrator.",
-  },
-  {
-    term: "Kredensial dan token",
-    desc: "Password disimpan sebagai hash, bukan teks asli. Token autentikasi JWT disimpan di localStorage browser agar sesi tetap aktif.",
-  },
-  {
-    term: "Reset password",
-    desc: "Jika pengguna meminta reset password, sistem menyimpan hash token reset, waktu kedaluwarsa, dan status penggunaan token.",
-  },
-  {
-    term: "Audit admin",
-    desc: "Aksi administratif tertentu dicatat untuk akuntabilitas, termasuk perubahan pengguna dan penyelesaian reset password.",
-  },
-];
-
-const thirdParties = [
-  {
-    term: "Supabase dan Google OAuth",
-    desc: "Digunakan untuk login dengan Google dan verifikasi identitas OAuth. Data yang diterima PADIS terutama nama dan email.",
-  },
-  {
-    term: "Vercel, Railway, dan PostgreSQL/PostGIS",
-    desc: "Digunakan untuk hosting frontend, backend API, dan penyimpanan database aplikasi serta data analisis.",
-  },
-  {
-    term: "SMTP email",
-    desc: "Digunakan untuk mengirim tautan reset password ke alamat email pengguna yang terdaftar.",
-  },
-  {
-    term: "Esri World Imagery dan CartoDB",
-    desc: "Digunakan sebagai peta latar. PADIS tidak mengirim nama, email, atau token ke penyedia basemap, tetapi request tile dapat memuat data teknis seperti alamat IP dan user-agent.",
-  },
-];
-
-const purposes = [
-  "Mengenali pengguna yang sudah login dan menjaga sesi tetap aktif.",
-  "Menentukan hak akses antara pengguna biasa dan administrator.",
-  "Mengelola reset password secara aman melalui token sekali pakai.",
-  "Menyediakan jejak audit untuk aksi admin yang sensitif.",
-];
-
-const notDone = [
-  "Tidak menjual, menyewakan, atau memperdagangkan data pengguna.",
-  "Tidak memasang iklan, pixel marketing, Hotjar, atau tracker serupa.",
-  "Tidak menyimpan password asli dalam bentuk teks terbaca.",
-  "Tidak memakai data aktivitas peta untuk profiling komersial.",
-];
-
-const rights = [
-  "Meminta akses atas data akun yang tersimpan.",
-  "Meminta koreksi nama, email, status, atau informasi akun lain yang tidak akurat.",
-  "Meminta penghapusan akun dan data autentikasi yang terkait.",
-  "Keluar dari sesi aktif dengan menghapus token lokal melalui tombol Keluar.",
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function Divider() {
   return <hr className="border-[var(--content-border)]" />;
@@ -78,6 +14,67 @@ function Dot() {
 }
 
 export default function KebijakanPrivasiPage() {
+  const { t } = useLanguage();
+
+  const dataItems = [
+    {
+      term: t("kebijakanPrivasi.accountTitle"),
+      desc: t("kebijakanPrivasi.accountDesc"),
+    },
+    {
+      term: t("kebijakanPrivasi.credentialsTitle"),
+      desc: t("kebijakanPrivasi.credentialsDesc"),
+    },
+    {
+      term: t("kebijakanPrivasi.resetTitle"),
+      desc: t("kebijakanPrivasi.resetDesc"),
+    },
+    {
+      term: t("kebijakanPrivasi.auditTitle"),
+      desc: t("kebijakanPrivasi.auditDesc"),
+    },
+  ];
+
+  const thirdParties = [
+    {
+      term: t("kebijakanPrivasi.supabaseTitle"),
+      desc: t("kebijakanPrivasi.supabaseDesc"),
+    },
+    {
+      term: t("kebijakanPrivasi.hostingTitle"),
+      desc: t("kebijakanPrivasi.hostingDesc"),
+    },
+    {
+      term: t("kebijakanPrivasi.smtpTitle"),
+      desc: t("kebijakanPrivasi.smtpDesc"),
+    },
+    {
+      term: t("kebijakanPrivasi.basemapTitle"),
+      desc: t("kebijakanPrivasi.basemapDesc"),
+    },
+  ];
+
+  const purposes = [
+    t("kebijakanPrivasi.purpose1"),
+    t("kebijakanPrivasi.purpose2"),
+    t("kebijakanPrivasi.purpose3"),
+    t("kebijakanPrivasi.purpose4"),
+  ];
+
+  const notDone = [
+    t("kebijakanPrivasi.notDone1"),
+    t("kebijakanPrivasi.notDone2"),
+    t("kebijakanPrivasi.notDone3"),
+    t("kebijakanPrivasi.notDone4"),
+  ];
+
+  const rights = [
+    t("kebijakanPrivasi.right1"),
+    t("kebijakanPrivasi.right2"),
+    t("kebijakanPrivasi.right3"),
+    t("kebijakanPrivasi.right4"),
+  ];
+
   return (
     <main className="content-theme">
       {/* Hero */}
@@ -87,14 +84,13 @@ export default function KebijakanPrivasiPage() {
         <div className="section-container relative py-14 md:py-16">
           <span className="badge badge-secondary">Privasi dan Kepercayaan</span>
           <h1 className="mt-5 max-w-2xl text-balance text-3xl font-bold tracking-tight md:text-4xl">
-            Kebijakan Privasi PADIS
+            {t("kebijakanPrivasi.title")}
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-            Data yang diproses PADIS, alasan pemrosesan, layanan pihak ketiga,
-            serta cara pengguna mengelola data akun mereka.
+            {t("kebijakanPrivasi.description")}
           </p>
           <p className="mt-4 text-xs text-[var(--content-hero-soft)]">
-            Terakhir diperbarui: Mei 2026 · Proyek akademik ITB
+            {t("kebijakanPrivasi.lastUpdated")}
           </p>
         </div>
       </section>
@@ -108,21 +104,18 @@ export default function KebijakanPrivasiPage() {
             <div className="flex gap-3 rounded-xl border border-[var(--color-primary-soft)] bg-[var(--color-primary-soft)] p-5">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-primary)]" />
               <p className="text-sm leading-relaxed text-heading">
-                <strong>Ringkasan:</strong> PADIS tidak menjual data pengguna, tidak
-                memasang iklan, dan tidak menggunakan tracker analitik pihak ketiga.
-                Data akun dipakai hanya untuk autentikasi, akses fitur, dan keamanan sistem.
+                <strong>{t("kebijakanPrivasi.summaryLabel")}</strong> {t("kebijakanPrivasi.summaryText")}
               </p>
             </div>
 
             {/* Data yang Diproses */}
             <div>
-              <p className="section-eyebrow mb-3">Data yang Diproses</p>
+              <p className="section-eyebrow mb-3">{t("kebijakanPrivasi.dataProcessedTitle")}</p>
               <h2 className="text-heading text-xl font-bold md:text-2xl">
-                Data dikumpulkan seperlunya untuk menjalankan akun dan fitur PADIS.
+                {t("kebijakanPrivasi.dataProcessedSubtitle")}
               </h2>
               <p className="text-muted mt-3 text-sm leading-relaxed">
-                PADIS memproses data akun, token autentikasi, dan catatan keamanan yang
-                diperlukan agar dashboard, admin panel, dan reset password berjalan dengan benar.
+                {t("kebijakanPrivasi.dataProcessedDesc")}
               </p>
               <dl className="mt-6 divide-y divide-[var(--content-border)]">
                 {dataItems.map((item) => (
@@ -139,7 +132,7 @@ export default function KebijakanPrivasiPage() {
             {/* Tujuan & Batasan */}
             <div className="grid gap-8 md:grid-cols-2">
               <div>
-                <h3 className="text-heading font-semibold">Tujuan Pemrosesan</h3>
+                <h3 className="text-heading font-semibold">{t("kebijakanPrivasi.purposesTitle")}</h3>
                 <ul className="mt-4 space-y-2.5">
                   {purposes.map((item) => (
                     <li key={item} className="flex gap-2 text-sm leading-relaxed text-muted">
@@ -150,7 +143,7 @@ export default function KebijakanPrivasiPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-heading font-semibold">Yang Tidak Dilakukan PADIS</h3>
+                <h3 className="text-heading font-semibold">{t("kebijakanPrivasi.notDoneTitle")}</h3>
                 <ul className="mt-4 space-y-2.5">
                   {notDone.map((item) => (
                     <li key={item} className="flex gap-2 text-sm leading-relaxed text-muted">
@@ -166,9 +159,9 @@ export default function KebijakanPrivasiPage() {
 
             {/* Layanan Pihak Ketiga */}
             <div>
-              <p className="section-eyebrow mb-3">Layanan Pihak Ketiga</p>
+              <p className="section-eyebrow mb-3">{t("kebijakanPrivasi.thirdPartyTitle")}</p>
               <h2 className="text-heading text-xl font-bold md:text-2xl">
-                Infrastruktur eksternal untuk hosting, autentikasi, email, dan peta latar.
+                {t("kebijakanPrivasi.thirdPartySubtitle")}
               </h2>
               <dl className="mt-6 divide-y divide-[var(--content-border)]">
                 {thirdParties.map((item) => (
@@ -184,14 +177,12 @@ export default function KebijakanPrivasiPage() {
 
             {/* Hak Pengguna */}
             <div>
-              <p className="section-eyebrow mb-3">Hak Pengguna</p>
+              <p className="section-eyebrow mb-3">{t("kebijakanPrivasi.rightsTitle")}</p>
               <h2 className="text-heading text-xl font-bold md:text-2xl">
-                Pengguna dapat meminta akses, koreksi, atau penghapusan data akun.
+                {t("kebijakanPrivasi.rightsSubtitle")}
               </h2>
               <p className="text-muted mt-3 text-sm leading-relaxed">
-                Permintaan dapat dikirimkan melalui kontak pengembang PADIS. Beberapa data
-                teknis mungkin tetap disimpan sementara jika diperlukan untuk keamanan,
-                audit, atau integritas sistem.
+                {t("kebijakanPrivasi.rightsDesc")}
               </p>
               <ul className="mt-5 space-y-2.5">
                 {rights.map((item) => (
@@ -208,26 +199,21 @@ export default function KebijakanPrivasiPage() {
             {/* Retensi, Keamanan, Konteks */}
             <div className="grid gap-6 md:grid-cols-3">
               <div>
-                <h3 className="text-heading text-sm font-semibold">Retensi Data</h3>
+                <h3 className="text-heading text-sm font-semibold">{t("kebijakanPrivasi.retentionTitle")}</h3>
                 <p className="text-muted mt-2 text-sm leading-relaxed">
-                  Data akun disimpan selama akun masih diperlukan. Token reset password
-                  memiliki masa berlaku terbatas, sedangkan log audit disimpan untuk
-                  kebutuhan akuntabilitas sistem.
+                  {t("kebijakanPrivasi.retentionDesc")}
                 </p>
               </div>
               <div>
-                <h3 className="text-heading text-sm font-semibold">Keamanan</h3>
+                <h3 className="text-heading text-sm font-semibold">{t("kebijakanPrivasi.securityTitle")}</h3>
                 <p className="text-muted mt-2 text-sm leading-relaxed">
-                  PADIS memakai password hashing, token autentikasi, pembatasan akses
-                  berbasis role, rate limiting untuk endpoint sensitif, dan koneksi HTTPS
-                  pada deployment publik.
+                  {t("kebijakanPrivasi.securityDesc")}
                 </p>
               </div>
               <div>
-                <h3 className="text-heading text-sm font-semibold">Konteks Akademik</h3>
+                <h3 className="text-heading text-sm font-semibold">{t("kebijakanPrivasi.academicTitle")}</h3>
                 <p className="text-muted mt-2 text-sm leading-relaxed">
-                  PADIS adalah proyek akademik Capstone, bukan produk komersial. Data
-                  akun diproses untuk menjalankan fungsi sistem, bukan untuk monetisasi.
+                  {t("kebijakanPrivasi.academicDesc")}
                 </p>
               </div>
             </div>
@@ -236,14 +222,12 @@ export default function KebijakanPrivasiPage() {
 
             {/* Kontak */}
             <div>
-              <p className="section-eyebrow mb-3">Rujukan dan Kontak</p>
+              <p className="section-eyebrow mb-3">{t("kebijakanPrivasi.contactTitle")}</p>
               <h2 className="text-heading text-xl font-bold md:text-2xl">
-                Pertanyaan privasi dapat diarahkan ke tim pengembang PADIS.
+                {t("kebijakanPrivasi.contactSubtitle")}
               </h2>
               <p className="text-muted mt-3 text-sm leading-relaxed">
-                Halaman ini disusun untuk transparansi proyek akademik PADIS dan
-                memperhatikan prinsip umum pelindungan data pribadi di Indonesia,
-                termasuk UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.
+                {t("kebijakanPrivasi.contactDesc")}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href="/about" className="btn-primary px-4 py-2 text-sm">
@@ -260,7 +244,7 @@ export default function KebijakanPrivasiPage() {
                   UU PDP
                 </a>
                 <Link href="/" className="btn-outline px-4 py-2 text-sm">
-                  Kembali ke Beranda
+                  {t("kebijakanPrivasi.backToHome")}
                 </Link>
               </div>
             </div>

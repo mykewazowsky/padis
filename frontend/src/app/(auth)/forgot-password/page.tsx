@@ -14,16 +14,18 @@ import {
 } from "lucide-react";
 
 import { buildApiUrl } from "../../../lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   function validateForm() {
-    if (!email.trim()) return "Email wajib diisi.";
-    if (!/\S+@\S+\.\S+/.test(email.trim())) return "Format email tidak valid.";
+    if (!email.trim()) return t("auth.forgotPassword.errEmailRequired");
+    if (!/\S+@\S+\.\S+/.test(email.trim())) return t("auth.forgotPassword.errEmailInvalid");
     return "";
   }
 
@@ -49,7 +51,7 @@ export default function ForgotPasswordPage() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(json.error || "Permintaan reset password gagal.");
+        throw new Error(json.error || t("auth.forgotPassword.errFailed"));
       }
 
       setSentTo(email.trim());
@@ -85,15 +87,11 @@ export default function ForgotPasswordPage() {
               <span className="badge badge-secondary">PASSWORD RECOVERY</span>
 
               <h1 className="mt-5 text-4xl font-bold tracking-tight leading-tight xl:text-5xl">
-                Pulihkan akses
-                <br />
-                akun PADIS
+                {t("auth.forgotPassword.heroTitle")}
               </h1>
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
-                Masukkan email akun Anda untuk mendapatkan tautan reset
-                password. Setelah itu Anda dapat menetapkan password baru dan
-                kembali mengakses dashboard PADIS.
+                {t("auth.forgotPassword.heroDesc")}
               </p>
             </div>
 
@@ -105,10 +103,9 @@ export default function ForgotPasswordPage() {
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Pemulihan Aman</p>
+                      <p className="text-sm font-semibold text-white">{t("auth.forgotPassword.securityTitle")}</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Token reset dibuat dengan masa berlaku 30 menit untuk
-                        menjaga keamanan akun.
+                        {t("auth.forgotPassword.securityDesc")}
                       </p>
                     </div>
                   </div>
@@ -120,10 +117,9 @@ export default function ForgotPasswordPage() {
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Dikirim Lewat Email</p>
+                      <p className="text-sm font-semibold text-white">{t("auth.forgotPassword.emailSentTitle")}</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Tautan reset dikirim langsung ke email terdaftar, tidak
-                        pernah ditampilkan di browser.
+                        {t("auth.forgotPassword.emailSentDesc")}
                       </p>
                     </div>
                   </div>
@@ -148,12 +144,12 @@ export default function ForgotPasswordPage() {
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 ring-4 ring-green-100">
                     <CheckCircle2 className="h-8 w-8 text-green-500" />
                   </div>
-                  <span className="badge badge-primary mb-3">EMAIL TERKIRIM</span>
+                  <span className="badge badge-primary mb-3">{t("auth.forgotPassword.sentBadge")}</span>
                   <h2 className="text-2xl font-bold tracking-tight text-[var(--auth-text)]">
-                    Cek inbox email Anda
+                    {t("auth.forgotPassword.sentTitle")}
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                    Tautan reset password telah dikirim ke:
+                    {t("auth.forgotPassword.sentDesc")}
                   </p>
                   <div className="mt-2 flex items-center gap-2 rounded-xl bg-[var(--auth-input-bg)] px-4 py-2.5 ring-1 ring-[var(--auth-input-border)]">
                     <Mail className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />
@@ -166,10 +162,10 @@ export default function ForgotPasswordPage() {
                 {/* Steps */}
                 <div className="mb-6 space-y-3">
                   {[
-                    { n: "1", text: "Buka aplikasi email atau gmail.com" },
-                    { n: "2", text: 'Cari email dari "PADIS" dengan subjek "Reset Password Akun PADIS"' },
-                    { n: "3", text: "Klik tombol Reset Password di dalam email" },
-                    { n: "4", text: "Buat password baru dan login kembali" },
+                    { n: "1", text: t("auth.forgotPassword.sentStep1") },
+                    { n: "2", text: t("auth.forgotPassword.sentStep2") },
+                    { n: "3", text: t("auth.forgotPassword.sentStep3") },
+                    { n: "4", text: t("auth.forgotPassword.sentStep4") },
                   ].map((step) => (
                     <div key={step.n} className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-[10px] font-bold text-white">
@@ -202,14 +198,14 @@ export default function ForgotPasswordPage() {
                     className="btn-outline inline-flex w-full items-center justify-center gap-2 py-2.5 text-sm font-medium"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Kirim Ulang dengan Email Berbeda
+                    {t("auth.forgotPassword.sendAgain")}
                   </button>
                   <Link
                     href="/login"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Kembali ke Login
+                    {t("auth.forgotPassword.backToLogin")}
                   </Link>
                 </div>
               </div>
@@ -217,19 +213,18 @@ export default function ForgotPasswordPage() {
               /* ── Form state ── */
               <div className="card card-elevated p-8 md:p-9">
                 <div className="mb-8">
-                  <span className="badge badge-primary">FORGOT PASSWORD</span>
+                  <span className="badge badge-primary">{t("auth.forgotPassword.badge")}</span>
                   <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
-                    Lupa password?
+                    {t("auth.forgotPassword.title")}
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                    Masukkan email akun PADIS Anda. Jika email terdaftar, sistem
-                    akan mengirim tautan reset password ke inbox Anda.
+                    {t("auth.forgotPassword.description")}
                   </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="input-label">Email</label>
+                    <label className="input-label">{t("auth.forgotPassword.emailLabel")}</label>
                     <div className="input-shell flex items-center gap-3 px-4 py-3">
                       <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                       <input
@@ -237,7 +232,7 @@ export default function ForgotPasswordPage() {
                         className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Masukkan email akun"
+                        placeholder={t("auth.forgotPassword.emailPlaceholder")}
                         autoFocus
                       />
                     </div>
@@ -255,7 +250,7 @@ export default function ForgotPasswordPage() {
                     className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <KeyRound className="h-4 w-4" />
-                    {loading ? "Memproses..." : "Kirim Tautan Reset"}
+                    {loading ? t("auth.forgotPassword.processing") : t("auth.forgotPassword.submitButton")}
                   </button>
                 </form>
 
@@ -265,14 +260,14 @@ export default function ForgotPasswordPage() {
                     className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Kembali ke Login
+                    {t("auth.forgotPassword.backToLogin")}
                   </Link>
 
                   <Link
                     href="/register"
                     className="font-medium text-[var(--color-primary)] transition hover:underline"
                   >
-                    Daftar akun
+                    {t("auth.forgotPassword.registerLink")}
                   </Link>
                 </div>
               </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 type Props = {
   heightClass?: string;
   title?: string;
@@ -8,9 +10,13 @@ type Props = {
 
 export default function DashboardLoadingBlock({
   heightClass = "h-80",
-  title = "Memuat data...",
-  description = "Mohon tunggu, sistem sedang menyiapkan visualisasi.",
+  title,
+  description,
 }: Props) {
+  const { t } = useLanguage();
+  const resolvedTitle = title ?? t("dashboard.loading");
+  const resolvedDesc  = description ?? t("dashboard.loadingDesc");
+
   return (
     <div
       className={`w-full rounded-2xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] p-5 shadow-sm ${heightClass}`}
@@ -28,8 +34,8 @@ export default function DashboardLoadingBlock({
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-[var(--dashboard-text)]">{title}</p>
-          <p className="mt-1 text-sm text-[var(--dashboard-text-muted)]">{description}</p>
+          <p className="text-sm font-semibold text-[var(--dashboard-text)]">{resolvedTitle}</p>
+          <p className="mt-1 text-sm text-[var(--dashboard-text-muted)]">{resolvedDesc}</p>
         </div>
       </div>
     </div>

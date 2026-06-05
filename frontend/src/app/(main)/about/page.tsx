@@ -18,68 +18,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import CountUp from "@/components/ui/CountUp";
-
-const techStack = [
-  {
-    title: "Antarmuka WebGIS",
-    desc: "Dashboard dibangun sebagai aplikasi Next.js dan React dengan kontrol filter, autentikasi, serta tampilan analitik yang responsif.",
-    items: ["Next.js 16", "React 19", "Tailwind CSS 4", "react-select"],
-    icon: Globe2,
-  },
-  {
-    title: "Rendering Peta",
-    desc: "Peta interaktif memakai Leaflet dan vector tile agar layer loss, AAL, hazard, dan produksi dapat dimuat efisien.",
-    items: ["Leaflet", "React Leaflet", "leaflet.vectorgrid", "MVT tiles"],
-    icon: Layers3,
-  },
-  {
-    title: "API & Otorisasi",
-    desc: "Backend Flask menyediakan endpoint analitik, layer, tile, laporan, admin, serta autentikasi berbasis token.",
-    items: ["Flask 3", "Flask-CORS", "PyJWT", "REST API"],
-    icon: ShieldCheck,
-  },
-  {
-    title: "Basis Data Spasial",
-    desc: "Data run, wilayah, loss, AAL, hazard, dan produksi terhubung ke PostgreSQL/PostGIS melalui lapisan database Python.",
-    items: ["PostgreSQL", "PostGIS", "psycopg2", "SQLAlchemy"],
-    icon: Database,
-  },
-  {
-    title: "Pipeline Geospasial",
-    desc: "Preprocess, zonal statistics, loss, AAL, dan multi-hazard diproses dengan pustaka geospasial Python.",
-    items: ["GeoPandas", "Rasterio", "RasterStats", "Pandas", "NumPy"],
-    icon: Workflow,
-  },
-  {
-    title: "Visualisasi & Output",
-    desc: "Dashboard dan keluaran analisis memakai chart interaktif, ekspor spreadsheet, serta generator laporan.",
-    items: ["Recharts", "openpyxl", "ReportLab", "Matplotlib"],
-    icon: BarChart3,
-  },
-];
-
-const technologyFlow = [
-  {
-    title: "Input Spasial",
-    desc: "Raster hazard, batas administrasi, area sawah, dan data produksi.",
-    icon: FileText,
-  },
-  {
-    title: "Analisis",
-    desc: "Reproject, overlay, zonal statistics, loss, AAL, dan multi-hazard.",
-    icon: Workflow,
-  },
-  {
-    title: "Penyajian Data",
-    desc: "REST API, PostGIS, MVT tile, GeoJSON ringan, dan endpoint laporan.",
-    icon: Server,
-  },
-  {
-    title: "Eksplorasi",
-    desc: "WebGIS, chart, filter analisis, unduhan CSV/XLSX, dan preview laporan.",
-    icon: Globe2,
-  },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const developers = [
   {
@@ -192,6 +131,70 @@ function SectionHeader({
 }
 
 export default function AboutPage() {
+  const { t } = useLanguage();
+
+  const techStack = [
+    {
+      title: t("about.webgisLabel"),
+      desc: t("about.webgisDesc"),
+      items: ["Next.js 16", "React 19", "Tailwind CSS 4", "react-select"],
+      icon: Globe2,
+    },
+    {
+      title: t("about.mapLabel"),
+      desc: t("about.mapDesc"),
+      items: ["Leaflet", "React Leaflet", "leaflet.vectorgrid", "MVT tiles"],
+      icon: Layers3,
+    },
+    {
+      title: t("about.apiLabel"),
+      desc: t("about.apiDesc"),
+      items: ["Flask 3", "Flask-CORS", "PyJWT", "REST API"],
+      icon: ShieldCheck,
+    },
+    {
+      title: t("about.dbLabel"),
+      desc: t("about.dbDesc"),
+      items: ["PostgreSQL", "PostGIS", "psycopg2", "SQLAlchemy"],
+      icon: Database,
+    },
+    {
+      title: t("about.pipelineLabel"),
+      desc: t("about.pipelineDesc"),
+      items: ["GeoPandas", "Rasterio", "RasterStats", "Pandas", "NumPy"],
+      icon: Workflow,
+    },
+    {
+      title: t("about.vizOutLabel"),
+      desc: t("about.vizOutDesc"),
+      items: ["Recharts", "openpyxl", "ReportLab", "Matplotlib"],
+      icon: BarChart3,
+    },
+  ];
+
+  const technologyFlow = [
+    {
+      title: t("about.inputLabel"),
+      desc: t("about.inputDesc"),
+      icon: FileText,
+    },
+    {
+      title: t("about.analysisLabel"),
+      desc: t("about.analysisDesc"),
+      icon: Workflow,
+    },
+    {
+      title: t("about.dataLabel"),
+      desc: t("about.dataDesc"),
+      icon: Server,
+    },
+    {
+      title: t("about.explorationLabel"),
+      desc: t("about.explorationDesc"),
+      icon: Globe2,
+    },
+  ];
+
   return (
     <div className="content-theme">
       <section className="content-hero-gradient relative overflow-hidden text-white">
@@ -203,27 +206,25 @@ export default function AboutPage() {
 
         <div className="section-container relative py-20 lg:py-28">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="badge badge-secondary">Tentang PADIS</span>
+            <span className="badge badge-secondary">{t("about.badge")}</span>
 
             <h1 className="animate-fade-up mt-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-              Analisis Risiko Padi
+              {t("about.title1")}
               <span className="mt-1 block text-[var(--color-secondary)]">
-                Berbasis Data Spasial
+                {t("about.title2")}
               </span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-              Web-GIS untuk estimasi kerugian negara akibat penurunan total produksi padi yang disebabkan oleh bencana banjir, 
-              kekeringan, dan multi-hazard. 
-              Kami mengola data spasial dari raster hazard hingga Annual Average Loss tingkat kabupaten/kota.
+              {t("about.description")}
             </p>
 
             {/* Stat strip — communicates scope */}
             <div className="mx-auto mt-10 flex max-w-sm flex-wrap items-center justify-center gap-8">
               {[
-                { num: 514, label: "Kab / Kota" },
-                { num: 4, label: "Periode Ulang" },
-                { num: 2, label: "Hazard Utama" },
+                { num: 514, label: t("about.stat1Label") },
+                { num: 4, label: t("about.stat2Label") },
+                { num: 2, label: t("about.stat3Label") },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <p className="text-3xl font-bold text-white">
@@ -239,13 +240,13 @@ export default function AboutPage() {
                 href="/dashboard"
                 className="btn-secondary px-5 py-3 font-semibold"
               >
-                Buka Dashboard
+                {t("about.openDashboard")}
               </Link>
               <Link
                 href="/cara-kerja"
                 className="rounded-2xl border border-[var(--content-hero-glass-border)] bg-[var(--content-hero-glass-bg)] px-5 py-3 font-medium text-white transition hover:bg-[var(--content-hero-glass-bg-strong)]"
               >
-                Cara Kerja
+                {t("about.howItWorks")}
               </Link>
             </div>
           </div>
@@ -255,23 +256,23 @@ export default function AboutPage() {
       <section className="section-shell content-section">
         <div className="section-container">
           <div className="mx-auto max-w-5xl">
-            <SectionHeader title="Apa yang Dilakukan PADIS" centered={true} />
+            <SectionHeader title={t("about.whatDoesTitle")} centered={true} />
 
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               {[
                 {
-                  title: "Hazard",
-                  desc: "PADIS mengolah informasi banjir, kekeringan, dan multi-hazard sebagai dasar analisis risiko pada lahan padi.",
+                  title: t("about.hazardLabel"),
+                  desc: t("about.hazardDesc"),
                   icon: Droplet,
                 },
                 {
-                  title: "Kerugian",
-                  desc: "Sistem ini menghubungkan hazard, kondisi iklim, dan data padi untuk menghasilkan informasi kerugian yang lebih terukur.",
+                  title: t("about.lossLabel"),
+                  desc: t("about.lossDesc"),
                   icon: TrendingDown,
                 },
                 {
-                  title: "Visualisasi",
-                  desc: "Hasil analisis ditampilkan melalui WebGIS agar lebih mudah dipahami untuk evaluasi dan pengambilan keputusan.",
+                  title: t("about.vizLabel"),
+                  desc: t("about.vizDesc"),
                   icon: Map,
                 },
               ].map((item) => {
@@ -305,8 +306,8 @@ export default function AboutPage() {
             <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
               <div>
                 <SectionHeader
-                  title="Teknologi PADIS"
-                  desc="WebGIS di frontend, REST API dan tile service di backend, serta pipeline geospasial Python untuk analisis risiko."
+                  title={t("about.techTitle")}
+                  desc={t("about.techDesc")}
                   centered={false}
                 />
 
@@ -396,8 +397,8 @@ export default function AboutPage() {
           <div className="mx-auto max-w-5xl">
             {/* Header */}
             <SectionHeader
-              label="Capstone Project"
-              title="Tim PADIS"
+              label={t("about.capstoneLabel")}
+              title={t("about.teamTitle")}
               centered
             />
 
@@ -406,8 +407,8 @@ export default function AboutPage() {
               <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-5 py-3 shadow-[var(--shadow-soft)]">
                 <img src="/itb/itb.png" alt="Logo ITB" className="h-8 w-auto flex-shrink-0" />
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-heading">Teknik Geodesi dan Geomatika</p>
-                  <p className="text-xs text-muted">Fakultas Ilmu dan Teknologi Kebumian · Institut Teknologi Bandung</p>
+                  <p className="text-sm font-semibold text-heading">{t("about.program")}</p>
+                  <p className="text-xs text-muted">{t("about.faculty")}</p>
                 </div>
               </div>
             </div>
@@ -418,7 +419,7 @@ export default function AboutPage() {
                 <div className="h-px flex-1 bg-[var(--color-border)]" />
                 <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-3 py-1">
                   <Users className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary)]">Pengembang</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary)]">{t("about.developersLabel")}</span>
                 </div>
                 <div className="h-px flex-1 bg-[var(--color-border)]" />
               </div>
@@ -468,7 +469,7 @@ export default function AboutPage() {
                 <div className="h-px flex-1 bg-[var(--color-border)]" />
                 <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-3 py-1">
                   <GraduationCap className="h-3.5 w-3.5 text-[var(--color-secondary-dark)]" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-secondary-dark)]">Pembimbing</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-secondary-dark)]">{t("about.supervisorsLabel")}</span>
                 </div>
                 <div className="h-px flex-1 bg-[var(--color-border)]" />
               </div>
@@ -495,7 +496,7 @@ export default function AboutPage() {
                 className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-4 py-2 text-sm text-muted transition hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]"
               >
                 <Mail className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-                <span className="truncate">Kontak proyek: padiswebgis@gmail.com</span>
+                <span className="truncate">{t("about.contactEmail")}</span>
               </a>
             </div>
           </div>
@@ -505,8 +506,8 @@ export default function AboutPage() {
       <section className="section-shell section-soft">
         <div className="section-container">
           <SectionHeader
-            title="Mitra Kolaborasi"
-            desc="PADIS dikembangkan dalam kolaborasi lintas institusi yang mendukung analisis risiko, data, dan pengambilan keputusan."
+            title={t("about.partnersTitle")}
+            desc={t("about.partnersDesc")}
           />
 
           <div className="mx-auto mt-10 grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3">
@@ -562,13 +563,11 @@ export default function AboutPage() {
             />
 
             <h2 className="mt-4 text-heading text-2xl font-bold tracking-tight md:text-3xl">
-              Semoga{" "}
-              <span className="text-[var(--color-primary)]">PADIS</span>{" "}
-              Membantu!
+              {t("about.hopeTitle")}
             </h2>
 
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
-              PADIS hadir untuk mendukung analisis risiko padi yang terstruktur dan berbasis data spasial.
+              {t("about.hopeDesc")}
             </p>
           </div>
         </div>

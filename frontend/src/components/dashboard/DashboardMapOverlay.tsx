@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, FileText, Lock, Loader2, LocateFixed, Maximize2, Minimize2, X } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import type { LayerKey } from "@/components/map/core/MapLegendPanel";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type SelectedFeature = {
   properties: {
@@ -60,7 +61,8 @@ function formatProduksi(value: number | null | undefined): string {
 
 function getPrimaryMetric(
   activeLayers: Record<LayerKey, boolean>,
-  props: NonNullable<SelectedFeature>["properties"]
+  props: NonNullable<SelectedFeature>["properties"],
+  t: (key: string) => string
 ) {
   if (activeLayers.loss) {
     return { label: "Loss", value: formatCurrency(props.loss) };
@@ -72,13 +74,13 @@ function getPrimaryMetric(
 
   if (activeLayers.hazard) {
     return {
-      label: "Indeks",
+      label: t("dashboard.hazardShortLabel"),
       value: props.mean_value != null ? Number(props.mean_value).toFixed(4) : "-",
     };
   }
 
   if (activeLayers.production) {
-    return { label: "Produksi", value: formatProduksi(props.total_prod) };
+    return { label: t("dashboard.productionShortLabel"), value: formatProduksi(props.total_prod) };
   }
 
   return null;
@@ -101,6 +103,7 @@ export default function DashboardMapOverlay({
   isMapTransitioning = false,
   mobilePanel = null,
 }: Props) {
+  const { t } = useLanguage();
   const isAuthenticated = !!getToken();
   const [exportingCsv, setExportingCsv] = useState(false);
 
@@ -116,7 +119,7 @@ export default function DashboardMapOverlay({
   }
 
   const props = selectedFeature?.properties;
-  const primaryMetric = props ? getPrimaryMetric(activeLayers, props) : null;
+  const primaryMetric = props ? getPrimaryMetric(activeLayers, props, t) : null;
   const shouldShowMobileSummary =
     !!selectedFeature &&
     !!props &&
@@ -134,7 +137,7 @@ export default function DashboardMapOverlay({
       >
         <Loader2 className="h-9 w-9 animate-spin text-white drop-shadow-lg" />
         <p className="text-sm font-semibold tracking-wide text-white drop-shadow-lg">
-          Memuat Data Spasial...
+          {t("dashboard.loadingData")}
         </p>
       </div>
 
@@ -145,8 +148,8 @@ export default function DashboardMapOverlay({
               type="button"
               onClick={onToggleMapExpanded}
               className="btn-outline text-xs font-medium shadow-sm backdrop-blur transition-opacity"
-              aria-label={isMapExpanded ? "Keluar mode layar penuh" : "Perbesar peta"}
-              title={isMapExpanded ? "Keluar mode layar penuh" : "Perbesar peta"}
+              aria-label={isMapExpanded ? t("dashboard.exitFullscreen") : t("dashboard.expandMap")}
+              title={isMapExpanded ? t("dashboard.exitFullscreen") : t("dashboard.expandMap")}
             >
               {isMapExpanded ? (
                 <Minimize2 className="h-4 w-4" />
@@ -154,7 +157,7 @@ export default function DashboardMapOverlay({
                 <Maximize2 className="h-4 w-4" />
               )}
               <span className="hidden sm:inline">
-                {isMapExpanded ? "Keluar Fullscreen" : "Perbesar Peta"}
+                {isMapExpanded ? t("dashboard.exitFullscreen") : t("dashboard.expandMap")}
               </span>
             </button>
           ) : null}
@@ -169,14 +172,14 @@ export default function DashboardMapOverlay({
             }
           >
             <LocateFixed className="h-4 w-4" />
-            <span className="hidden sm:inline">{hasActiveRegion ? "Reset Tampilan" : "Sesuaikan Peta"}</span>
+            <span className="hidden sm:inline">{hasActiveRegion ? t("dashboard.resetView") : t("dashboard.fitMap")}</span>
           </button>
 
           <button
             type="button"
             onClick={handleCsv}
             disabled={exportingCsv}
-            title={isAuthenticated ? undefined : "Login diperlukan untuk mengunduh CSV."}
+            title={isAuthenticated ? undefined : t("dashboard.loginRequired")}
             className="btn-outline text-xs font-medium shadow-sm backdrop-blur transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exportingCsv
@@ -185,17 +188,17 @@ export default function DashboardMapOverlay({
                 ? <Download className="h-4 w-4" />
                 : <Lock className="h-4 w-4 opacity-70" />
             }
-            <span className="hidden sm:inline">{exportingCsv ? "Memuat..." : "Unduh CSV"}</span>
+            <span className="hidden sm:inline">{exportingCsv ? t("dashboard.loading") : t("dashboard.downloadCsv")}</span>
           </button>
 
           <button
             type="button"
             onClick={isAuthenticated ? handleReport : undefined}
-            title={isAuthenticated ? undefined : "Login diperlukan untuk membuat laporan."}
+            title={isAuthenticated ? undefined : t("dashboard.loginRequired")}
             className={`text-xs font-medium shadow-sm transition-opacity ${isAuthenticated ? "btn-primary" : "btn-outline cursor-not-allowed opacity-70"}`}
           >
             {isAuthenticated ? <FileText className="h-4 w-4" /> : <Lock className="h-4 w-4 opacity-70" />}
-            <span className="hidden sm:inline">Buat Laporan</span>
+            <span className="hidden sm:inline">{t("dashboard.generateReport")}</span>
           </button>
         </div>
       </div>
@@ -221,7 +224,7 @@ export default function DashboardMapOverlay({
                   type="button"
                   onClick={onClearRegion}
                   className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] text-[var(--dashboard-text-muted)] shadow-sm"
-                  aria-label="Hapus pilihan wilayah"
+                  aria-label={t("dashboard.clearRegion")}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -237,7 +240,7 @@ export default function DashboardMapOverlay({
 
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="section-eyebrow text-[10px]">Wilayah Terpilih</p>
+                <p className="section-eyebrow text-[10px]">{t("dashboard.regionSelected")}</p>
                 <h3 className="mt-0.5 truncate text-sm font-bold text-heading">
                   {props.kab_kota || "-"}
                 </h3>
@@ -249,15 +252,15 @@ export default function DashboardMapOverlay({
               <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 <div className="flex items-center gap-1">
                   {isTopRegion && (
-                    <span className="inline-flex rounded-full border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] px-2.5 py-1 text-[11px] font-semibold leading-none text-[var(--dashboard-status-warning-text)]">Top 5</span>
+                    <span className="inline-flex rounded-full border border-[var(--dashboard-status-warning-border)] bg-[var(--dashboard-status-warning-bg)] px-2.5 py-1 text-[11px] font-semibold leading-none text-[var(--dashboard-status-warning-text)]">{t("dashboard.top5Badge")}</span>
                   )}
-                  <span className="inline-flex rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-active-surface)] px-2.5 py-1 text-[11px] font-semibold leading-none text-[var(--color-primary)]">Aktif</span>
+                  <span className="inline-flex rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-active-surface)] px-2.5 py-1 text-[11px] font-semibold leading-none text-[var(--color-primary)]">{t("dashboard.activeRegion")}</span>
                   {onClearRegion && (
                     <button
                       type="button"
                       onClick={onClearRegion}
                       className="ml-1 flex h-5 w-5 items-center justify-center rounded-full text-[var(--dashboard-text-soft)] transition hover:bg-[var(--dashboard-control-hover)] hover:text-[var(--dashboard-text)]"
-                      aria-label="Hapus pilihan wilayah"
+                      aria-label={t("dashboard.clearRegion")}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -270,14 +273,14 @@ export default function DashboardMapOverlay({
               {activeLayers.loss && (
                 <div className="surface-soft rounded-lg px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    Kerugian (Loss)
+                    {t("dashboard.lossLabel")}
                   </p>
                   <p className="mt-0.5 text-sm font-bold text-heading break-words">
                     {formatCurrency(props.loss)}
                   </p>
                   {formatPercent(selectedRegionShare) && (
                     <p className="mt-0.5 text-[11px] text-muted">
-                      {formatPercent(selectedRegionShare)} dari total kerugian
+                      {formatPercent(selectedRegionShare)} {t("dashboard.fromTotal")}
                     </p>
                   )}
                 </div>
@@ -286,14 +289,14 @@ export default function DashboardMapOverlay({
               {activeLayers.aal && (
                 <div className="surface-soft rounded-lg px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    Risiko Tahunan (AAL)
+                    {t("dashboard.aalLabel")}
                   </p>
                   <p className="mt-0.5 text-sm font-bold text-heading break-words">
                     {formatCurrency(props.aal)}
                   </p>
                   {formatPercent(selectedRegionAalShare) && (
                     <p className="mt-0.5 text-[11px] text-muted">
-                      {formatPercent(selectedRegionAalShare)} dari total AAL
+                      {formatPercent(selectedRegionAalShare)} {t("dashboard.fromTotalAal")}
                     </p>
                   )}
                 </div>
@@ -302,7 +305,7 @@ export default function DashboardMapOverlay({
               {activeLayers.hazard && (
                 <div className="surface-soft rounded-lg px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    Indeks Bahaya
+                    {t("dashboard.hazardIndex")}
                   </p>
                   <p className="mt-0.5 text-sm font-bold text-heading">
                     {props.mean_value != null
@@ -311,8 +314,8 @@ export default function DashboardMapOverlay({
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {hazard === "flood"
-                      ? "Kedalaman genangan (m)"
-                      : "Skala 0 – 1 (lebih tinggi = lebih berbahaya)"}
+                      ? t("dashboard.hazardFloodSubLabel")
+                      : t("dashboard.hazardIndexSubLabel")}
                   </p>
                 </div>
               )}
@@ -322,7 +325,7 @@ export default function DashboardMapOverlay({
                !activeLayers.hazard && (
                 <div className="surface-soft rounded-lg px-3 py-2">
                   <p className="text-[11px] text-muted">
-                    Aktifkan layer untuk melihat data wilayah ini.
+                    {t("dashboard.activateLayer")}
                   </p>
                 </div>
               )}

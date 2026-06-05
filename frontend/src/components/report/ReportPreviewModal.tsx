@@ -2,6 +2,7 @@
 
 import { Download, X, FileText, FileSpreadsheet, Lock } from "lucide-react";
 import { getToken } from "../../lib/auth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { ReportDocumentProps } from "./ReportDocument";
 import ReportDocument from "./ReportDocument";
 
@@ -14,6 +15,7 @@ type Props = ReportDocumentProps & {
 };
 
 export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequireLogin, ...docProps }: Props) {
+  const { t } = useLanguage();
   const isAuthenticated = !!getToken();
 
   function handlePrint() {
@@ -62,10 +64,8 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
             <FileText className="h-4 w-4 text-gray-300" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Buat Laporan PADIS</p>
-            <p className="text-xs text-gray-400">
-              Pratinjau layout A4 — gunakan tombol &ldquo;Unduh PDF&rdquo; untuk mengunduh
-            </p>
+            <p className="text-sm font-semibold text-white">{t("report.generateReport")}</p>
+            <p className="text-xs text-gray-400">{t("report.previewDesc")}</p>
           </div>
         </div>
 
@@ -75,11 +75,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
             <button
               type="button"
               onClick={onDownloadExcel}
-              title={
-                isAuthenticated
-                  ? "Unduh data terstruktur (.xlsx) — 3 sheet: Ringkasan, Top 10 Wilayah, Semua Data."
-                  : "Login diperlukan untuk mengunduh Excel."
-              }
+              title={isAuthenticated ? t("report.excelTooltip") : t("report.loginForExcel")}
               className="flex items-center gap-2 rounded-xl border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700"
             >
               {isAuthenticated ? (
@@ -87,7 +83,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
               ) : (
                 <Lock className="h-4 w-4 opacity-70" />
               )}
-              <span className="hidden sm:inline">Unduh Excel (.xlsx)</span>
+              <span className="hidden sm:inline">{t("report.downloadExcel")}</span>
             </button>
           )}
 
@@ -95,7 +91,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
           <button
             type="button"
             onClick={handlePrint}
-            title={isAuthenticated ? undefined : "Login diperlukan untuk mengunduh PDF."}
+            title={isAuthenticated ? undefined : t("report.loginForPdf")}
             className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "#c9a227" }}
           >
@@ -104,7 +100,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
             ) : (
               <Lock className="h-4 w-4 opacity-80" />
             )}
-            Unduh PDF
+            {t("report.downloadPdf")}
           </button>
 
           <button
@@ -113,7 +109,7 @@ export default function ReportPreviewModal({ onClose, onDownloadExcel, onRequire
             className="flex items-center gap-2 rounded-xl border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700"
           >
             <X className="h-4 w-4" />
-            Tutup
+            {t("report.closeModal")}
           </button>
         </div>
       </div>

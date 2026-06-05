@@ -27,6 +27,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { useChartTheme } from "@/components/charts/chartTheme";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // -- Tipe Data --
 interface HistoricalRecord {
@@ -122,15 +123,6 @@ function SectionHeader({
   );
 }
 
-// Formatter angka besar
-const formatYAxis = (tickItem: number) => {
-  const value = Math.round(tickItem);
-
-  if (value >= 1000000) return `${Math.round(value / 1000000)} Juta`;
-  if (value >= 1000) return `${Math.round(value / 1000)} rb`;
-  return value.toString();
-};
-
 // Formatter persen untuk kurva kerentanan
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 
@@ -139,21 +131,71 @@ export default function MetodologiPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const chartTheme = useChartTheme();
+  const { t } = useLanguage();
 
-  const hazardWeights = [
+  const formatYAxis = (tickItem: number) => {
+    const value = Math.round(tickItem);
+    if (value >= 1000000) return `${Math.round(value / 1000000)} ${t("metodologi.millionAbbr")}`;
+    if (value >= 1000) return `${Math.round(value / 1000)} ${t("metodologi.thousandAbbr")}`;
+    return value.toString();
+  };
+
+  const metadataRules = [
     {
-      label: "Banjir",
-      value: 0.6776836021,
-      color: "blue",
-      description:
-        "Bobot dominan dalam komposisi multihazard berdasarkan basis historis kejadian dan tingkat dampak.",
+      name: t("metodologi.adminBoundaryName"),
+      source: t("metodologi.adminBoundarySource"),
+      icon: MapIcon,
+      iconColor: "text-blue-500",
+      badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
+      description: t("metodologi.adminBoundaryDesc"),
+      specs: [
+        { label: t("metodologi.specGeomType"), value: "Vector Polygon" },
+        { label: t("metodologi.specFormat"), value: ".SHP / .GeoJSON" },
+        { label: t("metodologi.specKeyAttr"), value: "id_kabkota, kab_kota" },
+        { label: t("metodologi.specRefSystem"), value: "WGS 84 (EPSG:4326)" },
+      ],
     },
     {
-      label: "Kekeringan",
-      value: 0.3223163979,
-      color: "orange",
-      description:
-        "Bobot pendamping dalam komposisi multihazard untuk merepresentasikan kontribusi risiko kekeringan.",
+      name: t("metodologi.riceCoverName"),
+      source: t("metodologi.riceCoverSource"),
+      icon: Layers,
+      iconColor: "text-emerald-500",
+      badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
+      description: t("metodologi.riceCoverDesc"),
+      specs: [
+        { label: t("metodologi.specGeomType"), value: "Vector Polygon" },
+        { label: t("metodologi.specScale"), value: "1:250000" },
+        { label: t("metodologi.specFormat"), value: ".SHP / .GPKG" },
+        { label: t("metodologi.specValidation"), value: "Clean Topology (No Self-Intersect)" },
+      ],
+    },
+    {
+      name: t("metodologi.floodModelingName"),
+      source: t("metodologi.floodModelingSource"),
+      icon: Droplets,
+      iconColor: "text-cyan-500",
+      badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
+      description: t("metodologi.floodModelingDesc"),
+      specs: [
+        { label: t("metodologi.specDataType"), value: "Raster (.TIFF)" },
+        { label: t("metodologi.specSpatialRes"), value: "30 meter" },
+        { label: t("metodologi.specBaselineScen"), value: "R25, R50, R100, R250" },
+        { label: t("metodologi.specProjectionScen"), value: "RC25, RC50, RC100, RC250" },
+      ],
+    },
+    {
+      name: t("metodologi.droughtIndexName"),
+      source: t("metodologi.droughtIndexSource"),
+      icon: Leaf,
+      iconColor: "text-orange-500",
+      badgeColor: "border-[var(--content-border)] bg-[var(--content-surface-muted)] text-[var(--content-text)]",
+      description: t("metodologi.droughtIndexDesc"),
+      specs: [
+        { label: t("metodologi.specDataType"), value: "Raster (.TIFF)" },
+        { label: t("metodologi.specSpatialRes"), value: "~11 Kilometer" },
+        { label: t("metodologi.specBaselineScen"), value: "GPM25, GPM50, GPM100, GPM250" },
+        { label: t("metodologi.specProjectionScen"), value: "MME25, MME50, MME100, MME250" },
+      ],
     },
   ];
 
@@ -268,24 +310,23 @@ export default function MetodologiPage() {
 
         <div className="section-container relative py-16 lg:py-24 text-center">
           <div className="mx-auto max-w-4xl">
-            <span className="badge badge-secondary">Metodologi Teknis</span>
+            <span className="badge badge-secondary">{t("metodologi.badge")}</span>
 
             <h1 className="mt-4 text-balance text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-              Metodologi Analisis Risiko Spasial
+              {t("metodologi.title")}
             </h1>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-              Sistem berbasis data raster yang mengintegrasikan hazard, kerentanan, dan
-              exposure untuk menghasilkan estimasi kerugian langsung dan AAL tingkat Kabupaten/Kota di Indonesia.
+              {t("metodologi.description")}
             </p>
 
             {/* Conceptual flow grid — 4 stages of the risk equation */}
             <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-3 text-left sm:grid-cols-4">
               {[
-                { label: "Hazard", sub: "Banjir, Kekeringan, & Multi-hazard" },
-                { label: "Exposure", sub: "Sawah per Kabupaten/Kota" },
-                { label: "Vulnerability", sub: "Kurva Kerentanan" },
-                { label: "Loss & AAL", sub: "Luaran Risiko" },
+                { label: t("metodologi.conceptHazard"), sub: t("metodologi.conceptHazardSub") },
+                { label: t("metodologi.conceptExposure"), sub: t("metodologi.conceptExposureSub") },
+                { label: t("metodologi.conceptVulnerability"), sub: t("metodologi.conceptVulnerabilitySub") },
+                { label: t("metodologi.conceptLoss"), sub: t("metodologi.conceptLossSub") },
               ].map((item, i) => (
                 <div
                   key={item.label}
@@ -317,15 +358,10 @@ export default function MetodologiPage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
-                Justifikasi Ancaman &amp; Keterpaparan
+                {t("metodologi.justificationTitle")}
               </h2>
               <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
-                Pemodelan PADIS didasari oleh perbandingan antara riwayat
-                tingginya frekuensi bencana{" "}
-                <span className="font-semibold text-heading">(Hazard)</span>{" "}
-                dengan wilayah-wilayah yang memiliki tingkat produksi padi
-                terbesar{" "}
-                <span className="font-semibold text-heading">(Exposure)</span>.
+                {t("metodologi.justificationText")}
               </p>
             </div>
 
@@ -333,7 +369,7 @@ export default function MetodologiPage() {
               {isLoading ? (
                 <div className="flex h-64 flex-col items-center justify-center text-muted">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-3" />
-                  <p>Memuat dan memproses data CSV...</p>
+                  <p>{t("metodologi.loadingCsv")}</p>
                 </div>
               ) : (
                 <>
@@ -341,7 +377,7 @@ export default function MetodologiPage() {
                   <div className="mb-10">
                     <h4 className="mb-4 text-lg font-bold text-heading flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-muted" />
-                      Tren Historis Tahunan Bencana (Data Informasi Bencana Indonesia oleh BNPB)
+                      {t("metodologi.historicalTitle")}
                     </h4>
                     <div className="chart-shell h-[350px] w-full p-4 pt-6">
                       <ResponsiveContainer width="100%" height="100%">
@@ -391,16 +427,16 @@ export default function MetodologiPage() {
                             labelStyle={{ color: chartTheme.tooltipMuted }}
                             formatter={(value: unknown, name: unknown) => [
                               Math.round(Number(value)),
-                              name === "Kejadian Banjir" ? "Banjir" : "Kekeringan",
+                              name === t("metodologi.floodIncidentsLabel") ? t("charts.flood") : t("charts.drought"),
                             ]}
-                            labelFormatter={(label) => `Tahun: ${label}`}
+                            labelFormatter={(label) => `${t("metodologi.yearLabel")} ${label}`}
                           />
                           <Legend
                             iconType="circle"
                             wrapperStyle={{ color: chartTheme.axis, paddingTop: "20px" }}
                           />
                           <Area
-                            name="Kejadian Banjir"
+                            name={t("metodologi.floodIncidentsLabel")}
                             type="monotone"
                             dataKey="flood"
                             stroke="#3B82F6"
@@ -410,7 +446,7 @@ export default function MetodologiPage() {
                             activeDot={{ r: 6, strokeWidth: 0 }}
                           />
                           <Area
-                            name="Kejadian Kekeringan"
+                            name={t("metodologi.droughtIncidentsLabel")}
                             type="monotone"
                             dataKey="drought"
                             stroke="#F97316"
@@ -428,14 +464,12 @@ export default function MetodologiPage() {
                   <div className="mt-8 px-2 md:px-4">
                     <div className="mx-auto max-w-[1100px]">
                       <div className="mb-4 text-center">
-                        <p className="section-eyebrow text-sm">Pembobotan Multihazard</p>
+                        <p className="section-eyebrow text-sm">{t("metodologi.weightingTitle")}</p>
                         <h4 className="mt-1 text-lg font-bold text-heading">
-                          Bobot Hazard untuk Analisis Multihazard
+                          {t("metodologi.weightingSubtitle")}
                         </h4>
                         <p className="mt-1 text-sm leading-relaxed text-muted">
-                          Bobot berikut digunakan sebagai dasar komposisi
-                          analisis multihazard berdasarkan basis historis
-                          kejadian dan tingkat dampak ekonomi.
+                          {t("metodologi.weightingDesc")}
                         </p>
                       </div>
 
@@ -445,10 +479,10 @@ export default function MetodologiPage() {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
-                                Hazard
+                                {t("metodologi.hazardLabel")}
                               </p>
                               <h5 className="mt-1 text-xl font-bold text-heading">
-                                Banjir
+                                {t("metodologi.floodLabel")}
                               </h5>
                             </div>
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--content-surface)] shadow-sm">
@@ -457,15 +491,14 @@ export default function MetodologiPage() {
                           </div>
 
                           <div className="surface-white mt-4 px-4 py-3">
-                            <p className="section-eyebrow text-[11px]">Bobot Akhir</p>
+                            <p className="section-eyebrow text-[11px]">{t("metodologi.finalWeightLabel")}</p>
                             <p className="mt-1 text-lg font-bold text-heading">
                               0.68
                             </p>
                           </div>
 
                           <p className="mt-3 text-sm leading-relaxed text-muted">
-                            Nilai ini merepresentasikan kontribusi relatif
-                            banjir dalam pembentukan analisis multihazard.
+                            {t("metodologi.floodWeightDesc")}
                           </p>
                         </div>
 
@@ -474,10 +507,10 @@ export default function MetodologiPage() {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">
-                                Hazard
+                                {t("metodologi.hazardLabel")}
                               </p>
                               <h5 className="mt-1 text-xl font-bold text-heading">
-                                Kekeringan
+                                {t("metodologi.droughtLabel")}
                               </h5>
                             </div>
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--content-surface)] shadow-sm">
@@ -486,15 +519,14 @@ export default function MetodologiPage() {
                           </div>
 
                           <div className="surface-white mt-4 px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">Bobot Akhir</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)]">{t("metodologi.finalWeightLabel")}</p>
                             <p className="mt-1 text-lg font-bold text-heading">
                               0.32
                             </p>
                           </div>
 
                           <p className="mt-3 text-sm leading-relaxed text-muted">
-                            Nilai ini merepresentasikan kontribusi relatif
-                            kekeringan dalam komposisi analisis multihazard.
+                            {t("metodologi.droughtWeightDesc")}
                           </p>
                         </div>
                       </div>
@@ -513,16 +545,17 @@ export default function MetodologiPage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-10 text-center">
               <h2 className="text-heading text-balance text-3xl font-bold tracking-tight md:text-4xl">
-                Skenario Projection dan Baseline
+                {t("metodologi.scenariosTitle")}
               </h2>
               <p className="text-muted mt-4 leading-relaxed md:text-lg max-w-3xl mx-auto">
-                Dalam PADIS, istilah{" "}
-                <strong className="text-heading">Projection</strong> dan{" "}
-                <strong className="text-heading">Baseline</strong> merujuk pada
-                dua skenario pembentukan <em>raster hazard</em>. Keduanya
-                menggunakan alur perhitungan yang sama, tetapi berbeda pada{" "}
-                <strong className="text-heading">parameter masukan</strong> yang
-                digunakan dalam pemodelan.
+                {t("metodologi.scenariosDescPart1")}{" "}
+                <strong className="text-heading">Projection</strong>{" "}
+                {t("common.and")}{" "}
+                <strong className="text-heading">Baseline</strong>{" "}
+                {t("metodologi.scenariosDescPart2")} <em>raster hazard</em>
+                {t("metodologi.scenariosDescPart3")}{" "}
+                <strong className="text-heading">{t("metodologi.scenariosDescPart4")}</strong>{" "}
+                {t("metodologi.scenariosDescPart5")}
               </p>
             </div>
 
@@ -532,12 +565,12 @@ export default function MetodologiPage() {
               <div className="card p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="section-eyebrow text-xs mb-1">Skenario</p>
+                    <p className="section-eyebrow text-xs mb-1">{t("metodologi.scenarioEyebrow")}</p>
                     <h5 className="text-xl font-bold text-heading">
-                      Baseline
+                      {t("metodologi.baselineLabel")}
                     </h5>
                     <p className="text-sm italic text-muted mt-0.5">
-                      Parameter standar pemodelan hazard
+                      {t("metodologi.baselineSubtitle")}
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
@@ -545,20 +578,14 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed text-muted">
-                  Merepresentasikan kondisi hazard yang dibangun menggunakan
-                  parameter-parameter standar pemodelan seperti data fisik
-                  wilayah, karakteristik spasial, dan kondisi hidrologis.
-                  Skenario ini tidak dikaitkan dengan pendekatan skenario masa
-                  depan seperti RCP maupun SSP, melainkan mencerminkan kondisi
-                  berdasarkan parameter yang umum digunakan dalam pembangunan
-                  model hazard.
+                  {t("metodologi.baselineDesc")}
                 </p>
               </div>
 
               {/* vs divider */}
               <div className="hidden md:flex items-center justify-center">
                 <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--content-surface)] text-[11px] font-bold text-muted shadow-sm">
-                  vs
+                  {t("metodologi.vsLabel")}
                 </span>
               </div>
 
@@ -567,11 +594,11 @@ export default function MetodologiPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-secondary-dark)] mb-1">
-                      Skenario
+                      {t("metodologi.scenarioEyebrow")}
                     </p>
-                    <h5 className="text-xl font-bold text-heading">Projection</h5>
+                    <h5 className="text-xl font-bold text-heading">{t("metodologi.projectionLabel")}</h5>
                     <p className="text-sm italic text-[var(--color-secondary-dark)] mt-0.5">
-                      Dua pendekatan: RCP atau SSP
+                      {t("metodologi.projectionSubtitle")}
                     </p>
                   </div>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--content-surface)] shadow-sm">
@@ -579,16 +606,7 @@ export default function MetodologiPage() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed text-muted">
-                  Merepresentasikan kondisi hazard yang dipengaruhi oleh
-                  skenario masa depan. Projection dapat menggunakan dua
-                  pendekatan: (1){" "}
-                  <strong className="text-heading">RCP</strong> (Representative
-                  Concentration Pathways), berbasis proyeksi iklim seperti
-                  perubahan curah hujan, suhu, dan evapotranspirasi; atau (2){" "}
-                  <strong className="text-heading">SSP</strong> (Shared
-                  Socioeconomic Pathways), berbasis proyeksi sosial-ekonomi
-                  seperti perubahan tata guna lahan, pertumbuhan penduduk, dan
-                  infrastruktur wilayah.
+                  {t("metodologi.projectionDesc")}
                 </p>
               </div>
             </div>
@@ -598,31 +616,25 @@ export default function MetodologiPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2">
-                    Format Raster Hazard (Kedua Skenario)
+                    {t("metodologi.rasterFormatLabel")}
                   </p>
                   <div className="flex flex-col gap-1 text-sm">
                     <span>
-                      <span className="font-medium text-blue-700">Banjir</span>{" "}
-                      — nilai ketinggian genangan (meter)
+                      <span className="font-medium text-blue-700">{t("metodologi.floodLabel")}</span>{" "}
+                      {t("metodologi.floodValueDesc")}
                     </span>
                     <span>
                       <span className="font-medium text-orange-700">
-                        Kekeringan
+                        {t("metodologi.droughtLabel")}
                       </span>{" "}
-                      — nilai Standardized Precipitation Index (SPI)
+                      {t("metodologi.droughtValueDesc")}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Info className="h-4 w-4 shrink-0 text-muted mt-0.5" />
                   <p className="text-sm leading-relaxed text-muted">
-                    Kedua skenario diproses melalui alur perhitungan risiko yang
-                    sama: ekstraksi nilai hazard, penerapan kurva kerentanan,
-                    estimasi kerugian langsung, dan agregasi ke{" "}
-                    <strong className="text-heading">
-                      Annual Average Loss (AAL)
-                    </strong>{" "}
-                    tingkat kabupaten/kota.
+                    {t("metodologi.processExplanation")}
                   </p>
                 </div>
               </div>
@@ -635,8 +647,8 @@ export default function MetodologiPage() {
       <section className="section-shell section-soft">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
-            title="Model Kerentanan (Vulnerability Curve)"
-            desc="Kurva kerentanan merepresentasikan hubungan antara indeks bencana dan tingkat kehilangan produktivitas padi (loss of productivity) pada masing-masing hazard."
+            title={t("metodologi.vulnTitle")}
+            desc={t("metodologi.vulnDesc")}
           />
 
           <div className="mt-16 grid gap-8 lg:grid-cols-2">
@@ -649,7 +661,7 @@ export default function MetodologiPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-heading">
-                      Kerentanan Banjir
+                      {t("metodologi.floodVulnTitle")}
                     </h3>
                     <a
                       href="https://www.scopus.com/pages/publications/85099980139?origin=resultslist"
@@ -690,7 +702,7 @@ export default function MetodologiPage() {
                       angle={isMobile ? -32 : 0}
                       textAnchor={isMobile ? "end" : "middle"}
                       height={isMobile ? 60 : undefined}
-                      label={vulnerabilityXAxisLabel("Ketinggian Genangan (m)")}
+                      label={vulnerabilityXAxisLabel(t("metodologi.floodXAxisLabel"))}
                     />
                     <YAxis
                       axisLine={false}
@@ -701,7 +713,7 @@ export default function MetodologiPage() {
                       width={isMobile ? 44 : 60}
                     >
                       <Label
-                        value="Loss of Productivity (%)"
+                        value={t("metodologi.lossOfProductivity")}
                         angle={-90}
                         position="insideLeft"
                         offset={10}
@@ -726,7 +738,7 @@ export default function MetodologiPage() {
                         formatPercent(Number(value)),
                         "Loss",
                       ]}
-                      labelFormatter={(label) => `Ketinggian: ${label} m`}
+                      labelFormatter={(label) => `${t("metodologi.floodTooltipPrefix")}: ${label} m`}
                     />
                     <ReferenceLine
                       y={0.5}
@@ -748,7 +760,7 @@ export default function MetodologiPage() {
                       />
                     ) : null}
                     <Area
-                      name="Kurva Kerentanan Banjir"
+                      name={t("metodologi.floodVulnCurveName")}
                       type="monotone"
                       dataKey="lop"
                       stroke="#3B82F6"
@@ -763,26 +775,21 @@ export default function MetodologiPage() {
 
               <div className="mb-4 flex items-center gap-2 text-sm text-muted md:hidden">
                 <span className="h-0.5 w-6 rounded-full bg-[#3B82F6]" />
-                <span>Kurva Banjir</span>
+                <span>{t("metodologi.floodCurveMobileLabel")}</span>
               </div>
 
               <div className="alert-info mt-auto">
                 <p className="font-medium mb-2 flex items-center gap-2 text-sm">
-                  <Info className="w-4 h-4" /> Formulasi Kerentanan
+                  <Info className="w-4 h-4" /> {t("metodologi.formulationLabel")}
                 </p>
 
                 <p className="leading-relaxed text-sm">
-                  Kurva ini menunjukkan hubungan antara ketinggian genangan
-                  banjir dan kehilangan produktivitas padi (
-                  <strong>loss of productivity</strong>). Formulasi yang
-                  digunakan mengacu pada Hendrawan &amp; Komori (2021) untuk
-                  merepresentasikan respons kerentanan banjir pada analisis
-                  PADIS.
+                  {t("metodologi.floodCurveDesc")}
                 </p>
 
                 <div className="surface-white mt-3 rounded-lg px-4 py-3">
                   <p className="section-eyebrow text-[11px]">
-                    Persamaan Loss of Productivity
+                    {t("metodologi.floodFormulaTitle")}
                   </p>
                   <p className="mt-1 font-mono text-sm font-medium text-heading">
                     y = 0.52 + 0.29 ln(x)
@@ -790,10 +797,7 @@ export default function MetodologiPage() {
                 </div>
 
                 <p className="mt-3 leading-relaxed text-sm">
-                  Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
-                  <strong>loss of productivity</strong>, sedangkan{" "}
-                  <strong>x</strong> merepresentasikan ketinggian genangan banjir
-                  maksimum (meter).
+                  {t("metodologi.floodFormulaExplain")}
                 </p>
               </div>
             </div>
@@ -807,7 +811,7 @@ export default function MetodologiPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-heading">
-                      Kerentanan Kekeringan
+                      {t("metodologi.droughtVulnTitle")}
                     </h3>
                     <a
                       href="https://www.scopus.com/pages/publications/85090017371?origin=resultslist"
@@ -848,7 +852,7 @@ export default function MetodologiPage() {
                       angle={isMobile ? -32 : 0}
                       textAnchor={isMobile ? "end" : "middle"}
                       height={isMobile ? 60 : undefined}
-                      label={vulnerabilityXAxisLabel("Indeks Kekeringan Ternormalisasi")}
+                      label={vulnerabilityXAxisLabel(t("metodologi.droughtXAxisLabel"))}
                     />
                     <YAxis
                       axisLine={false}
@@ -859,7 +863,7 @@ export default function MetodologiPage() {
                       width={isMobile ? 44 : 60}
                     >
                       <Label
-                        value="Loss of Productivity (%)"
+                        value={t("metodologi.lossOfProductivity")}
                         angle={-90}
                         position="insideLeft"
                         offset={10}
@@ -884,7 +888,7 @@ export default function MetodologiPage() {
                         formatPercent(Number(value)),
                         "Loss",
                       ]}
-                      labelFormatter={(label) => `Indeks: ${label}`}
+                      labelFormatter={(label) => `${t("metodologi.droughtTooltipPrefix")}: ${label}`}
                     />
                     <ReferenceLine
                       y={0.5}
@@ -906,7 +910,7 @@ export default function MetodologiPage() {
                       />
                     ) : null}
                     <Area
-                      name="Kurva Kerentanan Kekeringan"
+                      name={t("metodologi.droughtVulnCurveName")}
                       type="monotone"
                       dataKey="lop"
                       stroke="#F97316"
@@ -921,25 +925,21 @@ export default function MetodologiPage() {
 
               <div className="mb-4 flex items-center gap-2 text-sm text-muted md:hidden">
                 <span className="h-0.5 w-6 rounded-full bg-[#F97316]" />
-                <span>Kurva Kekeringan</span>
+                <span>{t("metodologi.droughtCurveMobileLabel")}</span>
               </div>
 
               <div className="alert-warning mt-auto">
                 <p className="font-medium mb-2 flex items-center gap-2 text-sm">
-                  <Info className="w-4 h-4" /> Formulasi Kerentanan
+                  <Info className="w-4 h-4" /> {t("metodologi.formulationLabel")}
                 </p>
 
                 <p className="leading-relaxed text-sm">
-                  Kurva ini menunjukkan hubungan antara intensitas kekeringan
-                  dan kehilangan produktivitas padi (
-                  <strong>loss of productivity</strong>). Formulasi yang
-                  digunakan mengacu pada adaptasi kurva kerentanan kekeringan
-                  dari Guo dkk. (2021) untuk analisis PADIS.
+                  {t("metodologi.droughtCurveDesc")}
                 </p>
 
                 <div className="surface-white mt-3 rounded-lg px-4 py-3">
                   <p className="section-eyebrow text-[11px]">
-                    Persamaan Loss of Productivity
+                    {t("metodologi.floodFormulaTitle")}
                   </p>
                   <p className="mt-1 font-mono text-sm font-medium text-heading break-words">
                     y = −0.8381x³ + 0.8967x² + 0.9064x − 0.0106
@@ -947,10 +947,7 @@ export default function MetodologiPage() {
                 </div>
 
                 <p className="mt-3 leading-relaxed text-sm">
-                  Pada formulasi ini, <strong>y</strong> merepresentasikan nilai{" "}
-                  <strong>loss of productivity</strong>, sedangkan{" "}
-                  <strong>x</strong> merepresentasikan indeks kekeringan yang
-                  telah dinormalisasi.
+                  {t("metodologi.droughtFormulaExplain")}
                 </p>
               </div>
             </div>
@@ -962,9 +959,9 @@ export default function MetodologiPage() {
       <section className="section-shell content-section">
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
-            title="Spesifikasi & Metadata Geospasial"
-            label="Sumber Data"
-            desc="Katalog sumber data utama beserta parameter teknis yang digunakan sebagai input pemodelan risiko."
+            title={t("metodologi.metadataTitle")}
+            label={t("metodologi.metadataLabel")}
+            desc={t("metodologi.metadataDesc")}
           />
 
           <div className="mx-auto mt-12 max-w-5xl grid gap-4">
@@ -1037,28 +1034,26 @@ export default function MetodologiPage() {
 
             <div className="relative z-10">
               <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-                LANGKAH BERIKUTNYA
+                {t("metodologi.ctaBadge")}
               </p>
               <h3 className="mt-2 text-2xl font-bold text-[var(--color-text)] md:text-3xl lg:text-4xl">
-                Coba Langsung Analisis Risiko Padi
+                {t("metodologi.ctaTitle")}
               </h3>
               <p className="mx-auto mt-4 max-w-2xl text-[var(--color-gray)] md:text-lg">
-                Gunakan dashboard PADIS untuk melihat estimasi kerugian,
-                membandingkan skenario, dan mengidentifikasi wilayah prioritas
-                secara spasial.
+                {t("metodologi.ctaDesc")}
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
                 <Link
                   href="/dashboard"
                   className="btn-primary px-6 py-3 text-base font-semibold"
                 >
-                  Buka Dashboard
+                  {t("metodologi.openDashboard")}
                 </Link>
                 <Link
                   href="/"
                   className="inline-flex items-center gap-2 text-sm text-[var(--color-gray)] hover:text-[var(--color-text)]"
                 >
-                  Kembali ke Beranda <ArrowRight className="h-4 w-4" />
+                  {t("metodologi.backToHome")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

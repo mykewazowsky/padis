@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Select from "react-select";
 import type { StylesConfig, GroupBase } from "react-select";
 import { ShieldAlert, Cloud, RefreshCw, MapPin } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type OptionType = {
   value: string;
@@ -96,6 +97,7 @@ function FilterFields({
   selectPortalStyles,
   variant = "card",
 }: Props) {
+  const { t } = useLanguage();
   const isInline = variant === "inline";
   const [activeField, setActiveField] = useState<string | null>(null);
 
@@ -174,7 +176,7 @@ function FilterFields({
       {/* Hazard */}
       <div className={getFieldClassName("hazard")}>
         <FilterLabel icon={ShieldAlert} accentColor={hazardAccentColor} inline={isInline}>
-          Jenis Bencana
+          {t("dashboard.hazardLabel")}
         </FilterLabel>
         <Select
           instanceId="hazard-select"
@@ -192,7 +194,7 @@ function FilterFields({
       {/* Skenario (Baseline / Projection) */}
       <div className={getFieldClassName("climate")}>
         <FilterLabel icon={Cloud} inline={isInline}>
-          Skenario Analisis
+          {t("dashboard.scenarioAnalysisLabel")}
         </FilterLabel>
         <Select
           instanceId="climate-select"
@@ -210,7 +212,7 @@ function FilterFields({
       {/* Periode ulang */}
       <div className={getFieldClassName("scenario")}>
         <FilterLabel icon={RefreshCw} inline={isInline}>
-          Periode Ulang
+          {t("dashboard.periodLabel")}
         </FilterLabel>
         <Select
           instanceId="scenario-select"
@@ -228,7 +230,7 @@ function FilterFields({
       {/* Region — grouped per provinsi */}
       <div className={getFieldClassName("region")}>
         <FilterLabel icon={MapPin} inline={isInline}>
-          Wilayah
+          {t("dashboard.regionLabel")}
         </FilterLabel>
         <Select<OptionType, false, GroupBase<OptionType>>
           instanceId="region-select"
@@ -262,13 +264,13 @@ function FilterFields({
           isClearable
           isLoading={loadingRegions}
           isDisabled={loadingLayer}
-          placeholder={loadingRegions ? "Memuat wilayah..." : "Semua wilayah"}
+          placeholder={loadingRegions ? t("dashboard.loadingRegions") : t("dashboard.allRegions")}
           noOptionsMessage={() =>
             errorRegions
               ? errorRegions
               : loadingRegions
-                ? "Memuat..."
-                : "Tidak ada data wilayah"
+                ? t("dashboard.loading")
+                : t("dashboard.noRegionData")
           }
           styles={buildSelectStyles("region")}
           {...portalProps}
@@ -281,6 +283,7 @@ function FilterFields({
 
 export default function DashboardMapFilters(props: Props) {
   const { variant = "card" } = props;
+  const { t } = useLanguage();
 
   if (variant === "inline") {
     return (
@@ -290,7 +293,7 @@ export default function DashboardMapFilters(props: Props) {
             Filter
           </p>
           <p className="mt-0.5 text-[11px] text-[var(--dashboard-text-muted)]">
-            Atur tampilan analisis peta.
+            {t("dashboard.filterDesc")}
           </p>
         </div>
         <FilterFields {...props} />

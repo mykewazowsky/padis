@@ -16,6 +16,8 @@ import {
 import { buildApiUrl } from "@/lib/api";
 import { clearToken, decodeToken, getToken } from "@/lib/auth";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type UserInfo = {
   id?: string;
@@ -31,16 +33,15 @@ type MeResponse = {
 
 type NavItem = {
   href: string;
-  label: string;
+  labelKey: string;
 };
 
-// --- DI SINI LETAK PERUBAHANNYA ---
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Beranda" },
-  { href: "/cara-kerja", label: "Cara Kerja" },
-  { href: "/metodologi", label: "Metodologi" }, // Tambahan menu Metodologi
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/about", label: "Tentang Kami" },
+  { href: "/",           labelKey: "nav.home" },
+  { href: "/cara-kerja", labelKey: "nav.caraKerja" },
+  { href: "/metodologi", labelKey: "nav.metodologi" },
+  { href: "/dashboard",  labelKey: "nav.dashboard" },
+  { href: "/about",      labelKey: "nav.about" },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -48,7 +49,7 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function getVisibleNavItems(_user: UserInfo | null, _isAuthenticated: boolean) {
+function getVisibleNavItems() {
   return NAV_ITEMS;
 }
 
@@ -65,7 +66,6 @@ function Brand() {
           priority
         />
       </div>
-
       <div className="min-w-0">
         <p className="text-xl font-bold tracking-tight text-[var(--theme-shell-text)]">PADIS</p>
         <p className="hidden text-xs text-[var(--theme-shell-text-muted)] sm:block">
@@ -76,22 +76,14 @@ function Brand() {
   );
 }
 
-function CenterNav({
-  pathname,
-  isAuthenticated,
-  user,
-}: {
-  pathname: string;
-  isAuthenticated: boolean;
-  user: UserInfo | null;
-}) {
-  const items = getVisibleNavItems(user, isAuthenticated);
+function CenterNav({ pathname }: { pathname: string }) {
+  const { t } = useLanguage();
+  const items = getVisibleNavItems();
 
   return (
     <nav className="hidden xl:flex items-center justify-center gap-8 flex-nowrap whitespace-nowrap min-w-0">
       {items.map((item) => {
         const active = isActivePath(pathname, item.href);
-
         return (
           <Link
             key={item.href}
@@ -102,7 +94,7 @@ function CenterNav({
                 : "text-[var(--theme-shell-text-muted)] hover:text-[var(--color-primary)]"
             }`}
           >
-            {item.label}
+            {t(item.labelKey)}
             <span
               className={`absolute left-0 -bottom-[8px] h-[2px] w-full bg-[var(--color-primary)] transition-opacity duration-200 ${
                 active ? "opacity-100" : "opacity-0"
@@ -115,13 +107,8 @@ function CenterNav({
   );
 }
 
-function UserBadge({
-  user,
-  onLogout,
-}: {
-  user: UserInfo;
-  onLogout: () => void;
-}) {
+function UserBadge({ user, onLogout }: { user: UserInfo; onLogout: () => void }) {
+  const { t } = useLanguage();
   const isAdmin = user.role === "admin";
 
   return (
@@ -129,24 +116,17 @@ function UserBadge({
       <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--theme-shell-border)] bg-[var(--theme-shell-surface-muted)] px-4 py-2">
         <div className="rounded-xl border border-[var(--theme-shell-border-subtle)] bg-[var(--theme-shell-surface)] p-2">
           {isAdmin ? (
-            <ShieldCheck
-              className="h-4 w-4 text-[var(--color-secondary-dark)]"
-              aria-hidden="true"
-            />
+            <ShieldCheck className="h-4 w-4 text-[var(--color-secondary-dark)]" aria-hidden="true" />
           ) : (
-            <User2
-              className="h-4 w-4 text-[var(--color-secondary-dark)]"
-              aria-hidden="true"
-            />
+            <User2 className="h-4 w-4 text-[var(--color-secondary-dark)]" aria-hidden="true" />
           )}
         </div>
-
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--theme-shell-text-muted)]">
-            Masuk sebagai
+            {t("common.signedInAs")}
           </p>
           <p className="mt-1 text-sm font-semibold text-[var(--theme-shell-text)]">
-            {user?.name || "Pengguna"}
+            {user?.name || t("nav.home")}
           </p>
         </div>
       </div>
@@ -155,10 +135,10 @@ function UserBadge({
         type="button"
         onClick={onLogout}
         className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-shell-text-muted)] transition hover:text-red-500"
-        aria-label="Keluar dari akun"
+        aria-label={t("nav.logoutAria")}
       >
         <LogOut className="h-4 w-4" aria-hidden="true" />
-        <span>Keluar</span>
+        <span>{t("nav.logout")}</span>
       </button>
     </div>
   );
@@ -181,7 +161,8 @@ function MobileMenu({
   onClose: () => void;
   isOpen: boolean;
 }) {
-  const items = getVisibleNavItems(user, isAuthenticated);
+  const { t } = useLanguage();
+  const items = getVisibleNavItems();
 
   return (
     <>
@@ -203,7 +184,6 @@ function MobileMenu({
           <div className="space-y-1">
             {items.map((item) => {
               const active = isActivePath(pathname, item.href);
-
               return (
                 <Link
                   key={item.href}
@@ -215,7 +195,7 @@ function MobileMenu({
                       : "text-[var(--theme-shell-text)] hover:text-[var(--color-primary)]"
                   }`}
                 >
-                  <span>{item.label}</span>
+                  <span>{t(item.labelKey)}</span>
                   {active ? (
                     <span className="h-[2px] w-6 bg-[var(--color-primary)]" />
                   ) : (
@@ -227,7 +207,10 @@ function MobileMenu({
           </div>
 
           <div className="mt-5 space-y-4 border-t border-[var(--theme-shell-border)] pt-5">
-            <ThemeToggle mobile />
+            <div className="flex items-center gap-3">
+              <ThemeToggle mobile />
+              <LanguageToggle />
+            </div>
 
             {authChecked ? (
               isAuthenticated && user ? (
@@ -236,24 +219,17 @@ function MobileMenu({
                     <div className="flex items-start gap-3">
                       <div className="rounded-xl border border-[var(--theme-shell-border-subtle)] bg-[var(--theme-shell-surface)] p-2">
                         {user?.role === "admin" ? (
-                          <ShieldCheck
-                            className="h-4 w-4 text-[var(--color-secondary-dark)]"
-                            aria-hidden="true"
-                          />
+                          <ShieldCheck className="h-4 w-4 text-[var(--color-secondary-dark)]" aria-hidden="true" />
                         ) : (
-                          <User2
-                            className="h-4 w-4 text-[var(--color-secondary-dark)]"
-                            aria-hidden="true"
-                          />
+                          <User2 className="h-4 w-4 text-[var(--color-secondary-dark)]" aria-hidden="true" />
                         )}
                       </div>
-
                       <div>
                         <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--theme-shell-text-muted)]">
-                          Masuk sebagai
+                          {t("common.signedInAs")}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-[var(--theme-shell-text)]">
-                          {user?.name || "Pengguna"}
+                          {user?.name}
                         </p>
                         <p className="text-xs text-[var(--theme-shell-text-muted)]">
                           {user?.email || "-"}
@@ -264,15 +240,12 @@ function MobileMenu({
 
                   <button
                     type="button"
-                    onClick={() => {
-                      onLogout();
-                      onClose();
-                    }}
-                    aria-label="Keluar dari akun"
+                    onClick={() => { onLogout(); onClose(); }}
+                    aria-label={t("nav.logoutAria")}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--theme-shell-border)] px-4 py-3 text-sm font-medium text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)] hover:text-red-500"
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />
-                    <span>Keluar</span>
+                    <span>{t("nav.logout")}</span>
                   </button>
                 </div>
               ) : (
@@ -282,15 +255,14 @@ function MobileMenu({
                     onClick={onClose}
                     className="inline-flex items-center justify-center rounded-full border border-[var(--theme-shell-border)] px-4 py-3 text-sm font-medium text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)]"
                   >
-                    Masuk
+                    {t("nav.login")}
                   </Link>
-
                   <Link
                     href="/register"
                     onClick={onClose}
                     className="inline-flex items-center justify-center rounded-full bg-[var(--color-primary-dark)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-primary)]"
                   >
-                    Daftar
+                    {t("nav.register")}
                   </Link>
                 </div>
               )
@@ -302,48 +274,10 @@ function MobileMenu({
   );
 }
 
-function FooterNav({
-  pathname,
-  isAuthenticated,
-  user,
-}: {
-  pathname: string;
-  isAuthenticated: boolean;
-  user: UserInfo | null;
-}) {
-  const items = getVisibleNavItems(user, isAuthenticated);
-
-  return (
-    <div className="space-y-3">
-      {items.map((item) => {
-        const active = isActivePath(pathname, item.href);
-
-        return (
-          <div key={item.href}>
-            <Link
-              href={item.href}
-              className={
-                active
-                  ? "font-semibold text-white"
-                  : "text-blue-100 transition hover:text-[var(--color-secondary)]"
-              }
-            >
-              {item.label}
-            </Link>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function SiteShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -354,99 +288,55 @@ export default function SiteShell({
   const meUrl = useMemo(() => buildApiUrl("/api/me"), []);
   const logoutUrl = useMemo(() => buildApiUrl("/api/logout"), []);
 
-  // ── Phase 1: read JWT payload immediately on mount (synchronous, no network) ──
-  // This makes the admin menu and user badge appear instantly without waiting
-  // for the /api/me network call.
   useEffect(() => {
     const payload = decodeToken();
-
     if (payload) {
       setIsAuthenticated(true);
-      setUser({
-        email: payload.email ?? "",
-        name: payload.name ?? "",
-        role: payload.role,
-        status: payload.status,
-      });
+      setUser({ email: payload.email ?? "", name: payload.name ?? "", role: payload.role, status: payload.status });
       setAuthChecked(true);
     } else if (!getToken()) {
-      // No token at all → show login buttons immediately
       setAuthChecked(true);
     }
-    // If token exists but is expired/malformed, wait for Phase 2 to handle it
   }, []);
 
-  // ── Phase 2: verify with server on every navigation ──
-  // Updates state with fresh server data. Only clears token on 401.
   useEffect(() => {
     let isMounted = true;
-
     async function checkAuth() {
       const token = getToken();
-
       if (!token) {
         if (!isMounted) return;
-        setIsAuthenticated(false);
-        setUser(null);
-        setAuthChecked(true);
+        setIsAuthenticated(false); setUser(null); setAuthChecked(true);
         return;
       }
-
       try {
-        const res = await fetch(meUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // Token rejected by server → clear and log out
+        const res = await fetch(meUrl, { headers: { Authorization: `Bearer ${token}` } });
         if (res.status === 401) {
           clearToken();
           if (!isMounted) return;
-          setIsAuthenticated(false);
-          setUser(null);
-          setAuthChecked(true);
+          setIsAuthenticated(false); setUser(null); setAuthChecked(true);
           return;
         }
-
-        // Server error (5xx) or network issue → keep existing state, don't clear token
-        if (!res.ok) {
-          if (!isMounted) return;
-          setAuthChecked(true);
-          return;
-        }
-
+        if (!res.ok) { if (!isMounted) return; setAuthChecked(true); return; }
         const json: MeResponse = await res.json();
         const currentUser = json.user ?? null;
-
         if (!currentUser) {
           clearToken();
           if (!isMounted) return;
-          setIsAuthenticated(false);
-          setUser(null);
-          setAuthChecked(true);
+          setIsAuthenticated(false); setUser(null); setAuthChecked(true);
           return;
         }
-
         if (!isMounted) return;
-        setIsAuthenticated(true);
-        setUser(currentUser);
-        setAuthChecked(true);
+        setIsAuthenticated(true); setUser(currentUser); setAuthChecked(true);
       } catch {
-        // Network error → keep existing JWT-based state, do NOT clear token
         if (!isMounted) return;
         setAuthChecked(true);
       }
     }
-
     checkAuth();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [pathname, meUrl]);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -454,32 +344,19 @@ export default function SiteShell({
       document.body.style.overflow = "hidden";
       return;
     }
-
     document.body.style.overflow = "";
-    const t = setTimeout(() => setMobileMounted(false), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setMobileMounted(false), 300);
+    return () => clearTimeout(timer);
   }, [mobileOpen]);
 
   async function handleLogout() {
     const token = getToken();
-
     try {
-      if (token) {
-        await fetch(logoutUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-    } catch {
-      // no-op
-    } finally {
+      if (token) await fetch(logoutUrl, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    } catch { /* no-op */ } finally {
       clearToken();
-      setIsAuthenticated(false);
-      setUser(null);
-      router.push("/");
-      router.refresh();
+      setIsAuthenticated(false); setUser(null);
+      router.push("/"); router.refresh();
     }
   }
 
@@ -492,13 +369,10 @@ export default function SiteShell({
               <Brand />
             </div>
 
-            <CenterNav
-              pathname={pathname}
-              isAuthenticated={isAuthenticated}
-              user={user}
-            />
+            <CenterNav pathname={pathname} />
 
-            <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center justify-end gap-3">
+              <LanguageToggle className="hidden xl:inline-flex" />
               <ThemeToggle />
 
               {authChecked && isAuthenticated && user ? (
@@ -509,14 +383,13 @@ export default function SiteShell({
                     href="/login"
                     className="hidden xl:inline-flex text-sm font-medium text-[var(--theme-shell-text-muted)] transition hover:text-[var(--color-primary)]"
                   >
-                    Masuk
+                    {t("nav.login")}
                   </Link>
-
                   <Link
                     href="/register"
                     className="hidden xl:inline-flex rounded-full bg-[var(--color-primary-dark)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary)]"
                   >
-                    Daftar
+                    {t("nav.register")}
                   </Link>
                 </>
               ) : null}
@@ -525,14 +398,10 @@ export default function SiteShell({
                 type="button"
                 onClick={() => setMobileOpen((prev) => !prev)}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--theme-shell-border)] bg-[var(--theme-shell-surface)] text-[var(--theme-shell-text)] transition hover:bg-[var(--theme-toggle-hover)] xl:hidden"
-                aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
+                aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.openMenu")}
                 aria-expanded={mobileOpen}
               >
-                {mobileOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
             </div>
           </div>
@@ -554,23 +423,16 @@ export default function SiteShell({
       <main className="flex-1">{children}</main>
 
       <footer className="bg-[var(--color-dark-bg)] text-white">
-        {/* Accent gradient strip */}
         <div className="h-[2px] bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-transparent" />
 
         <div className="section-container py-14">
           <div className="grid gap-12 md:grid-cols-[1.8fr_1fr_1fr]">
 
-            {/* 1. Brand */}
+            {/* Brand */}
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white/10">
-                  <Image
-                    src="/logo/padis.svg"
-                    alt="PADIS"
-                    width={44}
-                    height={44}
-                    className="h-9 w-9 object-contain"
-                  />
+                  <Image src="/logo/padis.svg" alt="PADIS" width={44} height={44} className="h-9 w-9 object-contain" />
                 </div>
                 <div>
                   <p className="text-xl font-bold tracking-tight">PADIS</p>
@@ -579,9 +441,7 @@ export default function SiteShell({
               </div>
 
               <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/55">
-                Platform WebGIS untuk analisis kerugian padi berbasis bencana banjir,
-                kekeringan, dan multi-hazard — data spasial hingga kabupaten/kota
-                seluruh Indonesia.
+                {t("footer.platformDesc")}
               </p>
 
               <a
@@ -589,69 +449,57 @@ export default function SiteShell({
                 className="mt-5 inline-flex items-center gap-2 text-sm text-white/45 transition hover:text-white"
               >
                 <Mail className="h-3.5 w-3.5" />
-                padiswebgis@gmail.com
+                {t("footer.contactEmail")}
               </a>
             </div>
 
-            {/* 2. Navigasi */}
+            {/* Navigasi */}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
-                Navigasi
+                {t("footer.navigationLabel")}
               </p>
               <nav className="mt-5 space-y-3">
-                {getVisibleNavItems(user, isAuthenticated).map((item) => {
+                {getVisibleNavItems().map((item) => {
                   const active = isActivePath(pathname, item.href);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={`block text-sm transition ${
-                        active
-                          ? "font-semibold text-white"
-                          : "text-white/55 hover:text-white"
+                        active ? "font-semibold text-white" : "text-white/55 hover:text-white"
                       }`}
                     >
-                      {item.label}
+                      {t(item.labelKey)}
                     </Link>
                   );
                 })}
               </nav>
             </div>
 
-            {/* 3. Konteks Proyek */}
+            {/* Konteks Proyek */}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
-                Konteks Proyek
+                {t("footer.projectContext")}
               </p>
               <div className="mt-5">
                 <div className="flex items-center gap-3">
-                  <img
-                    src="/itb/itb.png"
-                    alt="ITB"
-                    className="h-8 w-auto opacity-75"
-                  />
-                  <p className="text-sm font-medium text-white/75">
-                    Institut Teknologi Bandung
-                  </p>
+                  <img src="/itb/itb.png" alt="ITB" className="h-8 w-auto opacity-75" />
+                  <p className="text-sm font-medium text-white/75">Institut Teknologi Bandung</p>
                 </div>
                 <div className="mt-4 space-y-1 text-sm text-white/55">
-                  <p>Capstone Project · 2026</p>
-                  <p>Teknik Geodesi dan Geomatika</p>
-                  <p>Fakultas Ilmu dan Teknologi Kebumian</p>
+                  <p>{t("footer.capstoneProject")}</p>
+                  <p>{t("footer.program")}</p>
+                  <p>{t("footer.faculty")}</p>
                 </div>
               </div>
             </div>
 
           </div>
 
-          {/* Bottom bar */}
           <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 md:flex-row md:items-center md:justify-between">
-            <p className="text-xs text-white/35">© 2026 PADIS. Hak cipta dilindungi.</p>
-            <Link
-              href="/kebijakan-privasi"
-              className="text-xs text-white/35 transition hover:text-white/70"
-            >
-              Kebijakan Privasi
+            <p className="text-xs text-white/35">{t("footer.allRightsReserved")}</p>
+            <Link href="/kebijakan-privasi" className="text-xs text-white/35 transition hover:text-white/70">
+              {t("nav.kebijakanPrivasi")}
             </Link>
           </div>
         </div>

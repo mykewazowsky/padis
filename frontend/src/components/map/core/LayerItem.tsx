@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import type { LayerKey } from "./MapLegendPanel";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Props = {
   id: LayerKey;
@@ -26,6 +27,7 @@ export default function LayerItem({
   disabled = false,
   disabledReason,
 }: Props) {
+  const { t } = useLanguage();
   const {
     attributes,
     listeners,
@@ -60,7 +62,7 @@ export default function LayerItem({
               : "cursor-grab hover:text-[var(--dashboard-text-muted)]"
           }`}
           {...(disabled ? {} : { ...attributes, ...listeners })}
-          aria-label={`Seret untuk mengubah urutan ${label}`}
+          aria-label={`${t("map.dragLayerAria")} ${label}`}
           disabled={disabled}
         >
           <GripVertical className="h-3.5 w-3.5" />
@@ -84,7 +86,7 @@ export default function LayerItem({
       {visible && !disabled && (
         <div className="mt-1.5 flex items-center gap-2 pl-6 pr-1">
           <span className="text-[10px] text-[var(--dashboard-text-soft)] flex-shrink-0">
-            Opacity
+            {t("map.opacity")}
           </span>
           <input
             type="range"

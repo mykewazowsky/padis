@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Droplets, Leaf, Layers3, Globe, ArrowRight, BarChart3, TrendingUp, MapPin  } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function SectionHeader({
   title,
@@ -24,6 +25,7 @@ function SectionHeader({
 
 export default function LandingPage() {
   const { ref: cakupanRef, inView: cakupanInView } = useInView();
+  const { t } = useLanguage();
 
   return (
     <div className="content-theme">
@@ -33,7 +35,7 @@ export default function LandingPage() {
         <div className="absolute inset-0">
           <img
             src="/cover/pexels-dhennynapitupulu-19104382.jpg"
-            alt="Lanskap sawah padi"
+            alt={t("landing.heroImageAlt")}
             className="h-full w-full object-cover object-center opacity-45"
           />
 
@@ -61,7 +63,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="pointer-events-auto inline-flex max-w-full rounded-full border border-[var(--hero-chip-border)] bg-[var(--hero-chip-bg)] px-3 py-1.5 text-[11px] text-[var(--hero-text-muted)] shadow-sm backdrop-blur-sm transition hover:bg-[var(--hero-chip-bg)] hover:text-white"
             >
-              <span className="truncate">Foto oleh Dhenny Napitupulu di Pexels</span>
+              <span className="truncate">{t("landing.photoCredit")}</span>
             </a>
           </div>
         </div>
@@ -69,22 +71,19 @@ export default function LandingPage() {
         <div className="section-container relative z-20 grid gap-8 py-12 md:gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-28">
           <div className="space-y-8">
             <span className="badge badge-secondary">
-              WebGIS PADIS: Paddy Disaster Information System
+              {t("landing.badge")}
             </span>
 
             <div className="space-y-6">
               <h1 className="animate-fade-up text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-                Analisis Risiko Padi Berbasis{" "}
+                {t("landing.heroTitle1")}{" "}
                 <span className="text-[var(--color-secondary)]">
-                  Bencana Banjir, Kekeringan, dan Multi-hazard
+                  {t("landing.heroTitle2")}
                 </span>
               </h1>
 
               <p className="animate-fade-up max-w-2xl text-base leading-relaxed text-[var(--hero-text-muted)] md:text-lg" style={{ animationDelay: "80ms" }}>
-                PADIS membantu memahami kerugian padi secara spasial melalui
-                analisis banjir, kekeringan, dan multi-hazard, serta perbandingan
-                kondisi projection dan baseline untuk mendukung pengambilan keputusan
-                berbasis data.
+                {t("landing.heroDesc")}
               </p>
             </div>
 
@@ -93,46 +92,44 @@ export default function LandingPage() {
                 href="/dashboard"
                 className="btn-secondary px-5 py-3 text-base font-semibold"
               >
-                Buka Dashboard
+                {t("landing.openDashboard")}
               </Link>
 
               <Link
                 href="/cara-kerja"
                 className="rounded-full border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-5 py-3 text-white backdrop-blur-sm transition hover:bg-[var(--hero-glass-bg-strong)]"
               >
-                Cara Kerja
+                {t("landing.howItWorks")}
               </Link>
 
               <Link
                 href="/about"
                 className="rounded-full border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-5 py-3 text-white backdrop-blur-sm transition hover:bg-[var(--hero-glass-bg-strong)]"
               >
-                Tentang PADIS
+                {t("landing.aboutPadis")}
               </Link>
             </div>
           </div>
 
           {/* HERO CARD */}
           <div className="animate-fade-up rounded-3xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg-strong)] p-7 shadow-xl backdrop-blur-lg" style={{ animationDelay: "150ms" }}>
-            <p className="text-sm text-[var(--hero-text-muted)]">Ringkasan Sistem</p>
+            <p className="text-sm text-[var(--hero-text-muted)]">{t("landing.systemSummaryTitle")}</p>
             <h3 className="mt-2 text-2xl font-bold">
-              Dashboard Analisis Risiko Berbasis Geospasial
+              {t("landing.systemSummarySubtitle")}
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-[var(--hero-text-muted)]">
-              PADIS mengintegrasikan data bencana, skenario projection dan baseline,
-              dan produksi padi untuk menghasilkan estimasi kerugian langsung dan
-              Average Annual Loss (AAL) secara spasial.
+              {t("landing.systemSummaryDesc")}
             </p>
 
             <div className="mt-5 grid gap-3">
               <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
-                Analisis Banjir & Kekeringan
+                {t("landing.feature1")}
               </div>
               <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
-                Penilaian Multi-hazard
+                {t("landing.feature2")}
               </div>
               <div className="rounded-2xl border border-[var(--hero-glass-border)] bg-[var(--hero-glass-bg)] px-4 py-3 text-[var(--hero-text-muted)]">
-                Skenario Projection dan Baseline
+                {t("landing.feature3")}
               </div>
             </div>
           </div>
@@ -149,37 +146,37 @@ export default function LandingPage() {
 
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <SectionHeader
-            title="Cakupan Sistem"
-            desc="PADIS mengintegrasikan berbagai model dan sumber data untuk menghasilkan analisis risiko yang lebih komprehensif."
+            title={t("landing.coverageTitle")}
+            desc={t("landing.coverageDesc")}
           />
 
           <div ref={cakupanRef} className="mt-16 grid gap-y-12 md:grid-cols-2 md:gap-x-10 xl:grid-cols-4 xl:gap-x-12">
             {[
               {
                 icon: Droplets,
-                title: "Banjir",
-                desc: "Menggunakan HEC-RAS 2D untuk simulasi genangan berdasarkan debit periode ulang 25–250 tahun.",
+                title: t("landing.hazardTitle"),
+                desc: t("landing.hazardDesc"),
                 iconBg: "border border-[rgba(30,99,181,0.22)] bg-[rgba(30,99,181,0.14)]",
                 iconText: "text-[var(--color-primary)]",
               },
               {
                 icon: Leaf,
-                title: "Kekeringan",
-                desc: "Menggunakan SPI berbasis curah hujan dari GPM dan MME untuk analisis kondisi kering.",
+                title: t("landing.droughtTitle"),
+                desc: t("landing.droughtDesc"),
                 iconBg: "border border-[rgba(22,163,74,0.22)] bg-[rgba(22,163,74,0.14)]",
                 iconText: "text-[var(--color-accent)]",
               },
               {
                 icon: Layers3,
-                title: "Multi-hazard",
-                desc: "Integrasi model banjir dan kekeringan untuk menghasilkan analisis risiko gabungan.",
+                title: t("landing.multiTitle"),
+                desc: t("landing.multiDesc"),
                 iconBg: "border border-[rgba(244,194,31,0.24)] bg-[rgba(244,194,31,0.14)]",
                 iconText: "text-[var(--color-secondary)]",
               },
               {
                 icon: Globe,
-                title: "Projection & Baseline",
-                desc: "Analisis berbasis data observasi dan proyeksi untuk berbagai periode ulang.",
+                title: t("landing.projectionTitle"),
+                desc: t("landing.projectionDesc"),
                 iconBg: "border border-[rgba(14,165,233,0.22)] bg-[rgba(14,165,233,0.14)]",
                 iconText: "text-[var(--color-primary)]",
               },
@@ -239,12 +236,12 @@ export default function LandingPage() {
         <div className="relative mx-auto w-full max-w-[1400px] px-6 lg:px-10">
 
           <SectionHeader
-            title="Hasil Analisis"
-            desc="PADIS menyajikan luaran risiko yang membantu membaca pola kerugian padi secara spasial."
+            title={t("landing.resultsTitle")}
+            desc={t("landing.resultsDesc")}
           />
 
           <div className="mt-16 grid gap-10 xl:grid-cols-[1.08fr_0.92fr] xl:gap-12">
-            
+
             {/* LEFT */}
             <div className="flex flex-col justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(30,99,181,0.22)] bg-[rgba(30,99,181,0.14)] shadow-sm">
@@ -252,47 +249,38 @@ export default function LandingPage() {
               </div>
 
               <h3 className="mt-6 text-2xl font-bold tracking-tight text-[var(--color-text)] md:text-3xl xl:text-[2rem]">
-                Luaran risiko yang ringkas, spasial, dan siap digunakan
+                {t("landing.keyMetrics")}
               </h3>
 
               <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--color-gray)] md:text-lg">
-                PADIS membantu membaca{" "}
-                <span className="font-semibold text-[var(--color-text)]">
-                  estimasi kerugian langsung
-                </span>,{" "}
-                <span className="font-semibold text-[var(--color-text)]">
-                  Average Annual Loss (AAL)
-                </span>, serta{" "}
-                <span className="font-semibold text-[var(--color-text)]">
-                  distribusi risiko wilayah
-                </span>.
+                {t("landing.directLossDesc")}
               </p>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 <div className="content-surface-card rounded-2xl border border-[var(--color-border)] px-4 py-4 backdrop-blur">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-gray)]">
-                    Luaran
+                    {t("landing.outputLabel")}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">
-                    Kerugian langsung & AAL
+                    {t("landing.outputValue")}
                   </p>
                 </div>
 
                 <div className="content-surface-card rounded-2xl border border-[var(--color-border)] px-4 py-4 backdrop-blur">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-gray)]">
-                    Pendekatan
+                    {t("landing.approachLabel")}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">
-                    Analisis spasial
+                    {t("landing.approachValue")}
                   </p>
                 </div>
 
                 <div className="content-surface-card rounded-2xl border border-[var(--color-border)] px-4 py-4 backdrop-blur">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-gray)]">
-                    Komparasi
+                    {t("landing.comparisonLabel")}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">
-                    Antar skenario
+                    {t("landing.comparisonValue")}
                   </p>
                 </div>
               </div>
@@ -306,15 +294,15 @@ export default function LandingPage() {
                     <TrendingUp className="h-5 w-5 text-[var(--color-primary)]" />
                   </div>
                   <div>
-                    <p className="text-sm text-[var(--color-gray)]">Indikator Utama</p>
+                    <p className="text-sm text-[var(--color-gray)]">{t("landing.directLossTitle")}</p>
                     <h4 className="font-semibold text-[var(--color-text)]">
-                      Kerugian Langsung & AAL
+                      {t("landing.keyMetrics")}
                     </h4>
                   </div>
                 </div>
 
                 <p className="mt-4 text-sm text-[var(--color-gray)]">
-                  Gambaran ringkas besaran kerugian langsung dan Average Annual Loss.
+                  {t("landing.directLossDesc")}
                 </p>
               </div>
 
@@ -323,10 +311,10 @@ export default function LandingPage() {
                   <MapPin className="h-5 w-5 text-[var(--color-secondary)]" />
                 </div>
                 <h4 className="mt-4 font-semibold text-[var(--color-text)]">
-                  Distribusi Wilayah
+                  {t("landing.distributionTitle")}
                 </h4>
                 <p className="mt-2 text-sm text-[var(--color-gray)]">
-                  Identifikasi wilayah prioritas berbasis risiko spasial.
+                  {t("landing.distributionDesc")}
                 </p>
               </div>
 
@@ -335,19 +323,16 @@ export default function LandingPage() {
                   <Layers3 className="h-5 w-5 text-[var(--color-accent)]" />
                 </div>
                 <h4 className="mt-4 font-semibold text-[var(--color-text)]">
-                  Perbandingan
+                  {t("landing.comparisonTitle")}
                 </h4>
                 <p className="mt-2 text-sm text-[var(--color-gray)]">
-                  Evaluasi perubahan antar skenario.
+                  {t("landing.comparisonDesc")}
                 </p>
               </div>
 
               <div className="sm:col-span-2 border-t border-[var(--color-border)] pt-6">
                 <p className="text-sm text-[var(--color-gray)]">
-                  Seluruh hasil disajikan dalam bentuk{" "}
-                  <span className="font-semibold text-[var(--color-text)]">
-                    analisis spasial
-                  </span>.
+                  {t("landing.resultsDesc")}
                 </p>
               </div>
             </div>
@@ -360,7 +345,7 @@ export default function LandingPage() {
       <section className="section-shell content-section">
         <div className="section-container">
           <div className="section-gradient-primary relative overflow-hidden rounded-[2rem] p-10 text-center text-white shadow-lg">
-            
+
             {/* subtle background effect */}
             <div className="absolute inset-0 opacity-30">
               <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
@@ -369,16 +354,15 @@ export default function LandingPage() {
 
             <div className="relative z-10">
               <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-secondary)]">
-                MULAI ANALISIS
+                {t("landing.ctaBadge")}
               </p>
 
               <h3 className="mt-2 text-3xl font-bold md:text-4xl">
-                Eksplorasi Risiko Padi Berbasis Data Sekarang
+                {t("landing.ctaTitle")}
               </h3>
 
               <p className="mx-auto mt-4 max-w-2xl text-blue-100 md:text-lg">
-                Analisis kerugian, bandingkan skenario, dan identifikasi wilayah prioritas
-                secara lebih cepat melalui dashboard PADIS.
+                {t("landing.ctaDesc")}
               </p>
 
               <div className="mt-8 flex flex-wrap justify-center gap-4">
@@ -387,7 +371,7 @@ export default function LandingPage() {
                   href="/dashboard"
                   className="btn-secondary px-6 py-3 text-base font-semibold"
                 >
-                  Mulai Analisis
+                  {t("landing.startAnalysis")}
                 </Link>
 
                 {/* Secondary CTA */}
@@ -395,7 +379,7 @@ export default function LandingPage() {
                   href="/cara-kerja"
                   className="inline-flex items-center gap-2 text-sm text-white/90 hover:text-white"
                 >
-                  Pelajari Cara Kerja <ArrowRight className="h-4 w-4" />
+                  {t("landing.learnMore")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

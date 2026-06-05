@@ -26,6 +26,7 @@ import { fetchJson } from "../../lib/fetcher";
 import DashboardLoadingBlock from "../dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../dashboard/DashboardEmptyState";
 import { useChartTheme } from "./chartTheme";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Props = {
   hazard: string;
@@ -62,19 +63,18 @@ function safeNumber(value: unknown) {
   return typeof value === "number" ? value : Number(value) || 0;
 }
 
-function getHazardLabel(hazard: string) {
-  const h = hazard.toLowerCase().replace(/[-\s]/g, "");
-  if (h === "flood") return "Banjir";
-  if (h === "drought") return "Kekeringan";
-  return "Multi-hazard";
-}
-
-function formatPercentChange(climateValue: number, nonclimateValue: number) {
+function formatPercentChange(
+  climateValue: number,
+  nonclimateValue: number,
+  baselineLabel: string,
+  projectionLabel: string,
+  t: TFunction
+) {
   if (!nonclimateValue || nonclimateValue === 0) {
     return {
       label: "N/A",
       colorClass: "text-muted",
-      description: "Perubahan belum dapat dihitung.",
+      description: t("charts.naChange"),
       isUp: false,
       delta: 0,
     };
@@ -89,8 +89,8 @@ function formatPercentChange(climateValue: number, nonclimateValue: number) {
       ? "text-[var(--dashboard-status-danger-text)]"
       : "text-[var(--dashboard-status-success-text)]",
     description: isUp
-      ? "Nilai projection lebih tinggi dibanding baseline."
-      : "Nilai projection lebih rendah dibanding baseline.",
+      ? `${projectionLabel} ${t("charts.projectionHigherThan")} ${baselineLabel}.`
+      : `${projectionLabel} ${t("charts.projectionLowerThan")} ${baselineLabel}.`,
     isUp,
     delta: climateValue - nonclimateValue,
   };
@@ -100,9 +100,9 @@ const NONCLIMATE_COLOR = "var(--color-primary)";
 const CLIMATE_COLOR = "var(--color-secondary)";
 
 const HAZARD_COLORS: Record<string, string> = {
-  Banjir: "#3b82f6",
-  Kekeringan: "#f97316",
-  "Multi-hazard": "#a855f7",
+  flood: "#3b82f6",
+  drought: "#f97316",
+  multi: "#a855f7",
 };
 
 const CHART_CARD_CLASS =
@@ -157,14 +157,19 @@ function HazardDot({
 
 // ─── Custom Tooltips ──────────────────────────────────────────────────────────
 
-type ScatterPoint = { x: number; y: number; name: string };
+type ScatterPoint = { x: number; y: number; name: string; code: string };
+type TFunction = (key: string) => string;
 
 function ScatterTooltip({
   active,
   payload,
+  baselineLabel,
+  projectionLabel,
 }: {
   active?: boolean;
   payload?: Array<{ payload: ScatterPoint }>;
+  baselineLabel: string;
+  projectionLabel: string;
 }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
@@ -181,7 +186,7 @@ function ScatterTooltip({
             style={{ backgroundColor: NONCLIMATE_COLOR }}
           />
           <span className="text-[var(--chart-tooltip-muted)]">
-            Baseline:{" "}
+            {baselineLabel}:{" "}
             <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.x)}
             </span>
@@ -193,7 +198,7 @@ function ScatterTooltip({
             style={{ backgroundColor: CLIMATE_COLOR }}
           />
           <span className="text-[var(--chart-tooltip-muted)]">
-            Projection:{" "}
+            {projectionLabel}:{" "}
             <span className="font-semibold text-[var(--chart-tooltip-text)]">
               {formatRupiah(d.y)}
             </span>
@@ -208,10 +213,14 @@ function LineTooltip({
   active,
   payload,
   label,
+  baselineLabel,
+  projectionLabel,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
+  baselineLabel: string;
+  projectionLabel: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -227,7 +236,7 @@ function LineTooltip({
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-[var(--chart-tooltip-muted)]">
-              {entry.name === "nonclimate" ? "Baseline" : "Projection"}:{" "}
+              {entry.name === "nonclimate" ? baselineLabel : projectionLabel}:{" "}
               <span className="font-semibold text-[var(--chart-tooltip-text)]">
                 {formatRupiah(Number(entry.value))}
               </span>
@@ -242,6 +251,7 @@ function LineTooltip({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ComparisonCharts({ hazard, runId }: Props) {
+  const { t } = useLanguage();
   const [aalAllHazards, setAalAllHazards] = useState<AalAllHazardsItem[]>([]);
   const [lossCompareClimate, setLossCompareClimate] = useState<
     LossCompareClimateItem[]
@@ -254,6 +264,13 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
   const [errorLoss, setErrorLoss] = useState<string | null>(null);
   const chartTheme = useChartTheme();
 
+  function getHazardLabel(h: string) {
+    const normalized = h.toLowerCase().replace(/[-\s]/g, "");
+    if (normalized === "flood") return t("charts.flood");
+    if (normalized === "drought") return t("charts.drought");
+    return t("charts.multi");
+  }
+
   useEffect(() => {
     setLoadingAAL(true);
     setErrorAAL(null);
@@ -264,7 +281,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       .then((json) => setAalAllHazards(json))
       .catch((err) => {
         console.error("AAL all hazards fetch error:", err);
-        setErrorAAL("Gagal memuat perbandingan AAL antar hazard.");
+        setErrorAAL(t("charts.errAalComparison"));
         setAalAllHazards([]);
       })
       .finally(() => setLoadingAAL(false));
@@ -280,9 +297,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       .then((json) => setLossCompareClimate(json))
       .catch((err) => {
         console.error("Loss compare climate fetch error:", err);
-        setErrorLoss(
-          "Gagal memuat perbandingan total loss projection vs baseline."
-        );
+        setErrorLoss(t("charts.errLossComparison"));
         setLossCompareClimate([]);
       })
       .finally(() => setLoadingLoss(false));
@@ -291,16 +306,19 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
   const aalChartData = useMemo(() => {
     return aalAllHazards.map((item) => ({
       hazard: getHazardLabel(item.hazard),
+      hazardCode: item.hazard,
       nonclimate: safeNumber(item.total_aal_nonclimate),
       climate: safeNumber(item.total_aal_climate),
     }));
-  }, [aalAllHazards]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aalAllHazards, t]);
 
   const scatterData = useMemo<ScatterPoint[]>(() => {
     return aalChartData.map((d) => ({
       x: d.nonclimate,
       y: d.climate,
       name: d.hazard,
+      code: d.hazardCode,
     }));
   }, [aalChartData]);
 
@@ -352,7 +370,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
         changeInfo: {
           label: "N/A",
           colorClass: "text-muted",
-          description: "Perubahan belum dapat dihitung.",
+          description: t("charts.naChange"),
           isUp: false,
           delta: 0,
         },
@@ -374,7 +392,10 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
     const top = ranked[0];
     const changeInfo = formatPercentChange(
       safeNumber(top.total_aal_climate),
-      safeNumber(top.total_aal_nonclimate)
+      safeNumber(top.total_aal_nonclimate),
+      t("charts.baseline"),
+      t("charts.projection"),
+      t
     );
 
     return {
@@ -383,7 +404,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       climateValue: safeNumber(top.total_aal_climate),
       changeInfo,
     };
-  }, [aalAllHazards]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aalAllHazards, t]);
 
   const hasLossData = useMemo(() => {
     return lossCompareClimate.some(
@@ -402,7 +424,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
         compareInfo: {
           label: "N/A",
           colorClass: "text-muted",
-          description: "Perubahan belum dapat dihitung.",
+          description: t("charts.naChange"),
           isUp: false,
           delta: 0,
         },
@@ -426,7 +448,13 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       0
     );
 
-    const compareInfo = formatPercentChange(climateTotal, nonclimateTotal);
+    const compareInfo = formatPercentChange(
+      climateTotal,
+      nonclimateTotal,
+      t("charts.baseline"),
+      t("charts.projection"),
+      t
+    );
 
     return {
       topScenario: top?.scenario ?? "-",
@@ -438,7 +466,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
       climateTotal,
       compareInfo,
     };
-  }, [lossCompareClimate]);
+  }, [lossCompareClimate, t]);
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -452,24 +480,22 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <ArrowRightLeft className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <h4 className="text-base font-bold tracking-tight text-heading">
-                  Average Annual Loss (AAL) Antar Hazard
+                  {t("charts.aalComparisonCardTitle")}
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan AAL Baseline dan Projection untuk Banjir, Kekeringan,
-                dan Multi-hazard.
+                {t("charts.aalComparisonDescPrefix")} {t("charts.baseline")} {t("common.and")} {t("charts.projection")} {t("common.for")} {t("charts.flood")}, {t("charts.drought")}, {t("common.and")} {t("charts.multi")}.
               </p>
               {!loadingAAL && aalRegionCount != null && aalRegionCount > 0 && (
                 <div className="mt-2 flex items-start gap-1.5 rounded-md border border-[var(--dashboard-border-soft)] bg-[var(--dashboard-surface-muted)] px-2.5 py-1.5">
                   <Info className="mt-0.5 h-3 w-3 shrink-0 text-[var(--dashboard-text-muted)]" />
                   <p className="text-[11px] leading-snug text-[var(--dashboard-text-muted)]">
-                    Dihitung dari{" "}
+                    {t("charts.aalRegionCountPrefix")}{" "}
                     <span className="font-semibold text-[var(--dashboard-text)]">
-                      {aalRegionCount} kabupaten/kota
+                      {aalRegionCount} {t("charts.aalRegionCountDistrictUnit")}
                     </span>{" "}
-                    yang memiliki data banjir, kekeringan, <em>dan</em> multi-hazard
-                    sekaligus. Wilayah tanpa data salah satu hazard dikecualikan agar
-                    perbandingan antar hazard setara.
+                    {t("charts.aalRegionCountMid")} {t("charts.flood").toLowerCase()}, {t("charts.drought").toLowerCase()}, <em>{t("common.and")}</em> {t("charts.multi").toLowerCase()}
+                    {t("charts.aalRegionCountSuffix")}
                   </p>
                 </div>
               )}
@@ -477,7 +503,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
 
             {!loadingAAL && !errorAAL && hasAALData ? (
               <div className={STATUS_BADGE_CLASS}>
-                Semua Hazards
+                {t("charts.allHazardsBadge")}
               </div>
             ) : null}
           </div>
@@ -485,20 +511,20 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
           <div className={METRIC_RAIL_CLASS}>
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Hazard Tertinggi
+                {t("charts.topHazardLabel")}
               </p>
               <p className="text-sm font-semibold text-heading">
-                {loadingAAL ? "Loading..." : topAalHazard.hazardLabel}
+                {loadingAAL ? t("charts.loading") : topAalHazard.hazardLabel}
               </p>
             </div>
 
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Nilai Tertinggi
+                {t("charts.topValueLabel")}
               </p>
               <p className="text-sm font-semibold text-heading">
                 {loadingAAL
-                  ? "Loading..."
+                  ? t("charts.loading")
                   : formatRupiah(
                       Math.max(topAalHazard.value, topAalHazard.climateValue)
                     )}
@@ -516,7 +542,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorAAL}</p>
             ) : !hasAALData ? (
               <p className="text-sm text-muted">
-                Belum ada data AAL antar hazard yang dapat divisualisasikan.
+                {t("charts.noAalData")}
               </p>
             ) : (
               <div className="flex items-start gap-3">
@@ -545,8 +571,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
             {loadingAAL ? (
               <DashboardLoadingBlock
                 heightClass="h-full"
-                title="Memuat AAL lintas hazard..."
-                description="Ringkasan AAL antar hazard sedang disiapkan."
+                title={t("charts.loadingAal")}
+                description={t("charts.loadingAalDesc")}
               />
             ) : errorAAL ? (
               <div className={ERROR_CANVAS_CLASS}>
@@ -554,8 +580,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               </div>
             ) : !hasAALData ? (
               <DashboardEmptyState
-                message="Belum ada nilai AAL antar hazard yang cukup untuk ditampilkan pada chart ini."
-                actionHint="Pastikan file AAL banjir, kekeringan, dan multi tersedia."
+                message={t("charts.noAalHazardMsg")}
+                actionHint={t("charts.noAalHazardHint")}
                 compact
               />
             ) : (
@@ -567,12 +593,12 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <XAxis
                     type="number"
                     dataKey="x"
-                    name="Baseline"
+                    name={t("charts.baseline")}
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
-                      value: "Baseline (Rp)",
+                      value: `${t("charts.baseline")} (Rp)`,
                       position: "insideBottom",
                       offset: -25,
                       fontSize: 11,
@@ -582,13 +608,13 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="Projection"
+                    name={t("charts.projection")}
                     tickFormatter={formatCompact}
                     domain={scatterDomain}
                     width={72}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                     label={{
-                      value: "Projection (Rp)",
+                      value: `${t("charts.projection")} (Rp)`,
                       angle: -90,
                       position: "insideLeft",
                       offset: 20,
@@ -596,7 +622,14 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                       fill: chartTheme.axis,
                     }}
                   />
-                  <Tooltip content={<ScatterTooltip />} />
+                  <Tooltip
+                    content={
+                      <ScatterTooltip
+                        baselineLabel={t("charts.baseline")}
+                        projectionLabel={t("charts.projection")}
+                      />
+                    }
+                  />
                   <ReferenceLine
                     segment={[
                       { x: scatterDomain[0], y: scatterDomain[0] },
@@ -617,7 +650,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                       key={point.name}
                       name={point.name}
                       data={[point]}
-                      fill={HAZARD_COLORS[point.name] ?? "#8884d8"}
+                      fill={HAZARD_COLORS[point.code] ?? "#8884d8"}
                       shape={HazardDot}
                     />
                   ))}
@@ -638,12 +671,11 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <BarChart3 className="h-4 w-4 text-[var(--color-secondary-dark)]" />
                 </div>
                 <h4 className="text-base font-bold tracking-tight text-heading">
-                  Total Kerugian Langsung per Skenario Analisis
+                  {t("charts.lossComparisonCardTitle")}
                 </h4>
               </div>
               <p className="mt-2 text-sm text-muted">
-                Perbandingan Baseline dan Projection untuk hazard{" "}
-                {getHazardLabel(hazard)} pada semua skenario analisis.
+                {t("charts.comparisonOf")} {t("charts.baseline")} {t("common.and")} {t("charts.projection")} {t("charts.lossComparisonForHazard")} {getHazardLabel(hazard)} {t("charts.lossComparisonAllScenarios")}
               </p>
             </div>
 
@@ -655,20 +687,20 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
           <div className={METRIC_RAIL_CLASS}>
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Scenario Tertinggi
+                {t("charts.topScenarioLabel")}
               </p>
               <p className="text-sm font-semibold text-heading">
-                {loadingLoss ? "Loading..." : lossInsight.topScenario}
+                {loadingLoss ? t("charts.loading") : lossInsight.topScenario}
               </p>
             </div>
 
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Total Kerugian Tertinggi
+                {t("charts.topLoss")}
               </p>
               <p className="text-sm font-semibold text-heading">
                 {loadingLoss
-                  ? "Loading..."
+                  ? t("charts.loading")
                   : formatRupiah(lossInsight.topValue)}
               </p>
             </div>
@@ -684,7 +716,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorLoss}</p>
             ) : !hasLossData ? (
               <p className="text-sm text-muted">
-                Belum ada total kerugian per scenario yang dapat dianalisis.
+                {t("charts.noLossData")}
               </p>
             ) : (
               <div className="flex items-start gap-3">
@@ -695,7 +727,7 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                   <p
                     className={`text-sm font-semibold ${lossInsight.compareInfo.colorClass}`}
                   >
-                    Total projection vs baseline:{" "}
+                    Total {t("charts.projection")} vs {t("charts.baseline")}:{" "}
                     {lossInsight.compareInfo.label}
                   </p>
                   <p className="mt-1 text-sm text-muted">
@@ -710,8 +742,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
             {loadingLoss ? (
               <DashboardLoadingBlock
                 heightClass="h-full"
-                title="Memuat perbandingan total kerugian..."
-                description="Ringkasan kerugian projection vs baseline sedang disiapkan."
+                title={t("charts.loadingLoss")}
+                description={t("charts.loadingLossDesc")}
               />
             ) : errorLoss ? (
               <div className={ERROR_CANVAS_CLASS}>
@@ -719,8 +751,8 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
               </div>
             ) : !hasLossData ? (
               <DashboardEmptyState
-                message="Belum ada total kerugian per scenario yang dapat ditampilkan untuk hazard ini."
-                actionHint="Pastikan layer web output tersedia untuk semua scenario."
+                message={t("charts.noLossScenarioMsg")}
+                actionHint={t("charts.noLossScenarioHint")}
                 compact
               />
             ) : (
@@ -741,11 +773,18 @@ export default function ComparisonCharts({ hazard, runId }: Props) {
                     width={72}
                     tick={{ fontSize: 11, fill: chartTheme.axis }}
                   />
-                  <Tooltip content={<LineTooltip />} />
+                  <Tooltip
+                    content={
+                      <LineTooltip
+                        baselineLabel={t("charts.baseline")}
+                        projectionLabel={t("charts.projection")}
+                      />
+                    }
+                  />
                   <Legend
                     wrapperStyle={{ color: chartTheme.axis, fontSize: 12 }}
                     formatter={(value: string) =>
-                      value === "nonclimate" ? "Baseline" : "Projection"
+                      value === "nonclimate" ? t("charts.baseline") : t("charts.projection")
                     }
                   />
                   <Line

@@ -17,9 +17,11 @@ import {
 
 import { buildApiUrl } from "../../../lib/api";
 import { getErrorMessage, getResponseError } from "../../../lib/error";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,27 +37,27 @@ export default function RegisterPage() {
 
   function validateForm() {
     if (!name.trim()) {
-      return "Nama lengkap wajib diisi.";
+      return t("auth.register.errNameRequired");
     }
 
     if (!email.trim()) {
-      return "Email wajib diisi.";
+      return t("auth.register.errEmailRequired");
     }
 
     if (!password) {
-      return "Password wajib diisi.";
+      return t("auth.register.errPasswordRequired");
     }
 
     if (password.length < 8) {
-      return "Password minimal 8 karakter.";
+      return t("auth.register.errPasswordTooShort");
     }
 
     if (!confirmPassword) {
-      return "Konfirmasi password wajib diisi.";
+      return t("auth.register.errConfirmRequired");
     }
 
     if (password !== confirmPassword) {
-      return "Password dan konfirmasi password tidak sama.";
+      return t("auth.register.errPasswordMismatch");
     }
 
     return "";
@@ -90,12 +92,12 @@ export default function RegisterPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(getResponseError(json, "Registrasi gagal"));
+        throw new Error(getResponseError(json, t("auth.register.errFailed")));
       }
 
       setSuccess(
         json.message ||
-          "Registrasi berhasil. Silakan login menggunakan akun Anda."
+          t("auth.register.successMessage")
       );
 
       setName("");
@@ -127,17 +129,11 @@ export default function RegisterPage() {
               <span className="badge badge-secondary">PADIS ACCOUNT</span>
 
               <h1 className="mt-5 text-4xl font-bold tracking-tight leading-tight xl:text-5xl">
-                Buat akun untuk
-                <br />
-                mengakses fitur
-                <br />
-                PADIS
+                {t("auth.register.heroTitle")}
               </h1>
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
-                Daftarkan akun Anda untuk mengakses dashboard risiko,
-                visualisasi spasial, perbandingan projection dan baseline, serta
-                fitur unduh output dan report PADIS.
+                {t("auth.register.heroDesc")}
               </p>
             </div>
 
@@ -150,11 +146,10 @@ export default function RegisterPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
-                        Dashboard Interaktif
+                        {t("auth.register.dashboardTitle")}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Eksplorasi peta risiko, statistik, dan chart analisis
-                        secara terintegrasi.
+                        {t("auth.register.dashboardDesc")}
                       </p>
                     </div>
                   </div>
@@ -167,11 +162,10 @@ export default function RegisterPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
-                        Akses Terkelola
+                        {t("auth.register.accessTitle")}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Akun pengguna dapat dikelola untuk mendukung kontrol
-                        akses fitur PADIS.
+                        {t("auth.register.accessDesc")}
                       </p>
                     </div>
                   </div>
@@ -189,19 +183,18 @@ export default function RegisterPage() {
           <div className="w-full max-w-md">
             <div className="card card-elevated p-8 md:p-9">
               <div className="mb-8">
-                <span className="badge badge-primary">REGISTER</span>
+                <span className="badge badge-primary">{t("auth.register.badge")}</span>
                 <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
-                  Buat akun PADIS
+                  {t("auth.register.title")}
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                  Lengkapi data berikut untuk membuat akun baru dan mulai
-                  mengakses platform PADIS.
+                  {t("auth.register.description")}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="input-label">Nama Lengkap</label>
+                  <label className="input-label">{t("auth.register.fullNameLabel")}</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
                     <User className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
@@ -209,13 +202,13 @@ export default function RegisterPage() {
                       className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Masukkan nama lengkap"
+                      placeholder={t("auth.register.fullNamePlaceholder")}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="input-label">Email</label>
+                  <label className="input-label">{t("auth.register.emailLabel")}</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
                     <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
@@ -223,13 +216,13 @@ export default function RegisterPage() {
                       className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Masukkan email"
+                      placeholder={t("auth.register.emailPlaceholder")}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="input-label">Password</label>
+                  <label className="input-label">{t("auth.register.passwordLabel")}</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
                     <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
@@ -237,7 +230,7 @@ export default function RegisterPage() {
                       className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Minimal 8 karakter"
+                      placeholder={t("auth.register.passwordPlaceholder")}
                     />
                     <button
                       type="button"
@@ -257,7 +250,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="input-label">Konfirmasi Password</label>
+                  <label className="input-label">{t("auth.register.confirmPasswordLabel")}</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
                     <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
@@ -265,7 +258,7 @@ export default function RegisterPage() {
                       className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Ulangi password"
+                      placeholder={t("auth.register.confirmPasswordPlaceholder")}
                     />
                     <button
                       type="button"
@@ -306,17 +299,16 @@ export default function RegisterPage() {
                   className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <UserPlus className="h-4 w-4" />
-                  {loading ? "Memproses..." : "Daftar Akun"}
+                  {loading ? t("auth.register.processing") : t("auth.register.submitButton")}
                 </button>
               </form>
 
               <div className="mt-5 surface-soft p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text)]">
-                  Catatan
+                  {t("auth.register.noteLabel")}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                  Setelah registrasi berhasil, akun dapat langsung digunakan atau
-                  menunggu aktivasi admin, tergantung konfigurasi sistem PADIS.
+                  {t("auth.register.noteDesc")}
                 </p>
               </div>
 
@@ -326,24 +318,24 @@ export default function RegisterPage() {
                   className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Kembali ke Login
+                  {t("auth.register.backToLogin")}
                 </Link>
 
                 <Link
                   href="/"
                   className="font-medium text-[var(--color-primary)] transition hover:underline"
                 >
-                  Beranda
+                  {t("auth.register.backToHome")}
                 </Link>
               </div>
 
               <div className="mt-4 text-center text-sm text-[var(--auth-text-muted)]">
-                Sudah punya akun?{" "}
+                {t("auth.register.hasAccount")}{" "}
                 <Link
                   href="/login"
                   className="font-medium text-[var(--color-primary)] hover:underline"
                 >
-                  Masuk sekarang
+                  {t("auth.register.loginLink")}
                 </Link>
               </div>
             </div>

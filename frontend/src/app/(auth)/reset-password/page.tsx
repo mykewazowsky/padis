@@ -16,6 +16,7 @@ import {
 
 import { buildApiUrl } from "../../../lib/api";
 import { getErrorMessage, getResponseError } from "../../../lib/error";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /* ── Password strength ─────────────────────────────────── */
 type Strength = "weak" | "medium" | "strong";
@@ -32,16 +33,22 @@ function getPasswordStrength(pw: string): Strength | null {
   return "strong";
 }
 
-const STRENGTH_META: Record<Strength, { label: string; color: string; bars: number }> = {
-  weak:   { label: "Lemah",  color: "#ef4444", bars: 1 },
-  medium: { label: "Sedang", color: "#f59e0b", bars: 2 },
-  strong: { label: "Kuat",   color: "#22c55e", bars: 3 },
+const STRENGTH_META: Record<Strength, { color: string; bars: number }> = {
+  weak:   { color: "#ef4444", bars: 1 },
+  medium: { color: "#f59e0b", bars: 2 },
+  strong: { color: "#22c55e", bars: 3 },
 };
 
-function PasswordStrengthBar({ password }: { password: string }) {
+function PasswordStrengthBar({ password, t }: { password: string; t: (key: string) => string }) {
   const strength = getPasswordStrength(password);
   if (!strength) return null;
   const meta = STRENGTH_META[strength];
+  const strengthLabel =
+    strength === "weak"
+      ? t("auth.resetPassword.strengthWeak")
+      : strength === "medium"
+        ? t("auth.resetPassword.strengthMedium")
+        : t("auth.resetPassword.strengthStrong");
   return (
     <div className="mt-2 space-y-1.5">
       <div className="flex gap-1">
@@ -56,7 +63,7 @@ function PasswordStrengthBar({ password }: { password: string }) {
         ))}
       </div>
       <p className="text-xs" style={{ color: meta.color }}>
-        Kekuatan password: <span className="font-semibold">{meta.label}</span>
+        {t("auth.resetPassword.strengthLabel")} <span className="font-semibold">{strengthLabel}</span>
       </p>
     </div>
   );
@@ -66,6 +73,7 @@ function PasswordStrengthBar({ password }: { password: string }) {
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const token = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
 
@@ -83,12 +91,12 @@ function ResetPasswordForm() {
     confirmPassword.length > 0 && password !== confirmPassword;
 
   function validateForm() {
-    if (!token) return "Token reset password tidak ditemukan atau tidak valid.";
-    if (!password) return "Password baru wajib diisi.";
-    if (password.length < 8) return "Password baru minimal 8 karakter.";
-    if (!confirmPassword) return "Konfirmasi password wajib diisi.";
+    if (!token) return t("auth.resetPassword.errTokenNotFound");
+    if (!password) return t("auth.resetPassword.errPasswordRequired");
+    if (password.length < 8) return t("auth.resetPassword.errPasswordTooShort");
+    if (!confirmPassword) return t("auth.resetPassword.errConfirmRequired");
     if (password !== confirmPassword)
-      return "Password dan konfirmasi password tidak sama.";
+      return t("auth.resetPassword.errPasswordMismatch");
     return "";
   }
 
@@ -114,7 +122,7 @@ function ResetPasswordForm() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(getResponseError(json, "Reset password gagal."));
+        throw new Error(getResponseError(json, t("auth.resetPassword.errFailed")));
       }
 
       setSuccess(true);
@@ -138,20 +146,14 @@ function ResetPasswordForm() {
 
           <div className="relative flex w-full flex-col justify-between px-10 py-12 text-white xl:px-14">
             <div>
-              <span className="badge badge-secondary">RESET PASSWORD</span>
+              <span className="badge badge-secondary">{t("auth.resetPassword.badge")}</span>
 
               <h1 className="mt-5 text-4xl font-bold tracking-tight leading-tight xl:text-5xl">
-                Tetapkan password
-                <br />
-                baru untuk akun
-                <br />
-                PADIS
+                {t("auth.resetPassword.titleFull")}
               </h1>
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
-                Gunakan halaman ini untuk menyelesaikan proses pemulihan akun.
-                Setelah password diperbarui, Anda dapat kembali login ke PADIS
-                menggunakan kredensial baru.
+                {t("auth.resetPassword.description")}
               </p>
             </div>
 
@@ -163,10 +165,9 @@ function ResetPasswordForm() {
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Token Sekali Pakai</p>
+                      <p className="text-sm font-semibold text-white">{t("auth.resetPassword.securityTitle")}</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Tautan reset hanya berlaku terbatas dan akan
-                        dinonaktifkan setelah password diperbarui.
+                        {t("auth.resetPassword.securityDesc")}
                       </p>
                     </div>
                   </div>
@@ -178,10 +179,9 @@ function ResetPasswordForm() {
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Akses Kembali ke Sistem</p>
+                      <p className="text-sm font-semibold text-white">{t("auth.resetPassword.accessTitle")}</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Setelah berhasil, Anda dapat kembali mengakses fitur
-                        dashboard dan analisis PADIS.
+                        {t("auth.resetPassword.accessDesc")}
                       </p>
                     </div>
                   </div>
@@ -204,16 +204,14 @@ function ResetPasswordForm() {
               {!token && (
                 <div className="space-y-5">
                   <div className="mb-2">
-                    <span className="badge badge-primary">RESET PASSWORD</span>
+                    <span className="badge badge-primary">{t("auth.resetPassword.badge")}</span>
                   </div>
                   <div className="rounded-2xl border px-4 py-3 text-sm text-[var(--auth-alert-danger-text)] [background:var(--auth-alert-danger-bg)] [border-color:var(--auth-alert-danger-border)]">
-                    Token reset password tidak ditemukan. Silakan ulangi proses
-                    lupa password.
+                    {t("auth.resetPassword.noToken")}
                   </div>
                   <div className="surface-soft p-4">
                     <p className="text-sm text-[var(--auth-text-muted)]">
-                      Pastikan Anda membuka halaman reset dari tautan yang
-                      dikirim sistem ke email Anda.
+                      {t("auth.resetPassword.noTokenDesc")}
                     </p>
                   </div>
                   <div className="flex items-center justify-between gap-3 text-sm">
@@ -222,7 +220,7 @@ function ResetPasswordForm() {
                       className="inline-flex items-center gap-2 text-[var(--color-primary)] transition hover:underline"
                     >
                       <ArrowLeft className="h-4 w-4" />
-                      Minta tautan baru
+                      {t("auth.resetPassword.requestNewLink")}
                     </Link>
                     <Link
                       href="/login"
@@ -240,19 +238,18 @@ function ResetPasswordForm() {
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 ring-4 ring-green-100">
                     <CheckCircle2 className="h-8 w-8 text-green-500" />
                   </div>
-                  <span className="badge badge-primary mb-3">BERHASIL</span>
+                  <span className="badge badge-primary mb-3">{t("auth.resetPassword.successBadge")}</span>
                   <h2 className="text-2xl font-bold tracking-tight text-[var(--auth-text)]">
-                    Password diperbarui!
+                    {t("auth.resetPassword.successTitle")}
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                    Password baru Anda telah tersimpan. Anda akan diarahkan ke
-                    halaman login secara otomatis.
+                    {t("auth.resetPassword.successDesc")}
                   </p>
                   <Link
                     href="/login"
                     className="btn-primary mt-6 inline-flex w-full items-center justify-center gap-2 py-3 text-sm font-semibold"
                   >
-                    Login Sekarang
+                    {t("auth.resetPassword.successLoginButton")}
                   </Link>
                 </div>
               )}
@@ -263,17 +260,17 @@ function ResetPasswordForm() {
                   <div className="mb-8">
                     <span className="badge badge-primary">NEW PASSWORD</span>
                     <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
-                      Reset password
+                      {t("auth.resetPassword.title")}
                     </h2>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                      Buat password baru yang kuat untuk akun PADIS Anda.
+                      {t("auth.resetPassword.description")}
                     </p>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Password field */}
                     <div>
-                      <label className="input-label">Password Baru</label>
+                      <label className="input-label">{t("auth.resetPassword.newPasswordLabel")}</label>
                       <div className="input-shell flex items-center gap-3 px-4 py-3">
                         <Lock className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                         <input
@@ -281,7 +278,7 @@ function ResetPasswordForm() {
                           className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Minimal 8 karakter"
+                          placeholder={t("auth.resetPassword.newPasswordPlaceholder")}
                           autoFocus
                         />
                         <button
@@ -293,12 +290,12 @@ function ResetPasswordForm() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <PasswordStrengthBar password={password} />
+                      <PasswordStrengthBar password={password} t={t} />
                     </div>
 
                     {/* Confirm password field */}
                     <div>
-                      <label className="input-label">Konfirmasi Password Baru</label>
+                      <label className="input-label">{t("auth.resetPassword.confirmPasswordLabel")}</label>
                       <div
                         className="input-shell flex items-center gap-3 px-4 py-3"
                         style={
@@ -315,7 +312,7 @@ function ResetPasswordForm() {
                           className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Ulangi password baru"
+                          placeholder={t("auth.resetPassword.confirmPasswordPlaceholder")}
                         />
                         <button
                           type="button"
@@ -329,12 +326,12 @@ function ResetPasswordForm() {
                       {passwordsMatch && (
                         <p className="mt-1.5 flex items-center gap-1.5 text-xs text-green-600">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          Password cocok
+                          {t("auth.resetPassword.passwordMatch")}
                         </p>
                       )}
                       {passwordsMismatch && (
                         <p className="mt-1.5 text-xs text-red-500">
-                          Password tidak sama
+                          {t("auth.resetPassword.passwordMismatch")}
                         </p>
                       )}
                     </div>
@@ -351,17 +348,16 @@ function ResetPasswordForm() {
                       className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <KeyRound className="h-4 w-4" />
-                      {loading ? "Memproses..." : "Simpan Password Baru"}
+                      {loading ? t("auth.resetPassword.processing") : t("auth.resetPassword.submitButton")}
                     </button>
                   </form>
 
                   <div className="mt-5 surface-soft p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text)]">
-                      Tips keamanan
+                      {t("auth.resetPassword.tipsTitle")}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                      Gunakan minimal 8 karakter dengan kombinasi huruf besar,
-                      huruf kecil, angka, dan karakter khusus.
+                      {t("auth.resetPassword.tipsDesc")}
                     </p>
                   </div>
 
@@ -377,7 +373,7 @@ function ResetPasswordForm() {
                       href="/forgot-password"
                       className="font-medium text-[var(--color-primary)] transition hover:underline"
                     >
-                      Minta token baru
+                      {t("auth.resetPassword.requestNewToken")}
                     </Link>
                   </div>
                 </>

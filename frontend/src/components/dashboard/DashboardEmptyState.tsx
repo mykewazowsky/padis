@@ -1,6 +1,7 @@
 "use client";
 
 import { Inbox } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Props = {
   title?: string;
@@ -10,11 +11,14 @@ type Props = {
 };
 
 export default function DashboardEmptyState({
-  title = "Belum ada data",
+  title,
   message,
   actionHint,
   compact = false,
 }: Props) {
+  const { t } = useLanguage();
+  const resolvedTitle = title ?? t("dashboard.noDataDefault");
+
   return (
     <div
       className={`flex w-full items-center justify-center rounded-2xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-muted)] px-6 text-center ${
@@ -26,7 +30,7 @@ export default function DashboardEmptyState({
           <Inbox className="h-5 w-5 text-[var(--color-primary)]" />
         </div>
 
-        <h3 className="mt-4 text-base font-semibold text-[var(--dashboard-text)]">{title}</h3>
+        <h3 className="mt-4 text-base font-semibold text-[var(--dashboard-text)]">{resolvedTitle}</h3>
         <p className="mt-2 text-sm leading-relaxed text-[var(--dashboard-text-muted)]">{message}</p>
 
         {actionHint ? (

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+"use client";
 import Link from "next/link";
 import {
   Layers3,
@@ -13,86 +13,7 @@ import {
   Target,
 } from "lucide-react";
 import AnimatedPipelineSteps from "@/components/cara-kerja/AnimatedPipelineSteps";
-
-export const metadata: Metadata = {
-  title: "Cara Kerja",
-  description:
-    "Pelajari cara PADIS mengolah data hazard banjir dan kekeringan menjadi estimasi kerugian ekonomi, Average Annual Loss (AAL), dan luaran spasial untuk analisis risiko wilayah padi.",
-};
-
-const analyticalPipeline = [
-  {
-    step: "01",
-    title: "Raster Hazard",
-    desc: "Data raster banjir dan kekeringan digunakan sebagai basis bahaya untuk berbagai skenarioa dan periode ulang.",
-  },
-  {
-    step: "02",
-    title: "Overlay Spasial",
-    desc: "Nilai bahaya diekstraksi pada layer sawah dan diagregasi ke tingkat kabupaten/kota menggunakan analisis spasial.",
-  },
-  {
-    step: "03",
-    title: "Transformasi",
-    desc: "Nilai bahaya ditransformasikan menjadi Loss of Productivity (LOP): indikator potensi dampak terhadap padi.",
-  },
-  {
-    step: "04",
-    title: "Estimasi Kerugian Langsung",
-    desc: "Loss of Productivity (LOP) dikombinasikan dengan data total produksi dan Harga Gabah Kering Panen (GKP) untuk menghasilkan estimasi kerugian dalam rupiah.",
-  },
-  {
-    step: "05",
-    title: "AAL & Luaran",
-    desc: "Estimasi kerugian langsung diekstraksi menjadi Average Annual Loss (AAL) dan disajikan sebagai layer interaktif di dashboard.",
-  },
-];
-
-const previewFeatures = [
-  {
-    title: "Ganti Layer",
-    icon: Layers3,
-    desc: "Pilih hazard, skenario, dan periode ulang untuk memperbarui tampilan peta.",
-  },
-  {
-    title: "Cari Wilayah",
-    icon: Search,
-    desc: "Temukan kabupaten/kota tertentu dan navigasi langsung ke lokasinya di peta.",
-  },
-  {
-    title: "Ringkasan",
-    icon: PanelTop,
-    desc: "Lihat nilai kerugian langsung dan AAL wilayah terpilih dalam panel ringkasan yang ringkas.",
-  },
-  {
-    title: "Insight Grafik",
-    icon: LineChart,
-    desc: "Eksplorasi distribusi dan perbandingan risiko antarskenario dan periode ulang melalui grafik.",
-  },
-  {
-    title: "Ekspor Data",
-    icon: FileDown,
-    desc: "Unduh data laporan kerugian langsung dan AAL dalam format CSV, XLSX, dan PDF untuk analisis lebih lanjut.",
-  },
-];
-
-const useCases = [
-  {
-    title: "Risiko Wilayah",
-    icon: MapPinned,
-    desc: "Membaca pola kerugian padi per kabupaten/kota untuk banjir, kekeringan, dan multi-hazard.",
-  },
-  {
-    title: "Perbandingan",
-    icon: ShieldAlert,
-    desc: "Membandingkan kondisi projection dan baseline untuk melihat perubahan risiko secara lebih sistematis.",
-  },
-  {
-    title: "Prioritas",
-    icon: Target,
-    desc: "Menentukan wilayah prioritas berbasis kerugian langsung dan Average Annual Loss (AAL).",
-  },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function SectionHeader({
   title,
@@ -119,6 +40,82 @@ function SectionHeader({
 }
 
 export default function CaraKerjaPage() {
+  const { t } = useLanguage();
+
+  const analyticalPipeline = [
+    {
+      step: "01",
+      title: t("caraKerja.step1Title"),
+      desc: t("caraKerja.step1Desc"),
+    },
+    {
+      step: "02",
+      title: t("caraKerja.step2Title"),
+      desc: t("caraKerja.step2Desc"),
+    },
+    {
+      step: "03",
+      title: t("caraKerja.step3Title"),
+      desc: t("caraKerja.step3Desc"),
+    },
+    {
+      step: "04",
+      title: t("caraKerja.step4Title"),
+      desc: t("caraKerja.step4Desc"),
+    },
+    {
+      step: "05",
+      title: t("caraKerja.step5Title"),
+      desc: t("caraKerja.step5Desc"),
+    },
+  ];
+
+  const previewFeatures = [
+    {
+      title: t("caraKerja.compLayerTitle"),
+      icon: Layers3,
+      desc: t("caraKerja.compLayerDesc"),
+    },
+    {
+      title: t("caraKerja.compSearchTitle"),
+      icon: Search,
+      desc: t("caraKerja.compSearchDesc"),
+    },
+    {
+      title: t("caraKerja.compSummaryTitle"),
+      icon: PanelTop,
+      desc: t("caraKerja.compSummaryDesc"),
+    },
+    {
+      title: t("caraKerja.compChartTitle"),
+      icon: LineChart,
+      desc: t("caraKerja.compChartDesc"),
+    },
+    {
+      title: t("caraKerja.compExportTitle"),
+      icon: FileDown,
+      desc: t("caraKerja.compExportDesc"),
+    },
+  ];
+
+  const useCases = [
+    {
+      title: t("caraKerja.useCase1Title"),
+      icon: MapPinned,
+      desc: t("caraKerja.useCase1Desc"),
+    },
+    {
+      title: t("caraKerja.useCase2Title"),
+      icon: ShieldAlert,
+      desc: t("caraKerja.useCase2Desc"),
+    },
+    {
+      title: t("caraKerja.useCase3Title"),
+      icon: Target,
+      desc: t("caraKerja.useCase3Desc"),
+    },
+  ];
+
   return (
     <div className="content-theme">
       {/* HERO */}
@@ -131,15 +128,14 @@ export default function CaraKerjaPage() {
 
         <div className="section-container relative py-16 lg:py-24">
           <div className="mx-auto max-w-4xl text-center">
-            <span className="badge badge-secondary">Cara Kerja PADIS</span>
+            <span className="badge badge-secondary">{t("caraKerja.badge")}</span>
 
             <h1 className="mt-4 text-balance text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-              Dari Data Spasial ke Estimasi Kerugian
+              {t("caraKerja.title")}
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-[var(--content-hero-muted)] md:text-base">
-              Lima tahap analisis spasial yang mengubah data raster banjir dan kekeringan
-              menjadi estimasi kerugian langsung dan Average Annual Loss tingkat kabupaten/kota.
+              {t("caraKerja.description")}
             </p>
 
             {/* Mini step preview — sequential fade-in reinforces pipeline order */}
@@ -166,18 +162,18 @@ export default function CaraKerjaPage() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/dashboard"
-                aria-label="Buka dashboard PADIS"
+                aria-label={t("caraKerja.openDashboardAria")}
                 className="btn-secondary px-5 py-3 text-base font-semibold"
               >
-                Buka Dashboard
+                {t("caraKerja.openDashboard")}
               </Link>
 
               <Link
                 href="/"
-                aria-label="Kembali ke halaman beranda"
+                aria-label={t("caraKerja.backToHomeAria")}
                 className="rounded-2xl border border-[var(--content-hero-glass-border)] bg-[var(--content-hero-glass-bg)] px-5 py-3 font-medium text-white transition hover:bg-[var(--content-hero-glass-bg-strong)]"
               >
-                Kembali ke Beranda
+                {t("caraKerja.backToHome")}
               </Link>
             </div>
           </div>
@@ -193,14 +189,13 @@ export default function CaraKerjaPage() {
             <div className="text-center">
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--content-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] shadow-[var(--shadow-soft)]">
                 <PlayCircle className="h-3.5 w-3.5" />
-                Video Panduan
+                {t("caraKerja.videoLabel")}
               </div>
               <h2 className="text-heading mt-4 text-balance text-3xl font-bold tracking-tight md:text-4xl">
-                Panduan Penggunaan PADIS
+                {t("caraKerja.videoTitle")}
               </h2>
               <p className="text-muted mx-auto mt-3 max-w-xl text-sm leading-relaxed md:text-base">
-                Tonton panduan singkat untuk memahami alur analisis, jenis luaran,
-                dan cara membaca hasil di dashboard.
+                {t("caraKerja.videoDesc")}
               </p>
             </div>
 
@@ -216,7 +211,7 @@ export default function CaraKerjaPage() {
                 <div className="flex flex-1 items-center justify-center">
                   <div className="flex max-w-xs items-center gap-1.5 truncate rounded-md border border-[var(--color-border)] bg-[var(--content-surface)] px-3 py-1 text-xs text-muted">
                     <PlayCircle className="h-3 w-3 shrink-0 text-[var(--color-primary)]" />
-                    <span className="truncate">youtube.com · Video Petunjuk Penggunaan PADIS</span>
+                    <span className="truncate">{t("caraKerja.youtubeUrlText")}</span>
                   </div>
                 </div>
               </div>
@@ -226,7 +221,7 @@ export default function CaraKerjaPage() {
                 <iframe
                   className="h-full w-full"
                   src="https://www.youtube.com/embed/sXUgzCNxeGc"
-                  title="Video Petunjuk Penggunaan PADIS"
+                  title={t("caraKerja.videoTitleAttr")}
                   allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   loading="lazy"
@@ -237,11 +232,11 @@ export default function CaraKerjaPage() {
             {/* What you'll learn chips */}
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               {[
-                "Alur analisis PADIS",
-                "Membaca peta risiko",
-                "Filter skenario & projection",
-                "Ekspor data CSV",
-                "Interpretasi AAL",
+                t("caraKerja.videoLearn1"),
+                t("caraKerja.videoLearn2"),
+                t("caraKerja.videoLearn3"),
+                t("caraKerja.videoLearn4"),
+                t("caraKerja.videoLearn5"),
               ].map((item) => (
                 <span
                   key={item}
@@ -254,15 +249,15 @@ export default function CaraKerjaPage() {
 
             {/* Fallback link */}
             <p className="mt-4 text-center text-xs text-muted">
-              Video tidak tampil?{" "}
+              {t("caraKerja.videoNotAppearing")}{" "}
               <a
                 href="https://www.youtube.com/watch?v=sXUgzCNxeGc"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Buka video panduan PADIS di YouTube"
+                aria-label={t("caraKerja.openYoutubeAria")}
                 className="text-[var(--color-primary)] hover:underline"
               >
-                Buka di YouTube →
+                {t("caraKerja.openYoutube")}
               </a>
             </p>
 
@@ -271,11 +266,11 @@ export default function CaraKerjaPage() {
               <a
                 href="/manual-book/PADIS_Manual_Book.pdf"
                 download="PADIS_Manual_Book.pdf"
-                aria-label="Unduh manual pengguna PADIS"
+                aria-label={t("caraKerja.downloadManualAria")}
                 className="btn-outline inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
               >
                 <FileDown className="h-4 w-4" />
-                Unduh Manual Book
+                {t("caraKerja.downloadManual")}
               </a>
             </div>
           </div>
@@ -286,22 +281,16 @@ export default function CaraKerjaPage() {
       <section className="section-shell content-section">
         <div className="section-container">
           <SectionHeader
-            title="Alur Analisis PADIS"
-            label="Tahapan Sistem"
-            desc="PADIS mengolah data hazard menjadi estimasi kerugian dan luaran dashboard melalui tahapan analisis yang terstruktur."
+            title={t("caraKerja.flowTitle")}
+            label={t("caraKerja.flowLabel")}
+            desc={t("caraKerja.flowDesc")}
           />
 
           <AnimatedPipelineSteps items={analyticalPipeline} />
 
           <div className="mx-auto mt-10 max-w-4xl">
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-muted">
-              Secara ringkas, PADIS mengubah{" "}
-              <span className="font-semibold">data hazard</span> menjadi{" "}
-              <span className="font-semibold">indikator risiko</span>,{" "}
-              <span className="font-semibold">estimasi kerugian langsung</span>, dan{" "}
-              <span className="font-semibold">Average Annual Loss (AAL)</span>, lalu
-              menyajikannya melalui{" "}
-              <span className="font-semibold">dashboard interaktif</span>.
+              {t("caraKerja.summaryText")}
             </div>
           </div>
         </div>
@@ -311,8 +300,8 @@ export default function CaraKerjaPage() {
       <section className="section-shell section-soft">
         <div className="section-container">
           <SectionHeader
-            title="Komponen Dashboard PADIS"
-            desc="Dashboard dirancang untuk membantu pengguna memahami risiko padi secara cepat melalui peta, filter, dan ringkasan analisis yang saling terhubung."
+            title={t("caraKerja.dashComponentsTitle")}
+            desc={t("caraKerja.dashComponentsDesc")}
           />
 
           <div className="mx-auto mt-12 max-w-5xl">
@@ -363,12 +352,7 @@ export default function CaraKerjaPage() {
 
             <div className="mx-auto mt-8 max-w-3xl">
               <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-soft)]/20 px-6 py-5 text-center text-sm leading-relaxed text-muted">
-                Dashboard PADIS mengintegrasikan{" "}
-                <span className="font-semibold">peta interaktif</span>,{" "}
-                <span className="font-semibold">panel informasi</span>, dan{" "}
-                <span className="font-semibold">grafik analisis</span> dalam satu
-                tampilan, sehingga pengguna dapat membaca pola risiko dan
-                membandingkan skenario tanpa kehilangan konteks.
+                {t("caraKerja.dashboardIntegrationText")}
               </div>
             </div>
           </div>
@@ -379,8 +363,8 @@ export default function CaraKerjaPage() {
       <section className="section-shell content-section">
         <div className="section-container">
           <SectionHeader
-            title="Kasus Penggunaan"
-            desc="Bagaimana PADIS dapat mendukung analisis dan pengambilan keputusan berbasis risiko padi."
+            title={t("caraKerja.useCaseTitle")}
+            desc={t("caraKerja.useCaseDesc")}
           />
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -420,34 +404,32 @@ export default function CaraKerjaPage() {
 
             <div className="relative z-10">
               <p className="text-sm font-semibold tracking-[0.18em] text-[var(--color-primary)]">
-                LANGKAH BERIKUTNYA
+                {t("caraKerja.ctaBadge")}
               </p>
 
               <h3 className="mt-2 text-2xl font-bold text-[var(--color-text)] md:text-3xl lg:text-4xl">
-                Mulai Identifikasi Wilayah Risiko Padi
+                {t("caraKerja.ctaTitle")}
               </h3>
 
               <p className="mx-auto mt-4 max-w-2xl text-[var(--color-gray)] md:text-lg">
-                Gunakan dashboard PADIS untuk melihat estimasi kerugian,
-                membandingkan skenario, dan mengidentifikasi wilayah prioritas
-                secara spasial.
+                {t("caraKerja.ctaDesc")}
               </p>
 
               <div className="mt-8 flex flex-wrap justify-center gap-4">
                 <Link
                   href="/dashboard"
-                  aria-label="Buka dashboard PADIS"
+                  aria-label={t("caraKerja.openDashboardAria")}
                   className="btn-primary px-6 py-3 text-base font-semibold transition-all duration-300 hover:scale-[1.03] hover:shadow-lg"
                 >
-                  Buka Dashboard
+                  {t("caraKerja.openDashboard")}
                 </Link>
 
                 <Link
                   href="/"
-                  aria-label="Kembali ke halaman beranda"
+                  aria-label={t("caraKerja.backToHomeAria")}
                   className="inline-flex items-center gap-2 text-sm text-[var(--color-gray)] transition-all duration-300 hover:gap-3 hover:text-[var(--color-text)]"
                 >
-                  Kembali ke Beranda <ArrowRight className="h-4 w-4" />
+                  {t("caraKerja.backToHome")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

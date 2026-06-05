@@ -3,6 +3,7 @@ import "./globals.css";
 import { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { PADIS_THEME_STORAGE_KEY } from "@/lib/theme";
 
 const figtree = Figtree({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
@@ -39,7 +40,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
       </head>
       <body className={`${figtree.className} min-h-screen bg-[var(--theme-body-bg)] text-[var(--theme-body-text)]`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "../../../lib/useDebounce";
+import { useLanguage } from "@/contexts/LanguageContext";
 import dynamic from "next/dynamic";
 import type { StylesConfig } from "react-select";
 import { Loader2, ShieldAlert, X } from "lucide-react";
@@ -69,22 +70,9 @@ type DashboardLayers = {
   hazard: GeoJsonData | null;
 };
 
-const hazardOptions: OptionType[] = [
-  { value: "multi", label: "Multi-hazard" },
-  { value: "flood", label: "Banjir" },
-  { value: "drought", label: "Kekeringan" },
-];
-
 const climateOptions: OptionType[] = [
   { value: "nonclimate", label: "Baseline" },
   { value: "climate", label: "Projection" },
-];
-
-const scenarioOptions: OptionType[] = [
-  { value: "rp25", label: "25 Tahun (RP25)" },
-  { value: "rp50", label: "50 Tahun (RP50)" },
-  { value: "rp100", label: "100 Tahun (RP100)" },
-  { value: "rp250", label: "250 Tahun (RP250)" },
 ];
 
 const quickPresets: PresetItem[] = [
@@ -252,6 +240,21 @@ function DashboardSectionHeader({
 }
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
+
+  const hazardOptions = useMemo<OptionType[]>(() => [
+    { value: "multi", label: t("charts.multi") },
+    { value: "flood", label: t("charts.flood") },
+    { value: "drought", label: t("charts.drought") },
+  ], [t]);
+
+  const scenarioOptions = useMemo<OptionType[]>(() => [
+    { value: "rp25", label: t("dashboard.scenario25Year") },
+    { value: "rp50", label: t("dashboard.scenario50Year") },
+    { value: "rp100", label: t("dashboard.scenario100Year") },
+    { value: "rp250", label: t("dashboard.scenario250Year") },
+  ], [t]);
+
   const filterPanelRef = useRef<HTMLDivElement | null>(null);
   const chartsRef = useRef<HTMLDivElement | null>(null);
   const downloadingRef = useRef(false);
@@ -366,7 +369,7 @@ export default function DashboardPage() {
         setDataYear(dataYear);
       })
       .catch(() => {
-        setErrorLayer("Gagal terhubung ke server analisis. Coba muat ulang halaman.");
+        setErrorLayer(t("dashboard.errServerAnalysis"));
       });
   }, [hazard]);
 
@@ -411,7 +414,7 @@ export default function DashboardPage() {
       .catch((err) => {
         if (aborted) return;
         console.error("AAL summary fetch error:", err);
-        setErrorAAL("Gagal memuat ringkasan AAL.");
+        setErrorAAL(t("dashboard.errAalSummary"));
         setAalSummary(null);
       })
       .finally(() => { if (!aborted) setLoadingAAL(false); });
@@ -437,7 +440,7 @@ export default function DashboardPage() {
       .catch((err) => {
         if (aborted) return;
         console.error("Region AAL summary fetch error:", err);
-        setErrorRegionAAL("Gagal memuat AAL wilayah terpilih.");
+        setErrorRegionAAL(t("dashboard.errRegionAal"));
         setRegionAalSummary(null);
       })
       .finally(() => { if (!aborted) setLoadingRegionAAL(false); });
@@ -482,10 +485,10 @@ export default function DashboardPage() {
       } catch (err) {
         if (aborted) return;
         console.error("Fetch layers error:", err);
-        setErrorLayer("Gagal memuat layer peta.");
+        setErrorLayer(t("dashboard.errLayerData"));
         if (!regionsInitialized.current) {
           setLoadingRegions(false);
-          setErrorRegions("Gagal memuat daftar wilayah.");
+          setErrorRegions(t("dashboard.errRegionList"));
         }
       } finally {
         if (!aborted) setLoadingLayer(false);
@@ -634,9 +637,7 @@ export default function DashboardPage() {
 
     if (!token) {
       downloadingRef.current = false;
-      setLoginNoticeMessage(
-        "Silakan login dulu untuk mengunduh CSV atau generate report."
-      );
+      setLoginNoticeMessage(t("dashboard.loginRequiredMsg"));
       setShowLoginNotice(true);
       return;
     }
@@ -652,9 +653,7 @@ export default function DashboardPage() {
 
       if (res.status === 401) {
         clearToken();
-        setLoginNoticeMessage(
-          "Sesi login Anda sudah berakhir. Silakan login kembali."
-        );
+        setLoginNoticeMessage(t("dashboard.sessionExpired"));
         setShowLoginNotice(true);
         return;
       }
@@ -693,7 +692,7 @@ export default function DashboardPage() {
 
       window.URL.revokeObjectURL(objectUrl);
     } catch (err: unknown) {
-      setDownloadError(getErrorMessage(err, "Gagal download file."));
+      setDownloadError(getErrorMessage(err, t("dashboard.errDownload")));
     } finally {
       downloadingRef.current = false;
     }
@@ -838,44 +837,45 @@ export default function DashboardPage() {
   const insightBadge = useMemo(() => {
     if (loadingLayer || loadingAAL) {
       return {
-        label: "Memuat...",
+        label: t("dashboard.loading"),
         className: "bg-[var(--dashboard-status-muted-bg)] text-[var(--dashboard-status-muted-text)] border border-[var(--dashboard-status-muted-border)]",
       };
     }
 
     if (errorLayer || errorAAL) {
       return {
-        label: "Periksa Data",
+        label: t("dashboard.checkData"),
         className: "bg-[var(--dashboard-status-danger-bg)] text-[var(--dashboard-status-danger-text)] border border-[var(--dashboard-status-danger-border)]",
       };
     }
 
     if (isLayerEmpty) {
       return {
-        label: "Tidak Ada Data",
+        label: t("dashboard.noDataDefault"),
         className: "bg-[var(--dashboard-status-muted-bg)] text-[var(--dashboard-status-muted-text)] border border-[var(--dashboard-status-muted-border)]",
       };
     }
 
     if (climateChangeInfo.label === "N/A") {
       return {
-        label: "AAL Tidak Tersedia",
+        label: t("dashboard.aalUnavailable"),
         className: "bg-[var(--dashboard-status-muted-bg)] text-[var(--dashboard-status-muted-text)] border border-[var(--dashboard-status-muted-border)]",
       };
     }
 
     if (climateChangeInfo.isUp) {
       return {
-        label: "Risiko Meningkat",
+        label: t("dashboard.riskIncreasing"),
         className: "bg-[var(--dashboard-status-danger-bg)] text-[var(--dashboard-status-danger-text)] border border-[var(--dashboard-status-danger-border)]",
       };
     }
 
     return {
-      label: "Risiko Menurun",
+      label: t("dashboard.riskDecreasing"),
       className: "bg-[var(--dashboard-status-success-bg)] text-[var(--dashboard-status-success-text)] border border-[var(--dashboard-status-success-border)]",
     };
   }, [
+    t,
     loadingLayer,
     loadingAAL,
     errorLayer,
@@ -920,14 +920,13 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="max-w-2xl">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
-                  Analisis Spasial
+                  {t("dashboard.spatialAnalysis")}
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--dashboard-text-strong)] xl:text-3xl">
-                  Peta Risiko
+                  {t("dashboard.riskMap")}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--dashboard-text-muted)]">
-                  Eksplorasi distribusi kerugian langsung dan AAL per wilayah berdasarkan
-                  parameter analisis aktif.
+                  {t("dashboard.riskMapDesc")}
                 </p>
                 {runId !== null && (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -937,7 +936,7 @@ export default function DashboardPage() {
                     </span>
                     {dataYear !== null && (
                       <span className="inline-flex items-center rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
-                        Model Data {dataYear}
+                        {t("dashboard.modelDataLabel")} {dataYear}
                       </span>
                     )}
                   </div>
@@ -948,7 +947,7 @@ export default function DashboardPage() {
                 {/* Label + status badge */}
                 <div className="mb-2.5 flex items-center gap-2">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
-                    Ringkasan Cepat
+                    {t("dashboard.quickSummaryLabel")}
                   </span>
                   <span
                     className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${insightBadge.className}`}
@@ -961,7 +960,7 @@ export default function DashboardPage() {
                 <div className="flex items-start divide-x divide-[var(--dashboard-border-solid)]">
                   <div className="flex-[1.3] pr-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
-                      Total Kerugian Langsung
+                      {t("dashboard.totalDirectLossLabel")}
                     </p>
                     <p className="mt-1 whitespace-nowrap text-sm font-semibold text-[var(--dashboard-text)] md:text-base">
                       {loadingLayer ? (
@@ -974,7 +973,7 @@ export default function DashboardPage() {
 
                   <div className="min-w-0 flex-1 px-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
-                      Perubahan AAL
+                      {t("dashboard.aalChangeLabel")}
                     </p>
                     <p
                       className={`mt-1 truncate text-sm font-bold ${
@@ -993,7 +992,7 @@ export default function DashboardPage() {
 
                   <div className="min-w-0 flex-1 pl-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--dashboard-text-soft)]">
-                      Prioritas
+                      {t("dashboard.priorityLabel")}
                     </p>
                     <p
                       className="mt-1 truncate text-sm font-bold text-[var(--dashboard-text)]"
@@ -1019,7 +1018,7 @@ export default function DashboardPage() {
                     <span className="font-semibold text-[var(--dashboard-text)]">
                       {loadingLayer ? "—" : layerSummary.dataCount}
                     </span>{" "}
-                    wilayah terdampak
+                    {t("dashboard.affectedRegions")}
                   </span>
                   <span className="select-none text-[var(--dashboard-text-soft)]" aria-hidden="true">·</span>
                   <span
@@ -1034,7 +1033,7 @@ export default function DashboardPage() {
                     }
                   >
                     {!selectedRegion ? (
-                      "Pilih wilayah di peta atau dropdown"
+                      t("dashboard.selectRegion")
                     ) : loadingRegionAAL ? (
                       <span className="animate-pulse">—</span>
                     ) : errorRegionAAL ? (
@@ -1060,10 +1059,10 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--dashboard-text)]">
-                      Visualisasi Wilayah
+                      {t("dashboard.mapVisualizationTitle")}
                     </p>
                     <p className="text-xs text-[var(--dashboard-text-muted)]">
-                      Klik area peta untuk melihat detail dan indikator wilayah.
+                      {t("dashboard.mapVisualizationDesc")}
                     </p>
                   </div>
                 </div>
@@ -1159,7 +1158,7 @@ export default function DashboardPage() {
                   >
                     <Loader2 className="h-9 w-9 animate-spin text-white drop-shadow-lg" />
                     <p className="text-sm font-semibold tracking-wide text-white drop-shadow-lg">
-                      Memuat peta...
+                      {t("dashboard.loadingMap")}
                     </p>
                   </div>
                 )}
@@ -1175,7 +1174,7 @@ export default function DashboardPage() {
                 {!loadingLayer && layers?.loss && layers.loss.features?.length === 0 && !selectedRegion && (
                   <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
                     <div className="rounded-xl bg-[var(--dashboard-map-empty-bg)] px-4 py-2 text-sm text-[var(--dashboard-text-muted)] shadow backdrop-blur">
-                      Belum ada data untuk kombinasi filter ini — coba ubah jenis bencana atau periode ulang
+                      {t("dashboard.noDataFilter")}
                     </div>
                   </div>
                 )}
@@ -1192,9 +1191,9 @@ export default function DashboardPage() {
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
           <div className="space-y-5">
             <DashboardSectionHeader
-              eyebrow="ANALISIS LANJUTAN"
-              title="Ringkasan Statistik dan Grafik"
-              desc="Perbandingan AAL antar jenis bencana, total kerugian langsung skenario analisis projection dan baseline, wilayah terdampak utama, dan distribusi sebaran kerugian serta indeks bahaya."
+              eyebrow={t("dashboard.advancedAnalysis")}
+              title={t("dashboard.statisticsTitle")}
+              desc={t("dashboard.statisticsDesc")}
             />
 
             {chartsReady && (
@@ -1228,7 +1227,7 @@ export default function DashboardPage() {
           onClose={() => setShowReportPreview(false)}
           onDownloadExcel={handleGenerateReport}
           onRequireLogin={() => {
-            setLoginNoticeMessage("Silakan login terlebih dahulu untuk mengunduh laporan PDF.");
+            setLoginNoticeMessage(t("dashboard.loginForReport"));
             setShowLoginNotice(true);
           }}
         />
@@ -1244,7 +1243,7 @@ export default function DashboardPage() {
 
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-[var(--dashboard-text)]">
-                  Login diperlukan
+                  {t("dashboard.loginRequired")}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--dashboard-text-muted)]">
                   {loginNoticeMessage}
@@ -1258,7 +1257,7 @@ export default function DashboardPage() {
                 onClick={() => setShowLoginNotice(false)}
                 className="rounded-xl border border-[var(--dashboard-border-solid)] px-4 py-2 text-sm font-medium text-[var(--dashboard-text)] hover:bg-[var(--dashboard-control-hover)]"
               >
-                Tutup
+                {t("common.close")}
               </button>
 
               <button
@@ -1266,7 +1265,7 @@ export default function DashboardPage() {
                 onClick={redirectToLogin}
                 className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
               >
-                Login sekarang
+                {t("dashboard.loginNow")}
               </button>
             </div>
           </div>
@@ -1288,14 +1287,14 @@ export default function DashboardPage() {
                 }}
                 className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[var(--dashboard-toast-danger-text)] ring-1 ring-[var(--dashboard-toast-danger-border)] hover:bg-[var(--dashboard-status-danger-bg)]"
               >
-                Coba lagi
+                {t("common.tryAgain")}
               </button>
             )}
             <button
               type="button"
               onClick={() => setDownloadError(null)}
               className="text-[var(--dashboard-status-danger-text)]/75 hover:text-[var(--dashboard-status-danger-text)]"
-              aria-label="Tutup"
+              aria-label={t("common.close")}
             >
               <X className="h-4 w-4" />
             </button>

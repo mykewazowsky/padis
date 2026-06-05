@@ -18,6 +18,7 @@ import {
 import type { LayerKey } from "./MapLegendPanel";
 import type { BasemapKey } from "./MapCanvas";
 import LayerItem from "./LayerItem";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type LayerEntry = {
   id: LayerKey;
@@ -31,10 +32,11 @@ type LayerGroup = {
 };
 type DesktopTab = "basemap" | "overlay" | "analysis";
 
-const BASEMAP_LABELS: Record<BasemapKey, string> = {
-  imagery: "Satelit",
-  dark: "Gelap",
-  light: "Terang",
+// Label keys resolved via t() inside the component
+const BASEMAP_LABEL_KEYS: Record<BasemapKey, string> = {
+  imagery: "map.basemapSatellite",
+  dark: "map.basemapDark",
+  light: "map.basemapLight",
 };
 
 type Props = {
@@ -51,12 +53,26 @@ type Props = {
 
 const THEMATIC_KEYS: LayerKey[] = ["hazard", "loss", "aal"];
 
+// Labels resolved via t() inside the component — keys match id.json
+const LAYER_LABEL_KEYS: Record<string, string> = {
+  regions:    "map.regionBoundary",
+  production: "map.totalRiceProduction",
+  hazard:     "map.hazardIndex",
+  loss:       "map.directLoss",
+  aal:        "map.aal",
+};
+
+const GROUP_LABEL_KEYS: Record<string, string> = {
+  overlay:  "map.overlay",
+  analysis: "map.analysis",
+};
+
 const INITIAL_GROUPS: LayerGroup[] = [
   {
     id: "overlay",
     groupName: "Overlay",
     layers: [
-      { id: "regions", label: "Batas Administrasi" },
+      { id: "regions",    label: "Batas Administrasi" },
       { id: "production", label: "Total Produksi Sawah" },
     ],
   },
@@ -65,8 +81,8 @@ const INITIAL_GROUPS: LayerGroup[] = [
     groupName: "Analisis",
     layers: [
       { id: "hazard", label: "Indeks Bahaya" },
-      { id: "loss", label: "Kerugian Langsung" },
-      { id: "aal", label: "Average Annual Loss (AAL)" },
+      { id: "loss",   label: "Kerugian Langsung" },
+      { id: "aal",    label: "Average Annual Loss (AAL)" },
     ],
   },
 ];
@@ -82,6 +98,7 @@ export default function MapLayerControlPanel({
   hazard,
   compact = false,
 }: Props) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(true);
   const [groups, setGroups] = useState<LayerGroup[]>(INITIAL_GROUPS);
   const [activeDesktopTab, setActiveDesktopTab] = useState<DesktopTab>(
@@ -161,7 +178,7 @@ export default function MapLayerControlPanel({
           type="button"
           onClick={() => setIsOpen(true)}
           className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-control-bg)] shadow-md backdrop-blur hover:bg-[var(--dashboard-control-hover)]"
-          aria-label="Buka pengaturan layer"
+          aria-label={t("map.openPanel")}
         >
           <Layers3 className="h-5 w-5 text-[var(--color-primary)]" />
         </button>
@@ -189,9 +206,9 @@ export default function MapLayerControlPanel({
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-[var(--dashboard-text)]">
-                  Pengaturan Layer
+                  {t("map.layerSettings")}
                 </h3>
-                <p className="text-[11px] text-[var(--dashboard-text-muted)]">Tampilkan &amp; atur layer</p>
+                <p className="text-[11px] text-[var(--dashboard-text-muted)]">{t("map.layerSettingsDesc")}</p>
               </div>
             </div>
 
@@ -199,7 +216,7 @@ export default function MapLayerControlPanel({
               type="button"
               onClick={() => setIsOpen(false)}
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--dashboard-border-solid)] text-[var(--dashboard-text-muted)] hover:bg-[var(--dashboard-control-hover)]"
-              aria-label="Tutup pengaturan layer"
+              aria-label={t("map.closePanel")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -211,7 +228,7 @@ export default function MapLayerControlPanel({
         {compact ? (
           <>
             <p className="sr-only mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-              Basemap
+              {t("map.basemap")}
             </p>
             <div className="flex gap-1 rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-muted)] p-1">
               {(["imagery", "dark", "light"] as const).map((key) => (
@@ -225,7 +242,7 @@ export default function MapLayerControlPanel({
                       : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                   }`}
                 >
-                  {BASEMAP_LABELS[key]}
+                  {t(BASEMAP_LABEL_KEYS[key])}
                 </button>
               ))}
             </div>
@@ -242,7 +259,7 @@ export default function MapLayerControlPanel({
                     : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
-                Basemap
+                {t("map.basemap")}
               </button>
               <button
                 type="button"
@@ -253,7 +270,7 @@ export default function MapLayerControlPanel({
                     : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
-                Overlay
+                {t("map.overlay")}
                 <span className="ml-1 text-[10px] text-[var(--dashboard-text-soft)]">
                   {activeOverlayCount}
                 </span>
@@ -267,7 +284,7 @@ export default function MapLayerControlPanel({
                     : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
-                Analisis
+                {t("map.analysis")}
                 <span className="ml-1 text-[10px] text-[var(--dashboard-text-soft)]">
                   {activeAnalysisCount}
                 </span>
@@ -288,7 +305,7 @@ export default function MapLayerControlPanel({
               activeDesktopTab === "basemap" ? (
                 <div>
                   <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
-                    Basemap
+                    {t("map.basemap")}
                   </div>
                   <div className="flex gap-1 rounded-lg border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] p-1">
                     {(["imagery", "dark", "light"] as const).map((key) => (
@@ -302,7 +319,7 @@ export default function MapLayerControlPanel({
                             : "text-[var(--dashboard-text-muted)] hover:text-[var(--dashboard-text)]"
                         }`}
                       >
-                        {BASEMAP_LABELS[key]}
+                        {t(BASEMAP_LABEL_KEYS[key])}
                       </button>
                     ))}
                   </div>
@@ -310,7 +327,7 @@ export default function MapLayerControlPanel({
               ) : activeGroup ? (
                 <div>
                   <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
-                    {activeGroup.groupName}
+                    {t(GROUP_LABEL_KEYS[activeGroup.id] ?? activeGroup.groupName)}
                   </div>
                   <p className="mb-2 px-1 text-[11px] text-[var(--dashboard-text-muted)]">
                     {activeDesktopTab === "overlay"
@@ -329,7 +346,7 @@ export default function MapLayerControlPanel({
                           <LayerItem
                             key={layer.id}
                             id={layer.id}
-                            label={layer.label}
+                            label={t(LAYER_LABEL_KEYS[layer.id] ?? layer.id)}
                             visible={!!activeLayers[layer.id]}
                             opacity={layerOpacity[layer.id] ?? 0.7}
                             onToggle={() => handleToggle(layer.id)}
@@ -339,7 +356,7 @@ export default function MapLayerControlPanel({
                             disabled={isHazardDisabled}
                             disabledReason={
                               isHazardDisabled
-                                ? "Indeks Bahaya tidak tersedia untuk Multi-hazard karena dihitung dari kombinasi kekeringan dan banjir."
+                                ? t("map.hazardDisabled")
                                 : undefined
                             }
                           />
@@ -354,7 +371,7 @@ export default function MapLayerControlPanel({
                 <div key={group.id} className={idx > 0 ? "mt-3" : ""}>
                   <>
                     <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dashboard-text-soft)]">
-                      {group.groupName}
+                      {t(GROUP_LABEL_KEYS[group.id] ?? group.groupName)}
                     </div>
 
                     <SortableContext
@@ -369,7 +386,7 @@ export default function MapLayerControlPanel({
                             <LayerItem
                               key={layer.id}
                               id={layer.id}
-                              label={layer.label}
+                              label={t(LAYER_LABEL_KEYS[layer.id] ?? layer.id)}
                               visible={!!activeLayers[layer.id]}
                               opacity={layerOpacity[layer.id] ?? 0.7}
                               onToggle={() => handleToggle(layer.id)}
@@ -379,7 +396,7 @@ export default function MapLayerControlPanel({
                               disabled={isHazardDisabled}
                               disabledReason={
                                 isHazardDisabled
-                                  ? "Indeks Bahaya tidak tersedia untuk Multi-hazard karena dihitung dari kombinasi kekeringan dan banjir."
+                                  ? t("map.hazardDisabled")
                                   : undefined
                               }
                             />

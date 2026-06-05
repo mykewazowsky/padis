@@ -17,10 +17,12 @@ import { buildApiUrl } from "../../../lib/api";
 import { getToken, saveToken, clearToken } from "../../../lib/auth";
 import { getErrorMessage, getResponseError } from "../../../lib/error";
 import { supabase } from "../../../lib/supabase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   const redirectTo = useMemo(() => {
     const redirect = searchParams.get("redirect");
@@ -38,9 +40,9 @@ export default function LoginPage() {
   useEffect(() => {
     const err = searchParams.get("error");
     if (err === "oauth_failed") {
-      setError("Login dengan Google gagal atau dibatalkan. Silakan coba lagi.");
+      setError(t("auth.login.errOauthFailed"));
     } else if (err === "oauth_bridge_failed") {
-      setError("Login Google berhasil, namun gagal membuat sesi PADIS. Silakan coba lagi.");
+      setError(t("auth.login.errOauthBridgeFailed"));
     }
   }, [searchParams]);
 
@@ -59,7 +61,7 @@ export default function LoginPage() {
     })
       .then((res) => {
         if (!res.ok) {
-          throw new Error("Token tidak valid");
+          throw new Error(t("auth.login.errOauthFailed"));
         }
         return res.json();
       })
@@ -77,12 +79,12 @@ export default function LoginPage() {
     setError("");
 
     if (!email.trim()) {
-      setError("Email wajib diisi.");
+      setError(t("auth.login.errEmailRequired"));
       return;
     }
 
     if (!password) {
-      setError("Password wajib diisi.");
+      setError(t("auth.login.errPasswordRequired"));
       return;
     }
 
@@ -125,7 +127,7 @@ export default function LoginPage() {
       },
     });
     if (oauthError) {
-      setError("Login dengan Google gagal. Silakan coba lagi.");
+      setError(t("auth.login.errOauthFailed"));
       setGoogleLoading(false);
     }
     // On success the browser navigates away, so no need to reset loading.
@@ -148,14 +150,14 @@ export default function LoginPage() {
             </div>
 
             <h2 className="mt-5 text-xl font-bold text-[var(--auth-text)]">
-              Memeriksa sesi login
+              {t("auth.login.checkingSession")}
             </h2>
 
             <p className="mt-2 text-sm text-[var(--auth-text-muted)]">
-              PADIS sedang memastikan status autentikasi Anda.
+              {t("auth.login.checkingSessionDesc")}
             </p>
 
-            <span className="sr-only">Sedang memeriksa sesi login</span>
+            <span className="sr-only">{t("auth.login.checkingSession")}</span>
           </div>
         </div>
       </main>
@@ -173,18 +175,14 @@ export default function LoginPage() {
 
           <div className="relative flex w-full flex-col justify-between px-10 py-12 text-white xl:px-14">
             <div>
-              <span className="badge badge-secondary">PADIS ACCESS</span>
+              <span className="badge badge-secondary">{t("auth.login.accessBadge")}</span>
 
               <h1 className="mt-5 text-4xl font-bold tracking-tight leading-tight xl:text-5xl">
-                Akses dashboard
-                <br />
-                risiko kerugian padi
+                {t("auth.login.heroTitle")}
               </h1>
 
               <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--auth-hero-muted)] xl:text-base">
-                Login untuk mengeksplorasi hasil analisis risiko, melihat peta
-                interaktif, membandingkan projection dan baseline, serta
-                mengunduh output PADIS secara lebih lengkap.
+                {t("auth.login.heroDesc")}
               </p>
             </div>
 
@@ -197,10 +195,10 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
-                        WebGIS Interaktif
+                        {t("auth.login.webgisTitle")}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Visualisasi spasial loss dan AAL per kabupaten/kota.
+                        {t("auth.login.webgisDesc")}
                       </p>
                     </div>
                   </div>
@@ -213,10 +211,10 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
-                        Akses Terkelola
+                        {t("auth.login.accessTitle")}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[var(--auth-hero-muted)]">
-                        Sistem login untuk kontrol fitur data, report, dan admin.
+                        {t("auth.login.accessDesc")}
                       </p>
                     </div>
                   </div>
@@ -234,19 +232,18 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             <div className="card card-elevated p-8 md:p-9">
               <div className="mb-8">
-                <span className="badge badge-primary">LOGIN</span>
+                <span className="badge badge-primary">{t("auth.login.badge")}</span>
                 <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--auth-text)]">
-                  Masuk ke PADIS
+                  {t("auth.login.title")}
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--auth-text-muted)]">
-                  Gunakan akun Anda untuk mengakses dashboard, mengunduh CSV,
-                  dan menggunakan fitur report PADIS.
+                  {t("auth.login.description")}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="input-label">Email</label>
+                  <label className="input-label">{t("auth.login.emailLabel")}</label>
                   <div className="input-shell flex items-center gap-3 px-4 py-3">
                     <Mail className="h-4 w-4 shrink-0 text-[var(--auth-input-icon)]" />
                     <input
@@ -254,19 +251,19 @@ export default function LoginPage() {
                       className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Masukkan email"
+                      placeholder={t("auth.login.emailPlaceholder")}
                     />
                   </div>
                 </div>
 
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <label className="input-label mb-0">Password</label>
+                    <label className="input-label mb-0">{t("auth.login.passwordLabel")}</label>
                     <Link
                       href="/forgot-password"
                       className="text-xs font-medium text-[var(--color-primary)] transition hover:underline"
                     >
-                      Lupa password?
+                      {t("auth.login.forgotPassword")}
                     </Link>
                   </div>
 
@@ -277,7 +274,7 @@ export default function LoginPage() {
                       className="w-full border-0 bg-transparent p-0 text-[var(--auth-input-text)] placeholder:text-[var(--auth-input-placeholder)] outline-none focus:ring-0"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Masukkan password"
+                      placeholder={t("auth.login.passwordPlaceholder")}
                     />
                     <button
                       type="button"
@@ -285,8 +282,8 @@ export default function LoginPage() {
                       className="text-[var(--auth-input-icon)] transition hover:text-[var(--auth-input-icon-hover)]"
                       aria-label={
                         showPassword
-                          ? "Sembunyikan password"
-                          : "Tampilkan password"
+                          ? t("auth.login.hidePasswordAria")
+                          : t("auth.login.showPasswordAria")
                       }
                     >
                       {showPassword ? (
@@ -309,14 +306,14 @@ export default function LoginPage() {
                   disabled={loading}
                   className="btn-primary w-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? "Memproses..." : "Login"}
+                  {loading ? t("auth.login.processing") : t("auth.login.submitButton")}
                 </button>
               </form>
 
               <div className="mt-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-[var(--auth-divider)]" />
                 <span className="text-xs font-medium text-[var(--auth-text-soft)]">
-                  atau lanjutkan dengan
+                  {t("auth.login.orWith")}
                 </span>
                 <span className="h-px flex-1 bg-[var(--auth-divider)]" />
               </div>
@@ -352,7 +349,7 @@ export default function LoginPage() {
                     fill="#EA4335"
                   />
                 </svg>
-                {googleLoading ? "Mengarahkan ke Google..." : "Login dengan Google"}
+                {googleLoading ? t("auth.login.googleProcessing") : t("auth.login.googleButton")}
               </button>
 
               <div className="mt-6 flex items-center justify-between gap-3 text-sm">
@@ -361,24 +358,24 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-2 text-[var(--auth-link-muted)] transition hover:text-[var(--auth-text)]"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Kembali ke Beranda
+                  {t("auth.login.backToHome")}
                 </Link>
 
                 <Link
                   href="/register"
                   className="font-medium text-[var(--color-primary)] transition hover:underline"
                 >
-                  Daftar akun
+                  {t("auth.login.registerLink")}
                 </Link>
               </div>
 
               <div className="mt-4 text-center text-sm text-[var(--auth-text-muted)]">
-                Ingin tahu lebih lanjut tentang PADIS?{" "}
+                {t("auth.login.learnMoreText")}{" "}
                 <Link
                   href="/cara-kerja"
                   className="font-medium text-[var(--color-primary)] hover:underline"
                 >
-                  Lihat Cara Kerja PADIS
+                  {t("auth.login.seeFeaturesLink")}
                 </Link>
               </div>
 
@@ -388,13 +385,12 @@ export default function LoginPage() {
                   aria-hidden="true"
                 />
                 <p className="text-[11px] leading-relaxed text-[var(--auth-text-soft)]">
-                  PADIS hanya menyimpan token autentikasi di browser Anda -
-                  tidak ada pelacakan atau analitik.{" "}
+                  {t("auth.login.privacyNotice")}{" "}
                   <Link
                     href="/kebijakan-privasi"
                     className="text-[var(--auth-text-muted)] hover:underline"
                   >
-                    Kebijakan Privasi
+                    {t("auth.login.privacyLink")}
                   </Link>
                 </p>
               </div>

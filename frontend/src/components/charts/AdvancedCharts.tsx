@@ -17,6 +17,7 @@ import { fetchJson } from "../../lib/fetcher";
 import DashboardLoadingBlock from "../dashboard/DashboardLoadingBlock";
 import DashboardEmptyState from "../dashboard/DashboardEmptyState";
 import { useChartTheme } from "./chartTheme";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Props = {
   scenario: string;
@@ -37,11 +38,6 @@ type TopRegionItem = {
 };
 
 type TopMetric = "loss" | "aal";
-
-const TOP_METRIC_LABELS: Record<TopMetric, string> = {
-  loss: "Kerugian Langsung",
-  aal:  "AAL",
-};
 
 export type DistItem = {
   kab_kota: string;
@@ -81,10 +77,23 @@ type HistogramTooltipPayloadItem = {
   payload?: HistogramBucket;
 };
 
-const METRIC_LABELS: Record<DistMetric, string> = {
-  loss:   "Kerugian Langsung",
-  aal:    "AAL",
-  hazard: "Indeks Bahaya",
+type TFunction = (key: string) => string;
+
+type MetricConfig = {
+  title: string;
+  subtitle: string;
+  endpoint: DistMetric;
+  valueKey: string;
+  filterZero: boolean;
+  useLogScale: boolean;
+  formatStat: (v: number) => string;
+  formatRange: (lo: number, hi: number) => string;
+  formatTick: (lo: number) => string;
+  insightTitle: string;
+  insightBody: string;
+  emptyMsg: string;
+  loadingTitle: string;
+  loadingDesc: string;
 };
 
 function formatCompact(value: number) {
@@ -100,16 +109,6 @@ function formatRupiah(value: number) {
 
 function safeNumber(value: unknown) {
   return typeof value === "number" ? value : Number(value) || 0;
-}
-
-function getHazardLabel(hazard: string) {
-  if (hazard === "flood") return "Banjir";
-  if (hazard === "drought") return "Kekeringan";
-  return "Multi-hazard";
-}
-
-function getClimateLabel(climate: string) {
-  return climate === "climate" ? "Projection" : "Baseline";
 }
 
 function formatScenarioLabel(scenario: string) {
@@ -140,28 +139,11 @@ function formatIdNum(v: number, decimals = 2) {
   });
 }
 
-type MetricConfig = {
-  title: string;
-  subtitle: string;
-  endpoint: DistMetric;
-  valueKey: string;
-  filterZero: boolean;
-  useLogScale: boolean;
-  formatStat: (v: number) => string;
-  formatRange: (lo: number, hi: number) => string;
-  formatTick: (lo: number) => string;
-  insightTitle: string;
-  insightBody: string;
-  emptyMsg: string;
-  loadingTitle: string;
-  loadingDesc: string;
-};
-
-function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
+function getMetricConfig(metric: DistMetric, hazard: string, t: TFunction): MetricConfig {
   if (metric === "loss") {
     return {
-      title: "Distribusi Kerugian Langsung",
-      subtitle: "Sebaran wilayah berdasarkan nilai kerugian.",
+      title: t("charts.distributionLossTitle"),
+      subtitle: t("charts.lossDistSubtitle"),
       endpoint: "loss",
       valueKey: "loss",
       filterZero: true,
@@ -169,38 +151,41 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
       formatStat: (v) => `Rp ${formatCompact(v)}`,
       formatRange: (lo, hi) => `Rp ${formatCompact(lo)} – Rp ${formatCompact(hi)}`,
       formatTick: (lo) => formatCompact(lo),
-      insightTitle: "Pola distribusi kerugian",
-      insightBody:
-        "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang kerugian langsung tertentu. Distribusi condong ke kanan mengindikasikan konsentrasi risiko di sedikit wilayah.",
-      emptyMsg: "Belum ada data distribusi untuk kombinasi filter ini.",
-      loadingTitle: "Memuat distribusi kerugian langsung...",
-      loadingDesc: "Data kerugian langsung per kabupaten sedang diproses.",
+      insightTitle: t("charts.insightLoss"),
+      insightBody: t("charts.lossInsightBody"),
+      emptyMsg: t("charts.lossEmptyMsg"),
+      loadingTitle: t("charts.lossLoadingTitle"),
+      loadingDesc: t("charts.lossLoadingDesc"),
     };
   }
 
   if (metric === "aal") {
     return {
-      title: "Distribusi Average Annual Loss (AAL)",
-      subtitle: "Sebaran wilayah berdasarkan AAL.",
+      title: t("charts.distributionAalTitle"),
+      subtitle: t("charts.aalDistSubtitle"),
       endpoint: "aal",
       valueKey: "aal",
       filterZero: true,
       useLogScale: true,
-      formatStat: (v) => `Rp ${formatCompact(v)}/th`,
+      formatStat: (v) => `Rp ${formatCompact(v)}${t("charts.perYear")}`,
       formatRange: (lo, hi) =>
-        `Rp ${formatCompact(lo)} – Rp ${formatCompact(hi)}/th`,
+        `Rp ${formatCompact(lo)} – Rp ${formatCompact(hi)}${t("charts.perYear")}`,
       formatTick: (lo) => formatCompact(lo),
-      insightTitle: "Pola distribusi AAL",
-      insightBody:
-        "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang Average Annual Loss (AAL) tertentu.",
-      emptyMsg: "Belum ada data distribusi AAL untuk kombinasi filter ini.",
-      loadingTitle: "Memuat distribusi AAL...",
-      loadingDesc: "Data AAL per kabupaten sedang diproses.",
+      insightTitle: t("charts.insightAal"),
+      insightBody: t("charts.aalInsightBody"),
+      emptyMsg: t("charts.aalEmptyMsg"),
+      loadingTitle: t("charts.aalLoadingTitle"),
+      loadingDesc: t("charts.aalLoadingDesc"),
     };
   }
 
   // hazard / indeks
-  const hazardLabel = getHazardLabel(hazard);
+  const hazardLabel =
+    hazard === "flood"
+      ? t("charts.flood")
+      : hazard === "drought"
+        ? t("charts.drought")
+        : t("charts.multi");
   const isFlood = hazard === "flood";
   const unit = isFlood ? " m" : "";
   const fmtVal = (v: number) => `${formatIdNum(v)}${unit}`;
@@ -209,8 +194,8 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
     : (lo: number) => formatIdNum(lo, 2);
 
   return {
-    title: `Distribusi Indeks ${hazardLabel}`,
-    subtitle: "Sebaran wilayah berdasarkan nilai indeks bahaya.",
+    title: `${t("charts.hazardDistTitlePrefix")} ${t("charts.hazardIndex")} ${hazardLabel}`,
+    subtitle: t("charts.hazardDistSubtitle"),
     endpoint: "hazard",
     valueKey: "mean_value",
     filterZero: false,
@@ -219,12 +204,11 @@ function getMetricConfig(metric: DistMetric, hazard: string): MetricConfig {
     formatRange: (lo, hi) =>
       `${formatIdNum(lo, 2)} – ${formatIdNum(hi, 2)}${unit}`,
     formatTick: fmtTick,
-    insightTitle: `Pola distribusi indeks ${hazardLabel.toLowerCase()}`,
-    insightBody:
-      "Setiap batang menunjukkan jumlah kabupaten/kota dalam rentang nilai indeks bahaya tertentu.",
-    emptyMsg: "Belum ada data distribusi indeks untuk kombinasi filter ini.",
-    loadingTitle: `Memuat distribusi indeks ${hazardLabel.toLowerCase()}...`,
-    loadingDesc: "Data indeks bahaya per kabupaten sedang diproses.",
+    insightTitle: `${t("charts.hazardInsightTitlePrefix")} ${hazardLabel.toLowerCase()}`,
+    insightBody: t("charts.hazardInsightBody"),
+    emptyMsg: t("charts.hazardEmptyMsg"),
+    loadingTitle: `${t("charts.hazardLoadingTitlePrefix")} ${hazardLabel.toLowerCase()}...`,
+    loadingDesc: t("charts.hazardLoadingDesc"),
   };
 }
 
@@ -304,10 +288,12 @@ function HistogramTooltip({
   active,
   payload,
   formatRange,
+  regionCountLabel,
 }: {
   active?: boolean;
   payload?: readonly HistogramTooltipPayloadItem[];
   formatRange: (lo: number, hi: number) => string;
+  regionCountLabel: string;
 }) {
   if (!active || !payload?.length) return null;
   const bucket = payload[0]?.payload as HistogramBucket | undefined;
@@ -318,18 +304,11 @@ function HistogramTooltip({
         {formatRange(bucket.lo, bucket.hi)}
       </p>
       <p className="mt-1.5 text-sm font-bold text-[var(--chart-tooltip-text)]">
-        {bucket.count} wilayah
+        {bucket.count} {regionCountLabel}
       </p>
     </div>
   );
 }
-
-const STAT_ITEMS: { key: keyof HistogramStats; label: string }[] = [
-  { key: "mean",   label: "Rata-rata" },
-  { key: "median", label: "Median"    },
-  { key: "min",    label: "Minimum"   },
-  { key: "max",    label: "Maksimum"  },
-];
 
 function adaptiveBucketCount(n: number): number {
   if (n <= 6)  return 3;
@@ -365,6 +344,7 @@ export default function AdvancedCharts({
   preloadedLossItems,
   loadingLayer,
 }: Props) {
+  const { t } = useLanguage();
   const [topRegions, setTopRegions] = useState<TopRegionItem[]>([]);
   const [distData, setDistData] = useState<DistItem[]>([]);
   const [distMetric, setDistMetric] = useState<DistMetric>("loss");
@@ -377,12 +357,41 @@ export default function AdvancedCharts({
   const [errorDist, setErrorDist] = useState<string | null>(null);
 
   const chartTheme = useChartTheme();
+
+  function getHazardLabel(h: string) {
+    if (h === "flood") return t("charts.flood");
+    if (h === "drought") return t("charts.drought");
+    return t("charts.multi");
+  }
+
+  function getClimateLabel(c: string) {
+    return c === "climate" ? t("charts.projection") : t("charts.baseline");
+  }
+
+  function getTopMetricLabel(m: TopMetric) {
+    return m === "loss" ? t("charts.directLoss") : "AAL";
+  }
+
+  function getMetricLabel(m: DistMetric) {
+    if (m === "loss") return t("charts.directLoss");
+    if (m === "aal") return "AAL";
+    return t("charts.hazardIndex");
+  }
+
+  const STAT_ITEMS: { key: keyof HistogramStats; label: string }[] = [
+    { key: "mean",   label: t("charts.mean") },
+    { key: "median", label: t("charts.median") },
+    { key: "min",    label: t("charts.minimum") },
+    { key: "max",    label: t("charts.maximum") },
+  ];
+
   const activeDistMetric =
     distMetric === "hazard" && hazard === "multi" ? "loss" : distMetric;
 
   const metricConfig = useMemo(
-    () => getMetricConfig(activeDistMetric, hazard),
-    [activeDistMetric, hazard]
+    () => getMetricConfig(activeDistMetric, hazard, t),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeDistMetric, hazard, t]
   );
 
   useEffect(() => {
@@ -417,7 +426,7 @@ export default function AdvancedCharts({
       } catch (err) {
         console.error("Top regions fetch error:", err);
         if (!ignore) {
-          setErrorTopRegions("Gagal memuat chart top wilayah.");
+          setErrorTopRegions(t("charts.errTopRegions"));
           setTopRegions([]);
         }
       } finally {
@@ -483,7 +492,7 @@ export default function AdvancedCharts({
       } catch (err) {
         console.error("Distribution fetch error:", err);
         if (!ignore) {
-          setErrorDist("Gagal memuat data distribusi.");
+          setErrorDist(t("charts.errDistribution"));
           setDistData([]);
         }
       } finally {
@@ -654,11 +663,11 @@ export default function AdvancedCharts({
                   <MapPinned className="h-4 w-4 text-[var(--color-primary)]" />
                 </div>
                 <h4 className="text-base font-bold tracking-tight text-heading">
-                  10 Kabupaten/Kota Prioritas
+                  {t("charts.top10Title")}
                 </h4>
               </div>
               <p className="mt-1.5 text-sm text-muted">
-                Ranking wilayah berdasarkan {topMetric === "aal" ? "Average Annual Loss(AAL)" : "kerugian langsung"}.
+                {t("charts.rankingBy")} {topMetric === "aal" ? "AAL" : t("charts.directLoss").toLowerCase()}.
               </p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1">
                 <FilterChip>{getHazardLabel(hazard)}</FilterChip>
@@ -684,7 +693,7 @@ export default function AdvancedCharts({
                         : "cursor-pointer text-[var(--dashboard-text-soft)] hover:bg-[var(--dashboard-control-bg)] hover:text-[var(--dashboard-text)]",
                     ].join(" ")}
                   >
-                    {TOP_METRIC_LABELS[m]}
+                    {getTopMetricLabel(m)}
                   </button>
                 );
               })}
@@ -694,20 +703,20 @@ export default function AdvancedCharts({
           <div className={METRIC_RAIL_CLASS}>
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Wilayah Tertinggi
+                {t("charts.topRegionLabel")}
               </p>
               <p className="text-sm font-semibold text-heading">
-                {loadingTopRegions ? "Loading..." : topRegionSummary.name}
+                {loadingTopRegions ? t("charts.loading") : topRegionSummary.name}
               </p>
             </div>
             <div className={METRIC_CELL_CLASS}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                {topMetric === "aal" ? "AAL Tertinggi" : "Kerugian Tertinggi"}
+                {topMetric === "aal" ? t("charts.topAal") : t("charts.topLoss")}
               </p>
               <p className="text-sm font-semibold text-heading">
                 {loadingTopRegions
-                  ? "Loading..."
-                  : `${formatRupiah(topRegionSummary.value)}${topMetric === "aal" ? "/th" : ""}`}
+                  ? t("charts.loading")
+                  : `${formatRupiah(topRegionSummary.value)}${topMetric === "aal" ? t("charts.perYear") : ""}`}
               </p>
             </div>
           </div>
@@ -722,7 +731,7 @@ export default function AdvancedCharts({
               <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorTopRegions}</p>
             ) : !hasTopRegionData ? (
               <p className="text-sm text-muted">
-                Belum ada wilayah dengan kerugian yang cukup untuk ditampilkan.
+                {t("charts.noTopRegions")}
               </p>
             ) : (
               <div className="flex items-start gap-3">
@@ -731,11 +740,10 @@ export default function AdvancedCharts({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-heading">
-                    Fokus cepat ke peta
+                    {t("charts.focusMapTitle")}
                   </p>
                   <p className="mt-1 text-sm text-muted">
-                    Klik batang chart untuk memilih wilayah dan memfokuskan map
-                    ke kabupaten/kota terkait.
+                    {t("charts.focusMapDesc")}
                   </p>
                 </div>
               </div>
@@ -746,8 +754,8 @@ export default function AdvancedCharts({
             {loadingTopRegions ? (
               <DashboardLoadingBlock
                 heightClass="h-full"
-                title="Memuat ranking wilayah..."
-                description="Sistem sedang menyusun wilayah dengan kerugian tertinggi."
+                title={t("charts.loadingTopRegions")}
+                description={t("charts.loadingTopRegionsDesc")}
               />
             ) : errorTopRegions ? (
               <div className={ERROR_CANVAS_CLASS}>
@@ -755,8 +763,8 @@ export default function AdvancedCharts({
               </div>
             ) : !hasTopRegionData ? (
               <DashboardEmptyState
-                message="Belum ada data top wilayah untuk kombinasi filter ini."
-                actionHint="Coba ubah hazard, scenario, atau skenario projection."
+                message={t("charts.noTopRegionsFilter")}
+                actionHint={t("charts.filterHint")}
                 compact
               />
             ) : (
@@ -786,7 +794,7 @@ export default function AdvancedCharts({
                   <Tooltip
                     content={
                       <CustomTooltip
-                        labelPrefix="Wilayah"
+                        labelPrefix={t("charts.regionLabel")}
                         formatValue={(v) =>
                           topMetric === "aal"
                             ? `${formatRupiah(v)}/th`
@@ -798,7 +806,7 @@ export default function AdvancedCharts({
                   <Bar
                     dataKey="value"
                     radius={[0, 10, 10, 0]}
-                    name={TOP_METRIC_LABELS[topMetric]}
+                    name={getTopMetricLabel(topMetric)}
                     onClick={(data: unknown) => {
                       const regionName =
                         typeof data === "object" &&
@@ -826,21 +834,21 @@ export default function AdvancedCharts({
                 className="inline-block h-3 w-3 rounded-sm"
                 style={{ backgroundColor: "var(--color-primary)" }}
               />
-              Top 3 wilayah
+              {t("charts.top3Regions")}
             </div>
             <div className="flex items-center gap-2">
               <span
                 className="inline-block h-3 w-3 rounded-sm"
                 style={{ backgroundColor: "#93c5fd" }}
               />
-              Wilayah lainnya
+              {t("charts.otherRegions")}
             </div>
             <div className="flex items-center gap-2">
               <span
                 className="inline-block h-3 w-3 rounded-sm"
                 style={{ backgroundColor: chartTheme.selectedFill }}
               />
-              Wilayah terpilih
+              {t("charts.selectedRegionLegend")}
             </div>
           </div>
         </div>
@@ -883,8 +891,8 @@ export default function AdvancedCharts({
                     onClick={() => setDistMetric(m)}
                     title={
                       isDisabled
-                        ? "Indeks tidak tersedia untuk Multi-hazard"
-                        : METRIC_LABELS[m]
+                        ? t("charts.hazardIndexDisabledHint")
+                        : getMetricLabel(m)
                     }
                     className={[
                       "rounded px-2.5 py-[4px] text-[11px] font-semibold uppercase tracking-wide transition-all",
@@ -895,7 +903,7 @@ export default function AdvancedCharts({
                           : "cursor-pointer text-[var(--dashboard-text-soft)] hover:bg-[var(--dashboard-control-bg)] hover:text-[var(--dashboard-text)]",
                     ].join(" ")}
                   >
-                    {METRIC_LABELS[m]}
+                    {getMetricLabel(m)}
                   </button>
                 );
               })}
@@ -932,7 +940,7 @@ export default function AdvancedCharts({
               <p className="text-sm text-[var(--dashboard-status-danger-text)]">{errorDist}</p>
             ) : !hasDistData ? (
               <p className="text-sm text-muted">
-                Belum ada data distribusi yang dapat divisualisasikan.
+                {t("charts.noDistData")}
               </p>
             ) : (
               <div className="flex items-start gap-3">
@@ -968,7 +976,7 @@ export default function AdvancedCharts({
               <div className="h-80 w-full rounded-md bg-[var(--dashboard-surface)] p-1">
                 <DashboardEmptyState
                   message={metricConfig.emptyMsg}
-                  actionHint="Coba ubah hazard, scenario, atau skenario projection."
+                  actionHint={t("charts.filterHint")}
                   compact
                 />
               </div>
@@ -1006,6 +1014,7 @@ export default function AdvancedCharts({
                           <HistogramTooltip
                             {...props}
                             formatRange={metricConfig.formatRange}
+                            regionCountLabel={t("charts.regionCountSuffix")}
                           />
                         )}
                       />
@@ -1031,7 +1040,7 @@ export default function AdvancedCharts({
                       <Bar
                         dataKey="count"
                         radius={[4, 4, 0, 0]}
-                        name="Jumlah Wilayah"
+                        name={t("charts.regionCount")}
                       >
                         {histogramData.buckets.map((bucket, i) => (
                           <Cell
@@ -1050,26 +1059,26 @@ export default function AdvancedCharts({
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)]" />
-                      Frekuensi tertinggi
+                      {t("charts.highestFrequency")}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-primary)] opacity-25" />
-                      Frekuensi rendah
+                      {t("charts.lowFrequency")}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-orange-400" />
-                      Rata-rata (μ)
+                      {t("charts.meanLegend")}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-violet-500" />
-                      Median
+                      {t("charts.median")}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted">
                     <span className="rounded bg-[var(--dashboard-surface-muted)] px-1.5 py-0.5 font-semibold uppercase tracking-wide">
-                      {histogramData.usedLogScale ? "Skala Log" : "Skala Linear"}
+                      {histogramData.usedLogScale ? t("charts.logScale") : t("charts.linearScale")}
                     </span>
-                    <span>{histogramData.validCount} wilayah · {histogramData.bucketCount} interval</span>
+                    <span>{histogramData.validCount} {t("charts.regionCountSuffix")} · {histogramData.bucketCount} interval</span>
                   </div>
                 </div>
               </>

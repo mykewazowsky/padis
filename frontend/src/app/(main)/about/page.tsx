@@ -82,11 +82,31 @@ const technologyFlow = [
 ];
 
 const developers = [
-  "Thezar Rifqi Izaati",
-  "Aletha Nur Fatimah Siswandi Putri",
-  "Elicia Hardiyanti",
-  "Sonny Okandra Rusman",
-  "Andhika Prasetya Adi Nugroho",
+  {
+    name: "Thezar Rifqi Izaati",
+    email: "thezarizaati@gmail.com",
+    linkedin: "https://www.linkedin.com/in/thezar-rifqi-izaati-996066257/",
+  },
+  {
+    name: "Aletha Nur Fatimah Siswandi Putri",
+    email: "alethaputri40@gmail.com",
+    linkedin: "https://www.linkedin.com/in/alethaaanf/",
+  },
+  {
+    name: "Elicia Hardiyanti",
+    email: "eeliciahardiyanti@gmail.com",
+    linkedin: "https://www.linkedin.com/in/eeliciahardiyanti/",
+  },
+  {
+    name: "Sonny Okandra Rusman",
+    email: "sonnyokandra@gmail.com",
+    linkedin: "https://www.linkedin.com/in/sonnyor/",
+  },
+  {
+    name: "Andhika Prasetya Adi Nugroho",
+    email: "AndhikaPrasetya68@gmail.com",
+    linkedin: "https://www.linkedin.com/in/andhika-prasetya-adi-nugroho-160278205/",
+  },
 ];
 
 const supervisors = [
@@ -404,15 +424,39 @@ export default function AboutPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {developers.map((name) => (
+                {developers.map((dev) => (
                   <div
-                    key={name}
+                    key={dev.name}
                     className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--content-surface)] p-5 text-center shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
                   >
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-sm font-bold text-[var(--color-primary)]">
-                      {getInitials(name)}
+                      {getInitials(dev.name)}
                     </div>
-                    <p className="text-sm font-medium leading-snug text-heading">{name}</p>
+                    <p className="flex-1 text-sm font-medium leading-snug text-heading">{dev.name}</p>
+                    <div className="flex items-center gap-2">
+                      {dev.linkedin && (
+                        <a
+                          href={dev.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`LinkedIn ${dev.name}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] text-[#0077b5] transition hover:border-[#0077b5] hover:bg-[#0077b5] hover:text-white"
+                        >
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                          </svg>
+                        </a>
+                      )}
+                      {dev.email && (
+                        <a
+                          href={`mailto:${dev.email}`}
+                          aria-label={`Email ${dev.name}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] text-[var(--color-primary)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white"
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

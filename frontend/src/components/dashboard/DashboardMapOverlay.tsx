@@ -190,10 +190,11 @@ export default function DashboardMapOverlay({
 
           <button
             type="button"
-            onClick={handleReport}
-            className="btn-primary text-xs font-medium shadow-sm transition-opacity"
+            onClick={isAuthenticated ? handleReport : undefined}
+            title={isAuthenticated ? undefined : "Login diperlukan untuk membuat laporan."}
+            className={`text-xs font-medium shadow-sm transition-opacity ${isAuthenticated ? "btn-primary" : "btn-outline cursor-not-allowed opacity-70"}`}
           >
-            <FileText className="h-4 w-4" />
+            {isAuthenticated ? <FileText className="h-4 w-4" /> : <Lock className="h-4 w-4 opacity-70" />}
             <span className="hidden sm:inline">Buat Laporan</span>
           </button>
         </div>

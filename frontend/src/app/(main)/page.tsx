@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { Droplets, Leaf, Layers3, Globe, ArrowRight, BarChart3, TrendingUp, MapPin  } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
@@ -33,10 +34,14 @@ export default function LandingPage() {
       <section className="section-gradient-primary relative overflow-hidden text-white">
         {/* Background image */}
         <div className="absolute inset-0">
-          <img
+          <Image
             src="/cover/pexels-dhennynapitupulu-19104382.jpg"
             alt={t("landing.heroImageAlt")}
-            className="h-full w-full object-cover object-center opacity-45"
+            fill
+            priority
+            quality={80}
+            sizes="100vw"
+            className="object-cover object-center opacity-45"
           />
 
           {/* Base dark overlay */}

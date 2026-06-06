@@ -18,6 +18,7 @@ report_bp = Blueprint("report_bp", __name__)
 _HAZARD_ALIAS  = {"multi": "multihazard"}
 _HAZARD_ID     = {"flood": 1, "drought": 2, "multihazard": 3}
 _SCENARIO_ID   = {"nonclimate": 1, "climate": 2}
+_CLIMATE_LABEL = {"nonclimate": "Baseline", "climate": "Projection"}
 _RP_STR_TO_INT = {"rp25": 25, "rp50": 50, "rp100": 100, "rp250": 250}
 _RP_ID         = {25: 1, 50: 2, 100: 3, 250: 4}
 _HAZARD_LABEL  = {"flood": "Flood", "drought": "Drought", "multihazard": "Multi-hazard"}
@@ -187,12 +188,13 @@ def download_csv():
 
         out = StringIO()
         writer = csv.writer(out)
+        climate_label = _CLIMATE_LABEL.get(climate, climate)
         writer.writerow([
             "ID Kabkota",
             "Kabupaten / Kota",
             "Provinsi",
-            f"Loss (Rp) — {hazard.upper()} {scenario.upper()} {climate}",
-            f"AAL (Rp) — {hazard.upper()} {climate}",
+            f"Loss (Rp) — {hazard.upper()} {scenario.upper()} {climate_label}",
+            f"AAL (Rp) — {hazard.upper()} {climate_label}",
             "Hazard Index (0–1)",
             "Total Produksi (ton)",
             "Persentase Kontribusi (%)",
@@ -217,7 +219,7 @@ def download_csv():
             buf,
             mimetype="text/csv",
             as_attachment=True,
-            download_name=f"padis_{hazard}_{climate}_{scenario}_{region_slug}.csv",
+            download_name=f"padis_{hazard}_{climate_label.lower()}_{scenario}_{region_slug}.csv",
         )
     finally:
         db.close()

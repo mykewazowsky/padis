@@ -264,8 +264,8 @@ export default function CaraKerjaPage() {
             {/* Manual book download */}
             <div className="mt-6 flex justify-center">
               <a
-                href="/manual-book/PADIS_Manual_Book.pdf"
-                download="PADIS_Manual_Book.pdf"
+                href="/manual-book/PADIS_User-Guide.pdf"
+                download="PADIS_User-Guide.pdf"
                 aria-label={t("caraKerja.downloadManualAria")}
                 className="btn-outline inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
               >

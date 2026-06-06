@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { PADIS_THEME_STORAGE_KEY } from "@/lib/theme";
 
-const figtree = Figtree({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const figtree = Figtree({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
 
 export const metadata: Metadata = {
   title: {

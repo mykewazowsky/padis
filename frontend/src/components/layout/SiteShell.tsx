@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LogOut,
   Mail,
@@ -282,6 +282,8 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  // Tracks timestamp of last server-side auth check to throttle per-navigation calls.
+  const lastAuthCheckRef = useRef(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileMounted, setMobileMounted] = useState(false);
 
@@ -300,6 +302,12 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const now = Date.now();
+    // Throttle: skip server round-trip if checked within the last 5 minutes.
+    // The synchronous JWT decode above keeps UI state accurate between checks.
+    if (lastAuthCheckRef.current > 0 && now - lastAuthCheckRef.current < 5 * 60_000) return;
+    lastAuthCheckRef.current = now;
+
     let isMounted = true;
     async function checkAuth() {
       const token = getToken();

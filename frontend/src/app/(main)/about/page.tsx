@@ -501,7 +501,7 @@ export default function AboutPage() {
                       className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--content-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-muted transition hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
                     >
                       <img src="/itb/itb.png" alt="ITB" className="h-3.5 w-auto flex-shrink-0" />
-                      Profil ITB
+                      {t("about.itbProfileButton")}
                     </a>
                   </div>
                 ))}

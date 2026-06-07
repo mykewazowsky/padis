@@ -778,6 +778,21 @@
     "aalRegionCountMid": "yang memiliki data",
     "aalRegionCountSuffix": " sekaligus. Wilayah tanpa data salah satu hazard dikecualikan agar perbandingan antar hazard setara."
   },
+  "tour": {
+    "step1Title": "Filter Analisis",
+    "step1Desc": "Pilih Jenis Bencana, Skenario (Baseline/Projection), dan Periode Ulang untuk mengatur parameter tampilan peta.",
+    "step2Title": "Ringkasan Cepat",
+    "step2Desc": "Panel ini menampilkan Total Kerugian Langsung, Perubahan AAL antara Baseline dan Projection, serta Wilayah Prioritas risiko tertinggi.",
+    "step3Title": "Peta Risiko Interaktif",
+    "step3Desc": "Klik area peta untuk memilih kabupaten/kota dan melihat detail kerugian, AAL, dan indeks bahaya wilayah tersebut.",
+    "step4Title": "Grafik Analisis",
+    "step4Desc": "Grafik lanjutan menampilkan Top 10 Wilayah Prioritas dan distribusi kerugian langsung berdasarkan filter analisis yang aktif.",
+    "btnNext": "Lanjut →",
+    "btnPrev": "← Kembali",
+    "btnDone": "Selesai",
+    "progress": "{{current}} dari {{total}}",
+    "startTour": "Panduan"
+  },
   "footer": {
     "navigationLabel": "Navigasi",
     "platformDesc": "Platform WebGIS untuk analisis kerugian padi berbasis bencana banjir, kekeringan, dan multi-hazard — data spasial hingga kabupaten/kota seluruh Indonesia.",

@@ -5,7 +5,7 @@ import { useDebounce } from "../../../lib/useDebounce";
 import { useLanguage } from "@/contexts/LanguageContext";
 import dynamic from "next/dynamic";
 import type { StylesConfig } from "react-select";
-import { Loader2, ShieldAlert, X } from "lucide-react";
+import { HelpCircle, Loader2, ShieldAlert, X } from "lucide-react";
 
 import { fetchJson } from "../../../lib/fetcher";
 import { fetchAllLayers, fetchLatestRunId, type LayerItem } from "../../../services/fetchLayers";
@@ -13,6 +13,7 @@ import { buildApiUrl } from "../../../lib/api";
 import { getToken, clearToken } from "../../../lib/auth";
 import { getErrorMessage } from "../../../lib/error";
 import DashboardLoadingBlock from "../../../components/dashboard/DashboardLoadingBlock";
+import DashboardTour from "../../../components/dashboard/DashboardTour";
 import DashboardEmptyState from "../../../components/dashboard/DashboardEmptyState";
 import DashboardMapFilters from "../../../components/dashboard/DashboardMapFilters";
 import type { AalSummary, GeoFeature, GeoJsonData } from "../../../types/map";
@@ -241,6 +242,7 @@ function DashboardSectionHeader({
 
 export default function DashboardPage() {
   const { t } = useLanguage();
+  const tourStartRef = useRef<(() => void) | null>(null);
 
   const hazardOptions = useMemo<OptionType[]>(() => [
     { value: "multi", label: t("charts.multi") },
@@ -928,22 +930,34 @@ export default function DashboardPage() {
                 <p className="mt-2 text-sm leading-6 text-[var(--dashboard-text-muted)]">
                   {t("dashboard.riskMapDesc")}
                 </p>
-                {runId !== null && (
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                      Run #{runId}
-                    </span>
-                    {dataYear !== null && (
-                      <span className="inline-flex items-center rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
-                        {t("dashboard.modelDataLabel")} {dataYear}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {runId !== null && (
+                    <>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        Run #{runId}
                       </span>
-                    )}
-                  </div>
-                )}
+                      {dataYear !== null && (
+                        <span className="inline-flex items-center rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm">
+                          {t("dashboard.modelDataLabel")} {dataYear}
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {/* Tour trigger — desktop only, hidden on mobile */}
+                  <button
+                    type="button"
+                    onClick={() => tourStartRef.current?.()}
+                    aria-label={t("tour.startTour")}
+                    className="hidden md:inline-flex items-center gap-1 rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm transition hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]"
+                  >
+                    <HelpCircle className="h-3 w-3" />
+                    {t("tour.startTour")}
+                  </button>
+                </div>
               </div>
 
-              <div className="xl:shrink-0 xl:max-w-[42%] xl:pt-1">
+              <div className="xl:shrink-0 xl:max-w-[42%] xl:pt-1" data-tour="quick-summary">
                 {/* Label + status badge */}
                 <div className="mb-2.5 flex items-center gap-2">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
@@ -1069,6 +1083,7 @@ export default function DashboardPage() {
 
                 <div
                   ref={filterPanelRef}
+                  data-tour="filter-panel"
                   className="hidden border-t border-[var(--dashboard-border-soft)] px-5 py-2.5 md:block"
                 >
                   <DashboardMapFilters
@@ -1095,6 +1110,7 @@ export default function DashboardPage() {
               </div>
 
               <div
+                data-tour="map"
                 className={`relative w-full ${
                   isMapExpanded
                     ? "h-[50vh] sm:h-[65vh] md:min-h-0 md:flex-1 md:h-auto"
@@ -1186,6 +1202,7 @@ export default function DashboardPage() {
 
       <section
         ref={chartsRef}
+        data-tour="charts"
         className="relative w-full border-t border-[var(--dashboard-border-solid)] bg-[linear-gradient(180deg,var(--dashboard-surface-solid)_0%,var(--dashboard-surface-muted)_100%)] pt-10 pb-14"
       >
         <div className="relative mx-auto w-full max-w-[1400px] px-5 sm:px-6 xl:px-8">
@@ -1271,6 +1288,8 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <DashboardTour onReady={(fn) => { tourStartRef.current = fn; }} />
 
       {downloadError && (
         <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-[var(--dashboard-toast-danger-border)] bg-[var(--dashboard-toast-danger-bg)] px-4 py-3 shadow-lg backdrop-blur">

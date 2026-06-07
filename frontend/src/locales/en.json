@@ -778,6 +778,21 @@
     "aalRegionCountMid": "with data for",
     "aalRegionCountSuffix": " simultaneously. Regions missing data for any hazard are excluded to ensure equal comparison."
   },
+  "tour": {
+    "step1Title": "Analysis Filter",
+    "step1Desc": "Select Hazard Type, Scenario (Baseline/Projection), and Return Period to configure the map analysis view.",
+    "step2Title": "Quick Summary",
+    "step2Desc": "This panel shows Total Direct Loss, AAL Change between Baseline and Projection, and the highest-risk Priority Region.",
+    "step3Title": "Interactive Risk Map",
+    "step3Desc": "Click a region on the map to select a district and view its loss, AAL, and hazard index details.",
+    "step4Title": "Analysis Charts",
+    "step4Desc": "Advanced charts showing Top 10 Priority Regions and direct loss distribution based on active analysis filters.",
+    "btnNext": "Next →",
+    "btnPrev": "← Back",
+    "btnDone": "Done",
+    "progress": "{{current}} of {{total}}",
+    "startTour": "Guide"
+  },
   "footer": {
     "navigationLabel": "Navigation",
     "platformDesc": "WebGIS platform for rice loss analysis based on flood, drought, and multi-hazard disasters — spatial data down to district level across Indonesia.",

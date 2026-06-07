@@ -891,9 +891,18 @@ export default function DashboardPage() {
       ...base,
       zIndex: 9999,
     }),
+    // Re-apply theme-aware styles here because buildSelectStyles in
+    // DashboardMapFilters spreads selectPortalStyles AFTER selectStyles,
+    // which means this menu fn would override the one in selectStyles.
+    // Without these, react-select falls back to its default white background.
     menu: (base) => ({
       ...base,
       zIndex: 9999,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: "var(--dashboard-input-bg)",
+      border: "1px solid var(--dashboard-border-solid)",
+      boxShadow: "0 16px 34px rgba(15,23,42,0.22)",
     }),
   };
 

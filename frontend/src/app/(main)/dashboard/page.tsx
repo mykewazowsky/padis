@@ -18,6 +18,7 @@ import DashboardEmptyState from "../../../components/dashboard/DashboardEmptySta
 import DashboardMapFilters from "../../../components/dashboard/DashboardMapFilters";
 import type { AalSummary, GeoFeature, GeoJsonData } from "../../../types/map";
 import type { DistItem } from "../../../components/charts/AdvancedCharts";
+import type { ABVariant } from "../../../lib/ab-variant";
 import type { LayerKey } from "../../../components/map/core/MapLegendPanel";
 
 const MapView = dynamic(() => import("../../../components/map/MapView"), {
@@ -243,6 +244,7 @@ function DashboardSectionHeader({
 export default function DashboardPage() {
   const { t } = useLanguage();
   const tourStartRef = useRef<(() => void) | null>(null);
+  const [abVariant, setAbVariant] = useState<ABVariant>("b");
 
   const hazardOptions = useMemo<OptionType[]>(() => [
     { value: "multi", label: t("charts.multi") },
@@ -953,16 +955,18 @@ export default function DashboardPage() {
                       )}
                     </>
                   )}
-                  {/* Tour trigger — desktop only, hidden on mobile */}
-                  <button
-                    type="button"
-                    onClick={() => tourStartRef.current?.()}
-                    aria-label={t("tour.startTour")}
-                    className="hidden md:inline-flex items-center gap-1 rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm transition hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]"
-                  >
-                    <HelpCircle className="h-3 w-3" />
-                    {t("tour.startTour")}
-                  </button>
+                  {/* Tour trigger — variant B only, desktop only */}
+                  {abVariant === "b" && (
+                    <button
+                      type="button"
+                      onClick={() => tourStartRef.current?.()}
+                      aria-label={t("tour.startTour")}
+                      className="hidden md:inline-flex items-center gap-1 rounded-full border border-[var(--dashboard-border-solid)] bg-[var(--dashboard-surface-solid)] px-2.5 py-1 text-[11px] font-semibold text-[var(--dashboard-text-soft)] shadow-sm transition hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]"
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                      {t("tour.startTour")}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1298,7 +1302,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <DashboardTour onReady={(fn) => { tourStartRef.current = fn; }} />
+      <DashboardTour
+        onReady={(fn) => { tourStartRef.current = fn; }}
+        onVariantDetected={setAbVariant}
+      />
 
       {downloadError && (
         <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-[var(--dashboard-toast-danger-border)] bg-[var(--dashboard-toast-danger-bg)] px-4 py-3 shadow-lg backdrop-blur">

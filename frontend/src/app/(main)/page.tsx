@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
 import { Droplets, Leaf, Layers3, Globe, ArrowRight, BarChart3, TrendingUp, MapPin  } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -27,6 +28,16 @@ function SectionHeader({
 export default function LandingPage() {
   const { ref: cakupanRef, inView: cakupanInView } = useInView();
   const { t } = useLanguage();
+
+  // Warmup ping: wake Railway backend while user reads the landing page
+  // so it's already running by the time they navigate to the dashboard.
+  useEffect(() => {
+    fetch("https://padis-production-06a2.up.railway.app/api/health", {
+      method: "GET",
+      mode: "no-cors",
+      priority: "low",
+    } as RequestInit).catch(() => { /* ignore — fire-and-forget */ });
+  }, []);
 
   return (
     <div className="content-theme">

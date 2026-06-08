@@ -100,6 +100,16 @@ backend/data/output/zonal/drought_stats.geojson
 
 Multi-hazard tidak punya raster sendiri, sehingga tidak punya file zonal tersendiri.
 
+### Keputusan Desain: Normalisasi Drought (Common Overlap vs Independen)
+
+Raster drought terdiri dari dua kelompok berpasangan: nonclimate (`_r*_reproj.tif`) dan climate (`_rc*_reproj.tif`). Pipeline saat ini menggunakan `normalize_drought_pair_with_common_overlap()` di `raster_engine.py`, yang berarti kedua raster dalam satu pasangan return period dinormalisasi dalam rentang yang sama, dihitung hanya dari piksel yang valid di **keduanya** secara bersamaan (common overlap mask).
+
+Keputusan ini diambil karena perbandingan climate dan nonclimate scenario memerlukan skala yang konsisten. Jika raster climate dan nonclimate dinormalisasi secara independen, nilai yang sama secara absolut bisa mendapat nilai indeks yang berbeda antar skenario, sehingga perbandingan dashboard menjadi tidak valid.
+
+Trade-off: common overlap mask membuang piksel yang valid di salah satu raster tapi NoData di raster pasangannya. Pada beberapa kabupaten dengan cakupan raster yang tidak sempurna, hal ini dapat memunculkan selisih kecil vs hasil QGIS (yang menormalisasi secara independen per raster).
+
+Untuk mengevaluasi besarnya selisih tersebut, tersedia script `backend/scripts/tools/simulate_opsi1_drought.py` yang mensimulasikan metode independen tanpa mengubah file apapun.
+
 ### Metode Zonal Statistics
 
 `bulk_zonal_stats()` di `zonal_engine.py` menggunakan `rasterio.mask` per polygon — identik dengan Zonal Statistics QGIS. Raster dibuka sekali, setiap fitur sawah di-mask dan mean dihitung dari piksel valid menggunakan numpy.

@@ -327,6 +327,52 @@ Body opsional:
 { "force": false }
 ```
 
+### PATCH `/api/admin/runs/{run_id}`
+
+Mengubah metadata run: `run_name` dan/atau `operator_name`. Minimal satu field harus ada di body.
+
+Body (semua opsional, minimal satu):
+
+```json
+{ "run_name": "flood_fix_v2", "operator_name": "admin" }
+```
+
+Set ke `null` untuk menghapus field tersebut:
+
+```json
+{ "run_name": null }
+```
+
+Response `200`:
+
+```json
+{ "run_id": 12, "run_name": "flood_fix_v2", "operator_name": "admin" }
+```
+
+### PATCH `/api/admin/runs/{run_id}/data-year`
+
+Menyimpan atau menghapus keterangan tahun model data untuk sebuah run (misalnya tahun data iklim yang dipakai).
+
+Body:
+
+```json
+{ "data_year": 2022 }
+```
+
+Set ke `null` untuk menghapus:
+
+```json
+{ "data_year": null }
+```
+
+`data_year` harus berupa integer antara 1990 dan 2100 jika diisi.
+
+Response `200`:
+
+```json
+{ "run_id": 12, "data_year": 2022 }
+```
+
 ### DELETE `/api/admin/runs/{run_id}`
 
 Menghapus run dan data turunannya dari `zonal_kabupaten`, `losses`, dan `aal`. Tidak boleh menghapus run aktif atau run yang masih running.

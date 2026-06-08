@@ -14,8 +14,6 @@ Frontend PADIS adalah aplikasi Next.js App Router dengan React, TypeScript, Tail
 | React Leaflet | 5.0.0 | Binding Leaflet untuk React |
 | Leaflet.VectorGrid | 1.3.0 | Render MVT |
 | Recharts | 3.8.0 | Grafik |
-| simple-statistics | 7.8.9 | Klasifikasi Jenks |
-| chroma-js | 3.2.0 | Palet warna |
 | lucide-react | 1.7.0 | Ikon |
 | Supabase JS | 2.104.1 | Integrasi Supabase client-side jika diperlukan |
 
@@ -119,7 +117,7 @@ Komponen client-only yang mengatur klasifikasi layer:
 - AAL
 - hazard index
 
-Klasifikasi memakai Jenks natural breaks dan palet warna dari `chroma-js`.
+Klasifikasi menggunakan **kelas tetap hardcoded** yang diturunkan dari distribusi data aktual (untuk layer hazard, loss, dan AAL) dan **quantile** untuk layer produksi. Palet warna adalah konstanta `RISK_PALETTE` (5 hex dari hijau ke merah). Tidak menggunakan library klasifikasi eksternal.
 
 ### MapCanvas
 

@@ -329,6 +329,62 @@ HTML report tersimpan di `C:\Users\...\Downloads\QC_Report_run49.html` dan dapat
 
 Untuk mengubah `RUN_ID` atau path XLSX target, edit konstanta di baris awal masing-masing script.
 
+### Verifikasi Akurasi Zonal Stats vs QGIS
+
+Empat script tambahan untuk membandingkan output pipeline secara langsung dengan hasil zonal statistics QGIS (bukan dari DB, tapi dari file GeoJSON hasil pipeline):
+
+#### `compare_qgis_vs_script.py` — Flood
+
+Membandingkan `flood_stats.geojson` (output pipeline) dengan CSV zonal QGIS untuk semua 4 return period flood (`rp25`, `rp50`, `rp100`, `rp250`).
+
+```powershell
+python backend\scripts\tools\compare_qgis_vs_script.py
+```
+
+Output dicetak ke terminal: ringkasan per RP, top 15 selisih terbesar, statistik global (mean, median, max, std selisih).
+
+Threshold kategorisasi:
+
+| Kategori | Kondisi |
+|---|---|
+| `EXACT` | selisih < 1e-6 |
+| `MINOR` | selisih < 0.05 meter |
+| `MAJOR` | selisih >= 0.05 meter |
+
+**Prasyarat:** File CSV QGIS (`zonal_r25.csv`, ..., `zonal_r250.csv`) harus ada di `C:/Users/Asus/Downloads/`. Jika path berbeda, edit konstanta `DOWNLOADS` di baris awal script.
+
+#### `compare_drought_qgis_vs_script.py` — Drought
+
+Analog flood tetapi untuk `drought_stats.geojson` dan 8 return period drought (`r25`, `r50`, `r100`, `r250` nonclimate + `rc25`, `rc50`, `rc100`, `rc250` climate).
+
+```powershell
+python backend\scripts\tools\compare_drought_qgis_vs_script.py
+```
+
+CSV QGIS yang dibutuhkan: `zonal_gpm25.csv` ... `zonal_gpm250.csv` (nonclimate) dan `zonal_mme25.csv` ... `zonal_mme250.csv` (climate), di folder `C:/Users/Asus/Downloads/`.
+
+Threshold kategorisasi: EXACT < 1e-6, MINOR < 0.01 (indeks 0–1), MAJOR >= 0.01.
+
+#### `simulate_opsi1_drought.py` — Simulasi Normalisasi Independen
+
+Mensimulasikan metode normalisasi drought "Opsi 1" (independen per raster, tanpa common overlap mask) dan membandingkan hasilnya dengan pipeline saat ini dan QGIS. **Tidak mengubah file apapun** — seluruh kalkulasi dilakukan in-memory.
+
+```powershell
+python backend\scripts\tools\simulate_opsi1_drought.py
+```
+
+Digunakan untuk mengevaluasi apakah metode `normalize_drought_pair_with_common_overlap()` (pipeline saat ini) atau normalisasi independen lebih mendekati hasil QGIS. Lihat juga catatan keputusan desain di `docs/pipeline.md`.
+
+#### `_drought_probe.py` — Probe Cepat Diagnostic
+
+Probe satu-baris (tanpa argumen) untuk inspeksi cepat nilai zonal stats drought pada tiga sampel kabupaten (Tomohon, Bitung, Pamekasan).
+
+```powershell
+python backend\scripts\tools\_drought_probe.py
+```
+
+Versi ringkas dari `compare_drought_qgis_vs_script.py` — hanya mencetak range nilai dan perbandingan titik per kabupaten tanpa kategorisasi EXACT/MINOR/MAJOR. Berguna untuk debugging cepat saat pipeline baru selesai.
+
 ## Troubleshooting Singkat
 
 ### Backend tidak start

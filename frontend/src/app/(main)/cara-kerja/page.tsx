@@ -220,7 +220,7 @@ export default function CaraKerjaPage() {
               <div className="aspect-video w-full bg-black">
                 <iframe
                   className="h-full w-full"
-                  src="https://www.youtube.com/embed/sXUgzCNxeGc"
+                  src="https://www.youtube.com/embed/a4zoOu2lmVA"
                   title={t("caraKerja.videoTitleAttr")}
                   allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -251,7 +251,7 @@ export default function CaraKerjaPage() {
             <p className="mt-4 text-center text-xs text-muted">
               {t("caraKerja.videoNotAppearing")}{" "}
               <a
-                href="https://www.youtube.com/watch?v=sXUgzCNxeGc"
+                href="https://www.youtube.com/watch?v=a4zoOu2lmVA"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={t("caraKerja.openYoutubeAria")}

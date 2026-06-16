@@ -3,6 +3,7 @@ import os
 from backend.scripts.utils.db import get_conn
 from backend.scripts.utils import log
 from backend.scripts.config.paths import OUTPUT_ANALYSIS_DIR
+from backend.scripts.metadata.run_metadata import RunMetadataRecorder, sync_metadata_to_db
 
 from backend.scripts.etl.load_regions_adm import run as load_regions
 from backend.scripts.etl.load_sawah import run as load_sawah
@@ -84,6 +85,7 @@ def run(hazard: str = "multi", run_id: int | None = None, operator_name: str = "
     conn = get_conn()
     cur = conn.cursor()
     own_run = run_id is None
+    metadata: RunMetadataRecorder | None = None
 
     try:
         if own_run:
@@ -100,6 +102,25 @@ def run(hazard: str = "multi", run_id: int | None = None, operator_name: str = "
             log.info("ETL", f"Run ID: {run_id} (dibuat oleh ETL)  hazard={hazard}")
         else:
             log.info("ETL", f"Run ID: {run_id} (dari pipeline)  hazard={hazard}")
+
+        metadata = RunMetadataRecorder(
+            run_id=run_id,
+            hazard=hazard,
+            operator_name=operator_name,
+            source="etl" if own_run else "pipeline",
+        )
+        if own_run:
+            metadata.start({
+                "preprocess": False,
+                "zonal": False,
+                "analysis": False,
+                "etl": True,
+            })
+        metadata.record_stage("etl", "database_write_started", {
+            "hazard": hazard,
+            "own_run": own_run,
+            "tables": ["losses", "aal", "zonal_kabupaten"],
+        })
 
         log.info("ETL", "Tulis losses ke DB...")
         load_losses(cur, run_id, hazard, _prepared=losses_batch)
@@ -126,10 +147,25 @@ def run(hazard: str = "multi", run_id: int | None = None, operator_name: str = "
             )
 
         conn.commit()
+        if metadata is not None:
+            metadata.record_stage("etl", "database_write_success", {
+                "run_id": run_id,
+                "hazard": hazard,
+                "tables": ["losses", "aal", "zonal_kabupaten"],
+            })
+            metadata.refresh_outputs(include_processed=False)
+            if own_run:
+                metadata.finish("success", "ETL selesai", None)
+                sync_metadata_to_db(run_id, metadata.path)
         log.ok("ETL", f"Semua data berhasil dimuat (run_id={run_id}  hazard={hazard})")
 
     except Exception as e:
         conn.rollback()
+        if metadata is not None:
+            metadata.record_stage("etl", "database_write_failed", {"error": str(e)})
+            if own_run:
+                metadata.finish("failed", str(e), None)
+                sync_metadata_to_db(run_id, metadata.path)
         if own_run and run_id is not None:
             try:
                 cur2 = conn.cursor()

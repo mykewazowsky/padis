@@ -6,6 +6,7 @@ import {
   Activity,
   CheckCircle2,
   Clock3,
+  Download,
   GitBranch,
   Layers3,
   Pencil,
@@ -13,6 +14,7 @@ import {
   Power,
   RefreshCw,
   Star,
+  Square,
   Trash2,
   Workflow,
   X,
@@ -37,6 +39,10 @@ type RunStatus = {
   operator_name: string | null;
   source: string | null;
   data_year: number | null;
+  metadata_available?: boolean;
+  metadata_status?: string | null;
+  metadata_path?: string | null;
+  metadata_updated_at?: string | null;
 };
 
 type ValidationTableRow = { hazard: string; regions: number; rows: number };
@@ -112,6 +118,8 @@ function getStatusTone(status?: string | null) {
     return { label: "Success", className: "text-green-600", badgeClass: "border-green-200 bg-green-50 text-green-700" };
   if (status === "failed")
     return { label: "Failed", className: "text-red-600", badgeClass: "border-red-200 bg-red-50 text-red-700" };
+  if (status === "stopped")
+    return { label: "Stopped", className: "text-slate-700", badgeClass: "border-slate-200 bg-slate-100 text-slate-700" };
   return { label: capitalize(status || "idle"), className: "text-slate-900", badgeClass: "border-slate-200 bg-slate-50 text-slate-700" };
 }
 
@@ -119,6 +127,7 @@ function getStatusBadgeClass(status?: string | null) {
   if (status === "running") return "bg-amber-100 text-amber-700";
   if (status === "success") return "bg-green-100 text-green-700";
   if (status === "failed")  return "bg-red-100 text-red-700";
+  if (status === "stopped") return "bg-slate-200 text-slate-700";
   return "bg-slate-100 text-slate-600";
 }
 
@@ -126,6 +135,24 @@ function getProgressBarClass(status?: string | null) {
   if (status === "failed")  return "bg-red-400";
   if (status === "success") return "bg-green-500";
   return "bg-[var(--color-primary)]";
+}
+
+function getMetadataBadgeClass(status?: string | null) {
+  if (status === "complete") return "border-green-200 bg-green-50 text-green-700";
+  if (status === "partial" || status === "backfilled_partial") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-500";
+}
+
+function getMetadataLabel(run: RunStatus) {
+  if (!hasRunMetadata(run)) return "Belum ada";
+  if (run.metadata_status === "complete") return "Lengkap";
+  if (run.metadata_status === "backfilled_partial") return "Backfill";
+  if (run.metadata_status === "partial") return "Parsial";
+  return capitalize(run.metadata_status || "Tersedia");
+}
+
+function hasRunMetadata(run: RunStatus) {
+  return Boolean(run.metadata_available || run.metadata_status || run.metadata_path);
 }
 
 // =============================================================================
@@ -263,6 +290,9 @@ export default function AdminPipelineMonitorPage() {
   const [deleting, setDeleting] = useState(false);
   const [deletionError, setDeletionError] = useState("");
   const [deletionConfirmText, setDeletionConfirmText] = useState("");
+  const [downloadingMetadataRunId, setDownloadingMetadataRunId] = useState<number | null>(null);
+  const [backfillingMetadataRunId, setBackfillingMetadataRunId] = useState<number | null>(null);
+  const [stoppingRunId, setStoppingRunId] = useState<number | null>(null);
 
   const loadData = useCallback(async (showRefresh = false) => {
     if (inFlightRef.current) return;
@@ -554,6 +584,83 @@ export default function AdminPipelineMonitorPage() {
     }
   }, [deletionTarget, loadData]);
 
+  const downloadMetadata = useCallback(async (run: RunStatus) => {
+    if (!hasRunMetadata(run)) return;
+    setDownloadingMetadataRunId(run.id);
+    setErrorMessage("");
+    try {
+      const res = await fetchWithAuth(`/api/admin/runs/${run.id}/metadata/download`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error ?? "Gagal mengunduh metadata run.");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `run_${run.id}_metadata.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal mengunduh metadata run.";
+      setErrorMessage(msg);
+    } finally {
+      setDownloadingMetadataRunId(null);
+    }
+  }, []);
+
+  const backfillMetadata = useCallback(async (run: RunStatus) => {
+    if (hasRunMetadata(run)) return;
+    setBackfillingMetadataRunId(run.id);
+    setErrorMessage("");
+    try {
+      const res = await fetchWithAuth(`/api/admin/runs/${run.id}/metadata/backfill`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error ?? "Gagal membuat metadata backfill.");
+      }
+      await loadData(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal membuat metadata backfill.";
+      setErrorMessage(msg);
+    } finally {
+      setBackfillingMetadataRunId(null);
+    }
+  }, [loadData]);
+
+  const stopRun = useCallback(async (run: RunStatus) => {
+    if (run.status !== "running") return;
+
+    const ok = window.confirm(
+      `Hentikan status running untuk Run #${run.id}? Setelah berhenti, run ini bisa dihapus dari riwayat.`
+    );
+    if (!ok) return;
+
+    setStoppingRunId(run.id);
+    setErrorMessage("");
+    try {
+      const res = await fetchWithAuth(`/api/admin/runs/${run.id}/stop`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Dihentikan manual dari Pipeline Monitor." }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error ?? "Gagal menghentikan run.");
+      }
+      await loadData(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal menghentikan run.";
+      setErrorMessage(msg);
+    } finally {
+      setStoppingRunId(null);
+    }
+  }, [loadData]);
+
   const statusTone   = useMemo(() => getStatusTone(currentRun?.status), [currentRun?.status]);
   const activeHazard = useMemo(() => formatHazardLabel(extractHazard(currentRun?.run_name ?? null)), [currentRun?.run_name]);
   const activeStep   = useMemo(() => capitalize(currentRun?.step), [currentRun?.step]);
@@ -805,7 +912,7 @@ export default function AdminPipelineMonitorPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left">
-                  {["#", "Run Name", "Status", "Aktif", "Progress", "Th. Model", "Operator", "Dibuat", "Selesai", "Aksi"].map((h) => (
+                  {["#", "Run Name", "Status", "Aktif", "Progress", "Th. Model", "Operator", "Dibuat", "Selesai", "Metadata", "Aksi"].map((h) => (
                     <th
                       key={h}
                       className="pb-3 pr-4 last:pr-0 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -966,6 +1073,39 @@ export default function AdminPipelineMonitorPage() {
                       </td>
                       <td className="py-3 pr-4 text-slate-500">{formatDateTime(run.created_at)}</td>
                       <td className="py-3 pr-4 text-slate-500">{formatDateTime(run.finished_at)}</td>
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-col gap-1.5">
+                          <span
+                            className={`inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getMetadataBadgeClass(run.metadata_status)}`}
+                            title={run.metadata_updated_at ? `Update metadata: ${formatDateTime(run.metadata_updated_at)}` : undefined}
+                          >
+                            {getMetadataLabel(run)}
+                          </span>
+                          {hasRunMetadata(run) ? (
+                            <button
+                              type="button"
+                              onClick={() => void downloadMetadata(run)}
+                              disabled={downloadingMetadataRunId === run.id}
+                              className="inline-flex w-fit items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
+                              title="Unduh metadata JSON"
+                            >
+                              <Download className="h-3 w-3" />
+                              {downloadingMetadataRunId === run.id ? "Mengunduh" : "JSON"}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void backfillMetadata(run)}
+                              disabled={backfillingMetadataRunId === run.id}
+                              className="inline-flex w-fit items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
+                              title="Buat metadata parsial dari artefak saat ini"
+                            >
+                              <RefreshCw className={`h-3 w-3 ${backfillingMetadataRunId === run.id ? "animate-spin" : ""}`} />
+                              {backfillingMetadataRunId === run.id ? "Membuat" : "Buat"}
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <button
@@ -984,6 +1124,22 @@ export default function AdminPipelineMonitorPage() {
                             <Power className="h-3.5 w-3.5" />
                             {isThisActive ? "Aktif" : "Aktifkan"}
                           </button>
+                          {run.status === "running" && (
+                            <button
+                              type="button"
+                              onClick={() => void stopRun(run)}
+                              disabled={stoppingRunId === run.id || isThisActive}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-700"
+                              title={
+                                isThisActive
+                                  ? "Run aktif tidak dapat dihentikan dari sini."
+                                  : "Ubah status run tersangkut menjadi stopped"
+                              }
+                            >
+                              <Square className="h-3.5 w-3.5" />
+                              {stoppingRunId === run.id ? "Stop..." : "Stop"}
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => openDeletionModal(run)}

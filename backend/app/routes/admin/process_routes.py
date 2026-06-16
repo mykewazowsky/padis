@@ -14,6 +14,7 @@ Endpoint:
 """
 
 import logging
+import json
 import os
 import re
 import subprocess
@@ -22,10 +23,11 @@ import sys
 logger = logging.getLogger(__name__)
 
 from datetime import datetime, timezone
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 from sqlalchemy import text
 
 from ..auth.auth_utils import admin_required
+from backend.scripts.metadata.run_metadata import RunMetadataRecorder, sync_metadata_to_db
 from .admin_utils import (
     BACKEND_DIR,
     OUTPUT_DIR,
@@ -119,6 +121,18 @@ def _idle_state(message="Belum ada proses yang sedang berjalan.") -> dict:
         "total_steps": 0,
         "progress_percent": 0,
         "updated_outputs": [],
+    }
+
+
+def _metadata_summary(row) -> dict:
+    metadata_status = getattr(row, "metadata_status", None)
+    metadata_path = getattr(row, "metadata_path", None)
+    metadata_updated_at = getattr(row, "metadata_updated_at", None)
+    return {
+        "metadata_available": metadata_status is not None,
+        "metadata_status": metadata_status,
+        "metadata_path": metadata_path,
+        "metadata_updated_at": metadata_updated_at.isoformat() if metadata_updated_at else None,
     }
 
 
@@ -299,15 +313,31 @@ def admin_list_runs():
             params["run_name_prefix"] = f"{hazard_filter}_%"
 
         where_clause = " AND ".join(conditions)
+        prefixed_conditions = []
+        for condition in conditions:
+            if condition == "source IN ('local', 'etl')":
+                prefixed_conditions.append("r.source IN ('local', 'etl')")
+            elif condition == "operator_name = :operator_name":
+                prefixed_conditions.append("r.operator_name = :operator_name")
+            elif condition == "run_name LIKE :run_name_prefix":
+                prefixed_conditions.append("r.run_name LIKE :run_name_prefix")
+            else:
+                prefixed_conditions.append(condition)
+        prefixed_where_clause = " AND ".join(prefixed_conditions)
 
         with SessionLocal() as session:
             try:
                 rows = session.execute(text(f"""
-                    SELECT id, run_name, created_at, finished_at, status, is_active,
-                           step, progress, message, operator_name, source, data_year
-                    FROM runs
-                    WHERE {where_clause}
-                    ORDER BY id DESC
+                    SELECT r.id, r.run_name, r.created_at, r.finished_at,
+                           r.status, r.is_active, r.step, r.progress,
+                           r.message, r.operator_name, r.source, r.data_year,
+                           rm.metadata_status,
+                           rm.metadata_path,
+                           rm.updated_at AS metadata_updated_at
+                    FROM runs r
+                    LEFT JOIN run_metadata rm ON rm.run_id = r.id
+                    WHERE {prefixed_where_clause}
+                    ORDER BY r.id DESC
                     LIMIT :limit
                 """), params).fetchall()
             except Exception:
@@ -318,7 +348,10 @@ def admin_list_runs():
                            NULL AS finished_at,
                            status, is_active,
                            step, progress, message, operator_name, source,
-                           NULL AS data_year
+                           NULL AS data_year,
+                           NULL AS metadata_status,
+                           NULL AS metadata_path,
+                           NULL AS metadata_updated_at
                     FROM runs
                     WHERE {where_clause}
                     ORDER BY id DESC
@@ -342,6 +375,7 @@ def admin_list_runs():
             "operator_name": row.operator_name,
             "source":        row.source,
             "data_year":     getattr(row, "data_year", None),
+            **_metadata_summary(row),
         }
         for row in rows
     ]
@@ -526,6 +560,174 @@ def admin_validate_run(run_id: int):
 
 
 # =============================================================================
+# GET /api/admin/runs/<id>/metadata  — full run metadata JSON
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/metadata", methods=["GET"])
+@admin_required
+def admin_get_run_metadata(run_id: int):
+    db = SessionLocal()
+    try:
+        row = db.execute(text("""
+            SELECT r.id AS run_id,
+                   r.run_name,
+                   rm.hazard,
+                   rm.status,
+                   rm.metadata_version,
+                   rm.metadata_status,
+                   rm.metadata_path,
+                   rm.updated_at AS metadata_updated_at,
+                   rm.metadata
+            FROM runs r
+            LEFT JOIN run_metadata rm ON rm.run_id = r.id
+            WHERE r.id = :run_id
+        """), {"run_id": run_id}).fetchone()
+
+        if row is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan."}), 404
+
+        if row.metadata is None:
+            return jsonify({
+                "run_id": run_id,
+                "run_name": row.run_name,
+                "metadata_available": False,
+                "metadata": None,
+            }), 404
+
+        metadata = row.metadata
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+
+        return jsonify({
+            "run_id": run_id,
+            "run_name": row.run_name,
+            "metadata_available": True,
+            "metadata_status": row.metadata_status,
+            "metadata_path": row.metadata_path,
+            "metadata_updated_at": row.metadata_updated_at.isoformat() if row.metadata_updated_at else None,
+            "metadata": metadata,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "Gagal mengambil metadata run", "detail": str(e)}), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
+# GET /api/admin/runs/<id>/metadata/download  — JSON attachment
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/metadata/download", methods=["GET"])
+@admin_required
+def admin_download_run_metadata(run_id: int):
+    db = SessionLocal()
+    try:
+        row = db.execute(text("""
+            SELECT r.id AS run_id,
+                   rm.metadata
+            FROM runs r
+            LEFT JOIN run_metadata rm ON rm.run_id = r.id
+            WHERE r.id = :run_id
+        """), {"run_id": run_id}).fetchone()
+
+        if row is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan."}), 404
+        if row.metadata is None:
+            return jsonify({"error": f"Metadata untuk run #{run_id} belum tersedia."}), 404
+
+        metadata = row.metadata
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+        body = json.dumps(metadata, indent=2, ensure_ascii=False, default=str) + "\n"
+
+        return Response(
+            body,
+            mimetype="application/json",
+            headers={
+                "Content-Disposition": f"attachment; filename=run_{run_id}_metadata.json"
+            },
+        )
+
+    except Exception as e:
+        return jsonify({"error": "Gagal mengunduh metadata run", "detail": str(e)}), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
+# POST /api/admin/runs/<id>/metadata/backfill  — create partial metadata now
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/metadata/backfill", methods=["POST"])
+@admin_required
+def admin_backfill_run_metadata(run_id: int):
+    db = SessionLocal()
+    try:
+        row = db.execute(text("""
+            SELECT id, run_name, operator_name, source, status
+            FROM runs
+            WHERE id = :run_id
+        """), {"run_id": run_id}).fetchone()
+
+        if row is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan."}), 404
+
+        existing = db.execute(text("""
+            SELECT metadata_status, updated_at
+            FROM run_metadata
+            WHERE run_id = :run_id
+        """), {"run_id": run_id}).fetchone()
+        if existing is not None:
+            return jsonify({
+                "run_id": run_id,
+                "metadata_available": True,
+                "metadata_status": existing.metadata_status,
+                "metadata_updated_at": existing.updated_at.isoformat() if existing.updated_at else None,
+                "message": "Metadata run sudah tersedia.",
+            }), 200
+
+        hazard = "multi"
+        if row.run_name:
+            prefix = row.run_name.split("_")[0]
+            if prefix in ("flood", "drought", "multi", "multihazard"):
+                hazard = prefix
+
+        recorder = RunMetadataRecorder(
+            run_id=run_id,
+            hazard=hazard,
+            operator_name=row.operator_name or "unknown",
+            source=row.source or "backfill",
+        )
+        recorder.start({
+            "preprocess": True,
+            "zonal": True,
+            "analysis": True,
+            "etl": row.status == "success",
+        })
+        recorder.record_stage("metadata", "backfilled_partial", {
+            "run_status": row.status,
+            "source": "admin_backfill",
+        })
+        recorder.refresh_outputs(include_processed=True)
+        recorder.mark_backfilled("Metadata backfill dibuat dari artefak yang tersedia saat ini.")
+        sync_metadata_to_db(run_id, recorder.path)
+
+        return jsonify({
+            "run_id": run_id,
+            "metadata_available": True,
+            "metadata_status": "backfilled_partial",
+            "metadata_path": recorder.path,
+            "message": "Metadata backfill berhasil dibuat.",
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": "Gagal membuat metadata backfill", "detail": str(e)}), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
 # PATCH /api/admin/runs/<id>/activate  — set this run as the active run
 # =============================================================================
 
@@ -619,6 +821,83 @@ def admin_activate_run(run_id: int):
     except Exception as e:
         db.rollback()
         return jsonify({"error": "Gagal mengaktifkan run", "detail": str(e)}), 500
+    finally:
+        db.close()
+
+
+# =============================================================================
+# PATCH /api/admin/runs/<id>/stop  — mark a stuck running run as stopped
+# =============================================================================
+
+@admin_process_bp.route("/api/admin/runs/<int:run_id>/stop", methods=["PATCH"])
+@admin_required
+def admin_stop_run(run_id: int):
+    """
+    Hentikan status monitoring run yang tersangkut di status running.
+
+    Catatan penting: endpoint ini tidak membunuh proses OS, karena PID pipeline
+    tidak disimpan di tabel runs. Fitur ini ditujukan untuk run stale/hung yang
+    sudah tidak menulis progress lagi, agar admin dapat menghapus riwayatnya.
+    """
+    body = request.get_json(silent=True) or {}
+    reason = body.get("reason") or "Dihentikan manual oleh admin."
+    if not isinstance(reason, str):
+        reason = "Dihentikan manual oleh admin."
+    reason = reason.strip()[:300] or "Dihentikan manual oleh admin."
+
+    db = SessionLocal()
+    try:
+        target = db.execute(
+            text("""
+                SELECT id, status, is_active
+                FROM runs
+                WHERE id = :id
+            """),
+            {"id": run_id},
+        ).fetchone()
+
+        if target is None:
+            return jsonify({"error": f"Run #{run_id} tidak ditemukan."}), 404
+
+        if target.is_active:
+            return jsonify({
+                "error": (
+                    f"Run #{run_id} sedang aktif sebagai sumber dashboard. "
+                    "Aktifkan run lain terlebih dahulu sebelum menghentikan run ini."
+                ),
+            }), 409
+
+        if target.status != "running":
+            return jsonify({
+                "run_id": run_id,
+                "status": target.status,
+                "message": "Run ini tidak sedang running.",
+            }), 200
+
+        db.execute(
+            text("""
+                UPDATE runs
+                SET status = 'stopped',
+                    message = :message,
+                    finished_at = NOW()
+                WHERE id = :id
+            """),
+            {
+                "id": run_id,
+                "message": reason,
+            },
+        )
+        db.commit()
+
+        return jsonify({
+            "run_id": run_id,
+            "status": "stopped",
+            "message": reason,
+        }), 200
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Gagal menghentikan run", "detail": str(e)}), 500
     finally:
         db.close()
 

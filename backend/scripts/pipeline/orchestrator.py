@@ -9,6 +9,7 @@ from backend.scripts.config.analysis_registry import (
     multihazard_pipeline,
 )
 from backend.scripts.config.hazard import RASTER_HAZARDS
+from backend.scripts.metadata.run_metadata import RunMetadataRecorder, sync_metadata_to_db
 from backend.scripts.utils.run_manager import PipelineRunManager
 from backend.scripts.utils import log
 
@@ -143,6 +144,12 @@ def run_padis_pipeline(
     start_total = time.time()
     results = {}
     zonal_results: list[dict] = []
+    steps_run = {
+        "preprocess": run_preprocess_step,
+        "zonal": run_zonal_step,
+        "analysis": run_analysis_step,
+        "etl": run_etl_step,
+    }
 
     manager = PipelineRunManager(
         operator_name=operator_name,
@@ -150,51 +157,76 @@ def run_padis_pipeline(
         source="local",
     )
     manager.start()
+    metadata = RunMetadataRecorder(
+        run_id=manager.run_id,
+        hazard=hazard,
+        operator_name=operator_name,
+        source="local",
+    )
+    metadata.start(steps_run)
 
     try:
         if run_preprocess_step:
             manager.update("preprocess", 5, "Preprocess dimulai")
+            metadata.record_stage("preprocess", "started", {"message": "Preprocess dimulai"})
             try:
                 preprocess_result = run_preprocess(hazard)
                 results["preprocess"] = preprocess_result
+                metadata.record_stage("preprocess", "success", preprocess_result)
+                metadata.refresh_outputs(include_processed=True)
                 manager.update("preprocess", 25, "Preprocess selesai")
             except Exception as e:
+                metadata.record_stage("preprocess", "failed", {"error": str(e)})
                 log.error("PREPROCESS", f"Gagal: {e}")
                 raise
 
         if run_zonal_step:
             manager.update("zonal", 30, "Zonal statistics dimulai")
+            metadata.record_stage("zonal", "started", {"message": "Zonal statistics dimulai"})
             try:
                 zonal_results = run_zonal_all(hazard)
                 results["zonal"] = zonal_results
+                metadata.record_stage("zonal", "success", zonal_results)
+                metadata.refresh_outputs(include_processed=True)
                 manager.update("zonal", 50, "Zonal statistics selesai")
             except Exception as e:
+                metadata.record_stage("zonal", "failed", {"error": str(e)})
                 log.error("ZONAL", f"Gagal: {e}")
                 raise
 
         if run_analysis_step:
             manager.update("analysis", 55, f"Analysis dimulai ({hazard})")
+            metadata.record_stage("analysis", "started", {"hazard": hazard})
             try:
                 analysis_results = _run_analysis_for_hazard(hazard, zonal_results)
                 results["analysis"] = analysis_results
+                metadata.record_stage("analysis", "success", analysis_results)
+                metadata.refresh_outputs(include_processed=True)
                 manager.update("analysis", 75, "Analysis selesai")
             except Exception as e:
+                metadata.record_stage("analysis", "failed", {"error": str(e)})
                 log.error("ANALYSIS", f"Gagal: {e}")
                 raise
 
         if run_etl_step:
             manager.update("etl", 80, "ETL dimulai")
+            metadata.record_stage("etl", "started", {"message": "ETL dimulai"})
             try:
                 from backend.scripts.etl.run_all import run as _run_etl
                 _run_etl(hazard, run_id=manager.run_id)
                 results["etl"] = "success"
+                metadata.record_stage("etl", "success", {"run_id": manager.run_id})
+                metadata.refresh_outputs(include_processed=True)
                 manager.update("etl", 95, "ETL selesai")
             except Exception as e:
+                metadata.record_stage("etl", "failed", {"error": str(e)})
                 log.error("ETL", f"Gagal: {e}")
                 raise
 
         elapsed = time.time() - start_total
         log.ok("PIPELINE", f"Selesai ({elapsed:.2f} detik)")
+        metadata.finish("success", "Pipeline selesai", elapsed)
+        sync_metadata_to_db(manager.run_id, metadata.path)
         manager.finish(success=True, message="Pipeline selesai")
 
         return {
@@ -202,16 +234,16 @@ def run_padis_pipeline(
             "hazard": hazard,
             "operator": operator_name,
             "execution_time": elapsed,
-            "steps_run": {
-                "preprocess": run_preprocess_step,
-                "zonal": run_zonal_step,
-                "analysis": run_analysis_step,
-                "etl": run_etl_step,
-            },
+            "steps_run": steps_run,
+            "metadata_path": metadata.path,
             "results": results,
         }
 
     except Exception as e:
         elapsed = time.time() - start_total
+        metadata.record_stage("pipeline", "failed", {"error": str(e)})
+        metadata.refresh_outputs(include_processed=True)
+        metadata.finish("failed", str(e), elapsed)
+        sync_metadata_to_db(manager.run_id, metadata.path)
         manager.finish(success=False, message=str(e))
         raise

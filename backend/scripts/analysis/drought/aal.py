@@ -79,7 +79,7 @@ def compute_aal_drought(df: pd.DataFrame) -> pd.DataFrame:
     # =========================
     df["aal_drought_nonclimate"] = df.apply(
         lambda row: calculate_aal(
-            enforce_monotonic([row[c] for c in nonclimate_cols]),
+            [row[c] for c in nonclimate_cols],
             probs_nc
         ),
         axis=1
@@ -87,7 +87,7 @@ def compute_aal_drought(df: pd.DataFrame) -> pd.DataFrame:
 
     df["aal_drought_climate"] = df.apply(
         lambda row: calculate_aal(
-            enforce_monotonic([row[c] for c in climate_cols]),
+            [row[c] for c in climate_cols],
             probs_cl
         ),
         axis=1

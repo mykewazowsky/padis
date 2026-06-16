@@ -391,12 +391,15 @@ Admin harus dapat:
 - Validasi kelengkapan run.
 - Mengaktifkan run sukses.
 - Menghapus run yang tidak aktif dan tidak running.
+- Menghentikan run yang tersangkut di status running.
+- Melihat status metadata run, mengunduh metadata JSON, dan membuat metadata backfill untuk run lama.
 
 Acceptance criteria:
 
 - Run aktif tidak dapat dihapus.
-- Run running tidak dapat dihapus.
+- Run running tidak dapat dihapus sebelum dihentikan.
 - Aktivasi run memakai endpoint PATCH.
+- Stop run mengubah status monitoring menjadi stopped.
 - Dashboard membaca run aktif setelah aktivasi.
 
 ### 10.11 Admin - Output Management
@@ -698,7 +701,11 @@ Pipeline status:
 - GET /api/admin/runs.
 - GET /api/admin/runs/active.
 - GET /api/admin/runs/{run_id}/validate.
+- GET /api/admin/runs/{run_id}/metadata.
+- GET /api/admin/runs/{run_id}/metadata/download.
+- POST /api/admin/runs/{run_id}/metadata/backfill.
 - PATCH /api/admin/runs/{run_id}/activate.
+- PATCH /api/admin/runs/{run_id}/stop.
 - DELETE /api/admin/runs/{run_id}.
 
 Process control:
@@ -807,7 +814,7 @@ Target awal:
 - Backend memakai blueprint per domain.
 - Pipeline dipisah menjadi module preprocess, zonal, analysis, dan ETL.
 - Dokumentasi teknis disimpan di folder docs.
-- Migration SQL disimpan di db/migrations.
+- Migration SQL disimpan di backend/migrations.
 
 ### 15.5 Observability
 
@@ -1138,4 +1145,3 @@ Deployment:
 - Railway untuk backend.
 - Vercel atau Railway untuk frontend.
 - Supabase untuk database.
-

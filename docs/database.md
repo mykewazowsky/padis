@@ -145,7 +145,7 @@ Metadata eksekusi pipeline.
 | `run_name` | varchar | Nama run. |
 | `created_at` | timestamptz | Waktu mulai. |
 | `finished_at` | timestamp | Waktu selesai. |
-| `status` | varchar | `running`, `success`, `failed`. |
+| `status` | varchar | `running`, `success`, `failed`, `stopped`, atau status backfill metadata jika relevan. |
 | `is_active` | boolean | Run yang dipakai dashboard. |
 | `step` | varchar | Tahap aktif. |
 | `progress` | integer | Progres 0-100. |
@@ -154,6 +154,25 @@ Metadata eksekusi pipeline.
 | `source` | varchar | `local` untuk run operator, `etl` untuk ETL standalone jika ada. |
 
 Satu run aktif dipilih melalui `is_active=true`. Migration `004_runs_active_management.sql` menambahkan `finished_at` dan index partial untuk run aktif.
+
+### `run_metadata`
+
+Manifest metadata per run. Tabel ini ditambahkan oleh migration `006_add_run_metadata.sql`.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | serial | Primary key. |
+| `run_id` | integer unique | FK ke `runs(id)`. |
+| `hazard` | text | Hazard yang direkam, misalnya `flood`, `drought`, atau `multi`. |
+| `status` | text | Status metadata/run saat metadata disinkronkan. |
+| `metadata_version` | text | Versi skema metadata manifest. |
+| `metadata_status` | text | `complete`, `partial`, atau `backfilled_partial`. |
+| `metadata_path` | text | Lokasi file JSON lokal jika tersedia. |
+| `metadata` | jsonb | Isi lengkap file `run_<id>_metadata.json`. |
+| `created_at` | timestamp | Waktu baris dibuat. |
+| `updated_at` | timestamp | Waktu metadata terakhir diperbarui. |
+
+Kolom `metadata` menyimpan JSON lengkap untuk audit dan unduhan. Kolom ringkasan dipakai agar Admin/API dapat melakukan query cepat tanpa membongkar seluruh JSON.
 
 ## Tabel User
 
@@ -243,7 +262,7 @@ JOIN losses l ON ...
 File migration manual ada di:
 
 ```text
-db/migrations/
+backend/migrations/
 ```
 
 Migration penting:
@@ -253,6 +272,7 @@ Migration penting:
 - `003_runs_created_at_index.sql`: index waktu run.
 - `004_runs_active_management.sql`: `finished_at` dan index run aktif.
 - `005_password_reset_tokens.sql`: tabel token reset password.
+- `006_add_run_metadata.sql`: tabel `run_metadata` dan index metadata JSONB.
 
 Tabel `admin_audit_log` tidak memerlukan migration file. Backend membuatnya otomatis saat startup.
 

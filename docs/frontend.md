@@ -220,6 +220,10 @@ Fungsi:
 - Validasi kelengkapan run.
 - Aktivasi run.
 - Hapus run dengan konfirmasi.
+- Menampilkan status metadata run.
+- Mengunduh metadata run sebagai JSON.
+- Membuat metadata backfill parsial untuk run lama.
+- Menghentikan run yang tersangkut di status `running` agar dapat dihapus.
 
 ## Styling
 

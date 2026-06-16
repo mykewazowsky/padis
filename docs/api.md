@@ -303,6 +303,17 @@ Query:
 | `operator_name` | kosong | Filter nama operator. |
 | `hazard` | kosong | `flood`, `drought`, atau `multi`. |
 
+Setiap item run juga menyertakan ringkasan metadata jika tersedia:
+
+```json
+{
+  "metadata_available": true,
+  "metadata_status": "backfilled_partial",
+  "metadata_path": "backend/data/output/runs/run_49_metadata.json",
+  "metadata_updated_at": "2026-06-16T17:27:29.088882"
+}
+```
+
 ### GET `/api/admin/runs/active`
 
 Mengembalikan run yang sedang aktif (`is_active=true`).
@@ -316,6 +327,28 @@ Memeriksa kelengkapan data run pada tabel:
 - `zonal_kabupaten`
 
 Response menyertakan `all_hazards_present` dan `complete`.
+
+### GET `/api/admin/runs/{run_id}/metadata`
+
+Mengembalikan metadata lengkap sebuah run dari tabel `run_metadata`.
+
+Jika metadata belum tersedia, response `404` berisi `metadata_available=false`.
+
+### GET `/api/admin/runs/{run_id}/metadata/download`
+
+Mengunduh metadata run sebagai file JSON.
+
+Nama file:
+
+```text
+run_{run_id}_metadata.json
+```
+
+### POST `/api/admin/runs/{run_id}/metadata/backfill`
+
+Membuat metadata parsial untuk run lama yang belum memiliki metadata.
+
+Metadata backfill dibuat dari artefak yang tersedia saat request dilakukan, sehingga statusnya `backfilled_partial` dan tidak merekonstruksi histori eksekusi asli secara penuh.
 
 ### PATCH `/api/admin/runs/{run_id}/activate`
 
@@ -373,9 +406,23 @@ Response `200`:
 { "run_id": 12, "data_year": 2022 }
 ```
 
+### PATCH `/api/admin/runs/{run_id}/stop`
+
+Mengubah run yang tersangkut di status `running` menjadi `stopped`.
+
+Body opsional:
+
+```json
+{ "reason": "Dihentikan manual dari Pipeline Monitor." }
+```
+
+Catatan: endpoint ini tidak membunuh proses OS karena PID pipeline tidak disimpan di tabel `runs`. Fitur ini dipakai untuk run stale/hung yang sudah tidak menulis progres, agar run dapat dihapus dari riwayat.
+
 ### DELETE `/api/admin/runs/{run_id}`
 
-Menghapus run dan data turunannya dari `zonal_kabupaten`, `losses`, dan `aal`. Tidak boleh menghapus run aktif atau run yang masih running.
+Menghapus run dan data turunannya dari `zonal_kabupaten`, `losses`, dan `aal`. Tidak boleh menghapus run aktif atau run yang masih `running`.
+
+Jika run tersangkut di status `running`, hentikan dulu melalui `PATCH /api/admin/runs/{run_id}/stop`, lalu hapus setelah status menjadi `stopped`.
 
 ## Admin - Process Control
 

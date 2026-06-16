@@ -67,7 +67,7 @@ PADIS/
 |   `-- src/services/            # Client data layer
 |-- docs/                        # Dokumentasi teknis Indonesia
 |-- scripts/                     # Helper operasional opsional
-|-- db/migrations/               # Migration SQL manual
+|-- backend/migrations/          # Migration SQL manual
 |-- padis.ps1                    # Launcher lokal Windows
 |-- install-padis-command.ps1    # Installer alias opsional
 |-- Dockerfile.pipeline          # Image opsional untuk pipeline operator
@@ -131,6 +131,8 @@ Pipeline analisis dan load database sengaja dipisahkan.
 2. Pastikan tiga file final tersedia.
 3. Jalankan "Muat ke Database Saja" untuk ETL ketiga file final sekaligus.
 4. Aktifkan run yang sukses dari Pipeline Monitor jika diperlukan.
+
+Setiap run baru membuat manifest metadata JSON di `backend/data/output/runs/` dan mencoba menyinkronkannya ke tabel Supabase `run_metadata`. Pipeline Monitor juga dapat membuat metadata backfill parsial untuk run lama, mengunduh metadata JSON, dan menghentikan run yang tersangkut di status `running` sebelum dihapus.
 
 Tiga file final wajib:
 

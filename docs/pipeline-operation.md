@@ -95,12 +95,16 @@ Jika file belum lengkap, backend mengembalikan `409` dengan daftar `missing`.
 
 Buka Pipeline Monitor untuk melihat:
 
-- Status run: `running`, `success`, `failed`.
+- Status run: `running`, `success`, `failed`, atau `stopped`.
 - Tahap aktif: `preprocess`, `zonal`, `analysis`, `etl`.
 - Progres dalam persen.
 - Pesan terakhir dari pipeline.
 - Riwayat run terbaru.
 - Validasi run sebelum aktivasi.
+- Status metadata run.
+- Unduh metadata JSON.
+- Buat metadata backfill untuk run lama.
+- Stop run yang tersangkut di status `running`.
 
 Endpoint yang dipakai:
 
@@ -108,7 +112,11 @@ Endpoint yang dipakai:
 GET /api/admin/run-status
 GET /api/admin/runs
 GET /api/admin/runs/{run_id}/validate
+GET /api/admin/runs/{run_id}/metadata
+GET /api/admin/runs/{run_id}/metadata/download
+POST /api/admin/runs/{run_id}/metadata/backfill
 PATCH /api/admin/runs/{run_id}/activate
+PATCH /api/admin/runs/{run_id}/stop
 ```
 
 ## Menjalankan dari CLI
@@ -166,13 +174,22 @@ Jalankan `full + flood` dan `full + drought` terlebih dahulu. Jika keduanya suda
 
 ### Pipeline tidak bisa dimulai
 
-Backend menolak run baru jika ada run `source='local'` yang masih `running` dan belum stale. Tunggu selesai, atau jika proses benar-benar mati, tandai run lama sebagai failed di database.
+Backend menolak run baru jika ada run `source='local'` yang masih `running` dan belum stale.
 
-```sql
-UPDATE runs
-SET status = 'failed'
-WHERE status = 'running' AND source = 'local';
+Jika proses benar-benar mati tetapi status run masih `running`:
+
+1. Buka Pipeline Monitor.
+2. Klik tombol **Stop** pada run yang tersangkut.
+3. Pastikan status berubah menjadi `stopped`.
+4. Jika tidak diperlukan lagi, klik **Hapus** untuk menghapus run dari riwayat.
+
+Endpoint yang dipakai UI:
+
+```text
+PATCH /api/admin/runs/{run_id}/stop
 ```
+
+Endpoint ini hanya memperbarui status monitoring di database. Endpoint tidak membunuh proses OS karena PID pipeline tidak disimpan di tabel `runs`.
 
 ### Data tidak muncul di dashboard setelah ETL
 

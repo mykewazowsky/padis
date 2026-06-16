@@ -213,7 +213,7 @@ Graphify update kode tidak membutuhkan LLM API key.
 
 ## Database
 
-Jalankan migration SQL dari `db/migrations/` sesuai urutan di database target.
+Jalankan migration SQL dari `backend/migrations/` sesuai urutan di database target.
 
 Cek PostGIS:
 
@@ -410,7 +410,13 @@ Hentikan proses lama yang memakai port `5000` atau `3000`, lalu jalankan ulang.
 
 ### Pipeline tidak bisa dimulai
 
-Cek Pipeline Monitor. Jika ada run `running` yang sebenarnya sudah mati, tandai sebagai failed di database.
+Cek Pipeline Monitor. Jika ada run `running` yang sebenarnya sudah mati:
+
+1. Klik **Stop** pada run tersebut.
+2. Tunggu status berubah menjadi `stopped`.
+3. Hapus run jika memang tidak diperlukan lagi.
+
+Untuk metadata run lama, gunakan tombol **Buat** pada kolom Metadata. Sistem akan membuat metadata `backfilled_partial` dari artefak yang tersedia saat ini.
 
 ### Load database tidak bisa jalan
 

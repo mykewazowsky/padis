@@ -116,7 +116,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 Migration manual tersedia di:
 
 ```text
-db/migrations/
+backend/migrations/
 ```
 
 Jalankan migration sesuai urutan:
@@ -126,6 +126,7 @@ Jalankan migration sesuai urutan:
 3. `003_runs_created_at_index.sql`
 4. `004_runs_active_management.sql`
 5. `005_password_reset_tokens.sql`
+6. `006_add_run_metadata.sql`
 
 Tabel `admin_audit_log` dibuat otomatis oleh backend saat startup via `CREATE TABLE IF NOT EXISTS`. Tidak ada migration manual yang dibutuhkan untuk tabel ini.
 

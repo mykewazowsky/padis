@@ -7,7 +7,7 @@ Status dokumen: Draft lengkap berbasis kondisi project saat ini
 
 ## 1. Ringkasan Eksekutif
 
-PADIS adalah platform Web-GIS untuk menganalisis dan memvisualisasikan risiko bencana terhadap produksi padi di Indonesia. Produk ini menggabungkan peta interaktif, analitik kerugian, Annual Average Loss (AAL), indeks hazard, data produksi padi, pipeline geospasial, database PostGIS, laporan, dan panel admin untuk menjalankan serta mengelola proses analisis.
+PADIS adalah platform Web-GIS untuk menganalisis dan memvisualisasikan risiko bencana terhadap produksi padi di Indonesia. Produk ini menggabungkan peta interaktif, analitik kerugian, Average Annual Loss (AAL), indeks hazard, data produksi padi, pipeline geospasial, database PostGIS, laporan, dan panel admin untuk menjalankan serta mengelola proses analisis.
 
 Sistem mendukung tiga tipe hazard utama:
 
@@ -280,7 +280,7 @@ Layer yang harus didukung:
 - regions: batas administrasi.
 - production: produksi padi.
 - loss: kerugian ekonomi.
-- aal: Annual Average Loss.
+- aal: Average Annual Loss.
 - hazard: indeks hazard.
 
 Kebutuhan rendering:

@@ -523,7 +523,7 @@
     "rasterFormatLabel": "Format Raster Hazard (Kedua Skenario)",
     "floodValueDesc": "— nilai ketinggian genangan (meter)",
     "droughtValueDesc": "— nilai Standardized Precipitation Index (SPI)",
-    "processExplanation": "Kedua skenario diproses melalui alur perhitungan risiko yang sama: ekstraksi nilai hazard, penerapan kurva kerentanan, estimasi kerugian langsung, dan agregasi ke Annual Average Loss (AAL) tingkat kabupaten/kota.",
+    "processExplanation": "Kedua skenario diproses melalui alur perhitungan risiko yang sama: ekstraksi nilai hazard, penerapan kurva kerentanan, estimasi kerugian langsung, dan agregasi ke Average Annual Loss (AAL) tingkat kabupaten/kota.",
     "floodCurveDesc": "Kurva ini menunjukkan hubungan antara ketinggian genangan banjir dan kehilangan produktivitas padi (loss of productivity). Formulasi yang digunakan mengacu pada Hendrawan & Komori (2021) untuk merepresentasikan respons kerentanan banjir pada analisis PADIS.",
     "floodFormulaTitle": "Persamaan Loss of Productivity",
     "floodFormulaExplain": "Pada formulasi ini, y merepresentasikan nilai loss of productivity, sedangkan x merepresentasikan ketinggian genangan banjir maksimum (meter).",

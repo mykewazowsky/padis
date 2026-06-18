@@ -141,7 +141,7 @@ Layer yang dipakai:
 | `regions` | `/api/tiles/regions` | Batas administrasi. |
 | `production` | `/api/layers/values/production` dan `/api/tiles/production` | Produksi padi. |
 | `loss` | `/api/layers/values/loss` dan `/api/tiles/loss` | Kerugian ekonomi. |
-| `aal` | `/api/layers/values/aal` dan `/api/tiles/aal` | Annual Average Loss. |
+| `aal` | `/api/layers/values/aal` dan `/api/tiles/aal` | Average Annual Loss. |
 | `hazard` | `/api/layers/values/hazard` dan `/api/tiles/hazard` | Indeks hazard. |
 
 Prioritas legend dan format saat beberapa layer aktif:

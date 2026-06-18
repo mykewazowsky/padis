@@ -523,7 +523,7 @@
     "rasterFormatLabel": "Hazard Raster Format (Both Scenarios)",
     "floodValueDesc": "— inundation depth value (meters)",
     "droughtValueDesc": "— Standardized Precipitation Index (SPI) value",
-    "processExplanation": "Both scenarios are processed through the same risk calculation workflow: hazard value extraction, vulnerability curve application, direct loss estimation, and aggregation to Annual Average Loss (AAL) at district level.",
+    "processExplanation": "Both scenarios are processed through the same risk calculation workflow: hazard value extraction, vulnerability curve application, direct loss estimation, and aggregation to Average Annual Loss (AAL) at district level.",
     "floodCurveDesc": "This curve shows the relationship between flood inundation depth and rice loss of productivity. The formulation follows Hendrawan & Komori (2021) to represent flood vulnerability response in PADIS analysis.",
     "floodFormulaTitle": "Loss of Productivity Equation",
     "floodFormulaExplain": "In this formulation, y represents the loss of productivity value, while x represents the maximum flood inundation depth (meters).",

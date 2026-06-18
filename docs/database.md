@@ -94,7 +94,7 @@ Unique constraint:
 
 ### `aal`
 
-Annual Average Loss per wilayah, hazard, scenario, dan run.
+Average Annual Loss per wilayah, hazard, scenario, dan run.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -103,7 +103,7 @@ Annual Average Loss per wilayah, hazard, scenario, dan run.
 | `hazard_id` | integer | FK ke `hazards`. |
 | `scenario_id` | integer | FK ke `scenarios`. |
 | `run_id` | integer | FK ke `runs`. |
-| `aal` | float | Nilai Annual Average Loss. |
+| `aal` | float | Nilai Average Annual Loss. |
 
 Unique constraint:
 

@@ -177,7 +177,7 @@ Database utama adalah PostgreSQL + PostGIS. Tabel yang paling sering dipakai:
 - `regions_sawah`: wilayah sawah hasil agregasi.
 - `production`: produksi padi per wilayah.
 - `losses`: nilai kerugian per hazard, scenario, return period, dan run.
-- `aal`: Annual Average Loss per hazard, scenario, dan run.
+- `aal`: Average Annual Loss per hazard, scenario, dan run.
 - `zonal_kabupaten`: statistik zonal hazard per wilayah.
 - `runs`: metadata eksekusi pipeline.
 - `app_users`: akun aplikasi.

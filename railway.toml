@@ -9,4 +9,13 @@ cmds = [
 ]
 
 [start]
-cmd = "cd backend && gunicorn run:app"
+# PYTHONPATH=/app agar Python menemukan package `backend` (namespace package
+# dari /app/backend) tanpa bergantung pada cwd. Module path absolut
+# `backend.run:app` dipakai karena `run.py` mengimpor `backend.app`.
+# -b 0.0.0.0:$PORT agar gunicorn bind ke port yang ditentukan Railway (PORT
+# otomatis diset, default 8080). Tanpa flag ini Railway bisa gagal health-check
+# bila gunicorn bind ke 8000 (default lama).
+# Catatan: bila Start Command di-override di Railway dashboard (Settings →
+# Deploy → Custom Start Command), nilai dashboard yang dipakai dan baris ini
+# diabaikan. Kosongkan Custom Start Command agar konfigurasi repo berlaku.
+cmd = "PYTHONPATH=/app gunicorn -b 0.0.0.0:$PORT --workers 1 backend.run:app"

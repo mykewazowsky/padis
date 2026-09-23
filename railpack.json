@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "packages": {
+    "python": "3.11.9"
+  },
+  "steps": {
+    "install": {
+      "commands": [
+        "pip install --no-cache-dir -r backend/requirements.txt"
+      ]
+    }
+  },
+  "deploy": {
+    "variables": {
+      "PYTHONPATH": "/app:$PYTHONPATH",
+      "FLASK_ENV": "production"
+    },
+    "startCommand": "gunicorn -b 0.0.0.0:$PORT --workers 1 backend.run:app",
+    "healthCheckPath": "/health"
+  }
+}

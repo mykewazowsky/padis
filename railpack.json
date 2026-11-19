@@ -1,16 +1,7 @@
-
 {
   "$schema": "https://schema.railpack.com",
   "packages": {
     "python": "3.11.9"
-  },
-  "steps": {
-    "install": {
-      "commands": [
-        "pwd && ls -la && find . -maxdepth 3 -type f | sort | head -200",
-        "test -f requirements.txt && pip install --no-cache-dir -r requirements.txt"
-      ]
-    }
   },
   "deploy": {
     "variables": {

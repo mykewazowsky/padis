@@ -7,7 +7,8 @@
   "steps": {
     "install": {
       "commands": [
-        "pip install --no-cache-dir -r backend/requirements.txt"
+        "pwd && ls -la && find . -maxdepth 3 -type f | sort | head -200",
+        "test -f requirements.txt && pip install --no-cache-dir -r requirements.txt"
       ]
     }
   },
